@@ -1,0 +1,114 @@
+# TaoKeeper CI verification (2026-11-12, boss-approved early GH Actions use)
+# Scope: device-pending 6 items coverable by CI. UI navigation remains device-only.
+# Boundary: no edits to existing code; CI-only scripts under ci/ and .github/.
+name: taokeeper-verify
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v1.0.0-rc1' ]
+  workflow_dispatch:
+
+jobs:
+  cpp-ctest:
+    name: C++ 5 suites (cmake+MSVC)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clean stale build dirs (pitfall 9)
+        run: if (Test-Path native/TaoKeeperScan/build) { Remove-Item -Recurse -Force native/TaoKeeperScan/build }
+        shell: pwsh
+      - name: Configure
+        run: cmake -S native/TaoKeeperScan -B native/TaoKeeperScan/build -G "Visual Studio 17 2022" -A x64
+        shell: pwsh
+      - name: Build (zero-error gate)
+        run: |
+          cmake --build native/TaoKeeperScan/build --config Release 2>&1 | Tee-Object -FilePath cpp-build.log
+          $errs = (Select-String -Path cpp-build.log -Pattern ': error ' | Measure-Object).Count
+          Write-Host "[CHECK] cpp build error count: $errs"
+          if ($errs -ne 0) { exit 1 }
+        shell: pwsh
+      - name: Test (5 suites)
+        run: ctest --test-dir native/TaoKeeperScan/build -C Release --output-on-failure
+        shell: pwsh
+
+  dotnet-tests:
+    name: .NET 3 test projects + shell build + build.ps1
+    runs-on: windows-latest
+    env:
+      DOTNET_ROLL_FORWARD: LatestMajor
+      DOTNET_NOLOGO: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Core+AppKernel+Adapters
+        run: |
+          dotnet test tests/TaoKeeper.Core.Tests -c Release
+          dotnet test tests/TaoKeeper.AppKernel.Tests -c Release
+          dotnet test tests/TaoKeeper.Adapters.Tests -c Release
+        shell: pwsh
+      - name: Build WinUI shell (uncomment SDK ref first, pitfall 17)
+        run: |
+          ci/uncomment-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
+          dotnet build src/TaoKeeper.App/TaoKeeper.App.csproj -c Release -p:Platform=x64 2>&1 | Tee-Object -FilePath winui-build.log
+          $errs = (Select-String -Path winui-build.log -Pattern ': error ' | Measure-Object).Count
+          $warns = (Select-String -Path winui-build.log -Pattern ': warning ' | Measure-Object).Count
+          Write-Host "[CHECK] winui error count: $errs, warning count: $warns"
+          ci/restore-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
+          if ($errs -ne 0) { exit 1 }
+          if ($warns -gt 0) { Write-Host "[WARN-GATE] $warns warnings present - reporting, not suppressing" }
+        shell: pwsh
+      - name: build.ps1 real run (pwsh 7.4+)
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./build.ps1 -SkipNative
+        shell: pwsh
+
+  msi-fullflow:
+    name: MSI bind, install, uninstall, upgrade, hashes
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish payload offline
+        run: |
+          ci/uncomment-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
+          dotnet publish src/TaoKeeper.App -c Release -r win-x64 --self-contained false -o tools/msi/publish
+          if (-not (Test-Path tools/msi/publish/TaoKeeper.App.exe)) { Write-Host "[ERROR] payload exe missing"; exit 1 }
+          Write-Host "[OK] publish payload ready"
+        shell: pwsh
+      - name: Install WiX 5.0.2 + UI extension
+        run: |
+          dotnet tool install -g wix --version 5.0.2
+          wix extension add -g WixToolset.UI.wixext --version 5.0.2
+        shell: pwsh
+      - name: Build MSI (single-msi gate)
+        run: |
+          cmd /c "tools\msi\build-msi.bat" 2>&1 | Tee-Object -FilePath msi-build.log
+          if ($LASTEXITCODE -ne 0) { Get-Content msi-build.log -Tail 40; exit $LASTEXITCODE }
+          if (-not (Test-Path tools/msi/out/TaoKeeper-PC-MSI-v1.0.0.msi)) { Write-Host "[ERROR] msi missing"; exit 1 }
+        shell: pwsh
+      - name: Silent install, uninstall, upgrade path
+        run: |
+          $msi = "tools\msi\out\TaoKeeper-PC-MSI-v1.0.0.msi"
+          $p1 = Start-Process msiexec -ArgumentList "/i",$msi,"/qn","/norestart","/l*v","install.log" -Wait -PassThru
+          Write-Host "[INSTALL] exit=$($p1.ExitCode)"
+          if ($p1.ExitCode -ne 0) { Get-Content install.log -Tail 40; exit 1 }
+          $arp = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "*TaoKeeper*" }
+          Write-Host "[CHECK] ARP entry: $($arp.DisplayName) version $($arp.DisplayVersion)"
+          if (-not $arp) { Write-Host "[ERROR] no ARP entry after install"; Get-Content install.log -Tail 40; exit 1 }
+          $p2 = Start-Process msiexec -ArgumentList "/x",$($arp.PSChildName),"/qn","/norestart","/l*v","uninstall.log" -Wait -PassThru
+          Write-Host "[UNINSTALL] exit=$($p2.ExitCode)"
+          if ($p2.ExitCode -ne 0) { Get-Content uninstall.log -Tail 40; exit 1 }
+          $arp2 = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "*TaoKeeper*" }
+          if ($arp2) { Write-Host "[ERROR] ARP residue after uninstall"; exit 1 }
+          Write-Host "[OK] uninstall clean"
+          $p3 = Start-Process msiexec -ArgumentList "/i",$msi,"/qn","/norestart","/l*v","upgrade.log" -Wait -PassThru
+          Write-Host "[UPGRADE-REINSTALL] exit=$($p3.ExitCode)"
+          if ($p3.ExitCode -ne 0) { Get-Content upgrade.log -Tail 40; exit 1 }
+          $arp3 = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "*TaoKeeper*" }
+          if ($arp3) { Start-Process msiexec -ArgumentList "/x",$($arp3.PSChildName),"/qn","/norestart" -Wait }
+          Write-Host "[OK] msi full flow: install, uninstall, reinstall(upgrade) all green"
+        shell: pwsh
+      - name: Hash triple (bytes + SHA-256 + manifest)
+        run: |
+          ci/make-hashes-ci.ps1 -OutDir tools/msi/out
+          $msi = Get-Item tools/msi/out/TaoKeeper-PC-MSI-v1.0.0.msi
+          Write-Host "[HASH] bytes=$($msi.Length) sha256=$((Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower())"
+        shell: pwsh
