@@ -17,8 +17,12 @@
             <TextBlock Text="只装官方驱动，装前备份、随时回滚" FontSize="13.5"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
-            <TextBlock x:Name="SummaryText" FontSize="13" Foreground="{ThemeResource TaoInk2Brush}"
-                       Text="尚未扫描驱动清单" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock x:Name="SummaryText" FontSize="13" VerticalAlignment="Center"
+                           Foreground="{ThemeResource TaoInk2Brush}" Text="尚未扫描驱动清单" />
+                <Button x:Name="ScanButton" Content="扫描驱动" Click="OnScanClick" CornerRadius="10"
+                        Padding="16,7" Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+            </StackPanel>
 
             <Border CornerRadius="14" BorderThickness="1" Padding="16,12"
                     BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">

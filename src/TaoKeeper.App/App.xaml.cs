@@ -26,6 +26,8 @@ public partial class App : Application
         AppTheme.Apply(this, AppTheme.LoadThemeFromSettings());
 
         _mainWindow = new MainWindow();
+        // 组合根接线（各页数据提供者接真实引擎/适配器；接线唯一入口，见 CompositionRoot）
+        CompositionRoot.Wire((MainWindow)_mainWindow);
         _mainWindow.Activate();
 
         GC.KeepAlive(typeof(AppRouteCatalog)); // 导航目录随壳常驻（保持引用，防裁剪）

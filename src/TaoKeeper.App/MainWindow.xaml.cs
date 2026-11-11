@@ -91,6 +91,8 @@ public sealed partial class MainWindow : Window
         AppRoute.Mem => MemViewModelProvider?.Invoke(),
         AppRoute.SwStore => SwStoreViewModelProvider?.Invoke(),
         AppRoute.Settings => SettingsViewModelProvider?.Invoke(),
+        AppRoute.Disk => DiskViewModelProvider?.Invoke(),
+        AppRoute.Driver => DriverViewModelProvider?.Invoke(),
         _ => null,
     };
 
@@ -108,6 +110,12 @@ public sealed partial class MainWindow : Window
 
     /// <summary>设置数据提供者（运行期接线；未接线时设置页按默认态兜底）。</summary>
     public Func<TaoKeeper.AppKernel.ViewModels.SettingsPageViewModel>? SettingsViewModelProvider { get; set; }
+
+    /// <summary>磁盘清理数据提供者（运行期接线；未接线时磁盘页显示未扫描空态）。</summary>
+    public Func<TaoKeeper.AppKernel.ViewModels.DiskCleanupPageViewModel>? DiskViewModelProvider { get; set; }
+
+    /// <summary>驱动升级数据提供者（运行期接线；未接线时驱动页显示未扫描态）。</summary>
+    public Func<TaoKeeper.AppKernel.ViewModels.DriverPageViewModel>? DriverViewModelProvider { get; set; }
 
     /// <summary>程序化选中导航项（页面间互跳用）；design 路由不在交付导航条内。</summary>
     public void SelectRoute(AppRoute route)

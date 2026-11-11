@@ -2,8 +2,8 @@
 <!--
     磁盘清理页（严格按原型 v19 data-page="disk"：crumb + 标题 + 副题 + 环图卡 + 可清项目卡）。
     数据经 DiskCleanupPageViewModel 注入（未扫描/空态如实显示，不假 3.2 GB、不假 512 GB）；
-    勾选即重算汇总（VM.ToggleRule），「清理（先进回收站）」只产出经确认闸门的清单，
-    实际执行由 CleanupCoordinator 接线（P2），本页零写动作。
+    「开始扫描」走真实 JunkRuleEngine 规则表；「清理（先进回收站）」经用户确认后由 CleanupCoordinator
+    + Win32 回收站适配器逐条移入系统回收站（可还原），失败逐条如实报告。
 -->
 <Page
     x:Class="TaoKeeper.App.Views.DiskCleanupPage"
@@ -16,6 +16,13 @@
             <TextBlock Text="磁盘清理" FontSize="26" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
             <TextBlock Text="扫得全，清得稳——一切清理先进回收站" FontSize="13.5"
                        Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button x:Name="ScanButton" Content="开始扫描" Click="OnScanClick" CornerRadius="10"
+                        Padding="16,7" Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                <TextBlock x:Name="ScanStatus" VerticalAlignment="Center" FontSize="12.5" TextWrapping="Wrap"
+                           Foreground="{ThemeResource TaoInk3Brush}" />
+            </StackPanel>
 
             <Grid ColumnSpacing="14">
                 <Grid.ColumnDefinitions>

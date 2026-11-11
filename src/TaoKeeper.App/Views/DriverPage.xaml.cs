@@ -43,6 +43,31 @@ public sealed partial class DriverPage : Page
         DriverRows.ItemsSource = vm.Rows.Select(MakeRow).ToList();
     }
 
+    /// <summary>真实驱动扫描：WUA COM + pnputil 适配器经 VM.LoadAsync 出清册，完成后回填展示。</summary>
+    private async void OnScanClick(object sender, RoutedEventArgs e)
+    {
+        if (_vm is null || DriverAdapterProvider is null)
+        {
+            await ShowNote("驱动扫描通道尚未接线，本次未执行任何动作。");
+            return;
+        }
+        ScanButton.IsEnabled = false;
+        SummaryText.Text = "扫描中…（查询 Windows Update 驱动目录，约半分钟）";
+        try
+        {
+            var vm = await _vm.LoadAsync(DriverAdapterProvider());
+            Bind(vm);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException)
+        {
+            SummaryText.Text = $"扫描未完成：{ex.Message}（未动任何驱动，可重试）";
+        }
+        finally
+        {
+            ScanButton.IsEnabled = true;
+        }
+    }
+
     private Grid MakeRow(DriverPageRow r)
     {
         var grid = new Grid { ColumnSpacing = 10, Padding = new Thickness(0, 7, 0, 7) };
