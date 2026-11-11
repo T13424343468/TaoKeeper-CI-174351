@@ -12,7 +12,7 @@ on:
 jobs:
   cpp-ctest:
     name: C++ 5 suites (cmake+MSVC)
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - name: Clean stale build dirs (pitfall 9)
