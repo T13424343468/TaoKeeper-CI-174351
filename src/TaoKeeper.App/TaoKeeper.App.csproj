@@ -28,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TaoKeeper.Core\TaoKeeper.Core.csproj" />
     <ProjectReference Include="..\TaoKeeper.AppKernel\TaoKeeper.AppKernel.csproj" />
+    <ProjectReference Include="..\TaoKeeper.Adapters\TaoKeeper.Adapters.csproj" />
   </ItemGroup>
 
 </Project>

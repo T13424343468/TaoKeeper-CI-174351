@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using TaoKeeper.Adapters;
 using TaoKeeper.AppKernel.ViewModels;
+using TaoKeeper.Core.Models;
 using TaoKeeper.Core.Modules;
 
 namespace TaoKeeper.App;
