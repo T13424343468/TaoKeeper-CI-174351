@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    CI-only data effect probe (boundary: new CI-only project, no edits to app code).
+    Boss order 2026-11-12 02:0x: data not enough, seed until enough.
+    Seeds a deterministic tree (known counts/bytes), runs the REAL Core engines
+    (PortableDiskScanner + DuplicateFileFinder + JunkRuleEngine), asserts exact numbers.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TaoKeeper.Core\TaoKeeper.Core.csproj" />
+  </ItemGroup>
+
+</Project>

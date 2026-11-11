@@ -60,6 +60,9 @@ jobs:
       - name: build.ps1 real run (pwsh 7.4+)
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./build.ps1 -SkipNative
         shell: pwsh
+      - name: Data effect probe (seed known tree, assert exact scan/dup/junk numbers)
+        run: dotnet run --project ci/EffectProbe -c Release
+        shell: pwsh
 
   msi-fullflow:
     name: MSI bind, install, uninstall, upgrade, hashes
