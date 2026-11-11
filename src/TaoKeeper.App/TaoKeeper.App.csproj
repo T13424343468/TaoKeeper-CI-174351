@@ -19,7 +19,7 @@
     <UseWinUI>true</UseWinUI>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <!-- 真机构建前取消下行注释（Windows App SDK）：
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240404015" /> -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240428000" /> -->
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
