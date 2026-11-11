@@ -32,9 +32,13 @@ target_link_libraries(test_mft_tree PRIVATE taokeeperscan)
 add_test(NAME mft_tree COMMAND test_mft_tree)
 
 add_executable(test_mft_stream tests/test_mft_stream.cpp)
-target_link_libraries(test_mft_stream PRIVATE taokeeperscan_shared)
+# 2026-11-12 r4 修红：测试同时用 tk:: C++ 封装类（静态库）与 tk_mft_stream_* C ABI（DLL 导入库）；
+# TK_BUILD_SHARED 仅 PRIVATE 给 DLL，C++ 类不进导入库，需双链接。运行期把 DLL 目录加进 PATH。
+target_link_libraries(test_mft_stream PRIVATE taokeeperscan_shared taokeeperscan)
 add_test(NAME mft_stream COMMAND test_mft_stream)
+set_tests_properties(mft_stream PROPERTIES ENVIRONMENT "PATH=$<TARGET_FILE_DIR:taokeeperscan_shared>\;$ENV{PATH}")
 
 add_executable(test_mft_agg_incr tests/test_mft_agg_incr.cpp)
-target_link_libraries(test_mft_agg_incr PRIVATE taokeeperscan_shared)
+target_link_libraries(test_mft_agg_incr PRIVATE taokeeperscan_shared taokeeperscan)
 add_test(NAME mft_agg_incr COMMAND test_mft_agg_incr)
+set_tests_properties(mft_agg_incr PROPERTIES ENVIRONMENT "PATH=$<TARGET_FILE_DIR:taokeeperscan_shared>\;$ENV{PATH}")
