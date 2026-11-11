@@ -115,7 +115,24 @@ foreach ($page in $plan) {
 }
 
 # Real-action probes per page (bounded waits; app keeps its own progress UI).
-# Each probe: re-find actionable button in current page scope and invoke once.
+# Each probe: FIRST navigate back to its own page by nav index, then find and
+# invoke the actionable button. The walk leaves the app on the LAST page, so
+# without explicit navigation every probe would run on the wrong page and
+# false-fail. Nav index map: overview=0/software=1/disk=2/checkup=3/
+# speedup=4/memory=5/driver=6/popup=7/settings=8 (matches $plan order).
+function Invoke-NavByIndex([int]$Idx) {
+  if ($Idx -lt 0 -or $Idx -ge $navItems.Count) { return $false }
+  try {
+    try {
+      $navItems[$Idx].El.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+    } catch {
+      $navItems[$Idx].El.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+    }
+  } catch { return $false }
+  Start-Sleep -Seconds 4
+  if ($p.HasExited) { return $false }
+  return $true
+}
 function Invoke-PageAction([string]$ActionName, [int]$WaitSec) {
   try {
     $scope = $root.FindFirst([System.Windows.Automation.TreeScope]::Children,
@@ -136,24 +153,30 @@ function Invoke-PageAction([string]$ActionName, [int]$WaitSec) {
 }
 
 $probe = @(
-  @{ Page = 'checkup';  Name = '扫描|体检|Start|Scan';  Wait = 20 },
-  @{ Page = 'speedup';  Name = '扫描|加速|Scan|Boost';  Wait = 15 },
-  @{ Page = 'memory';   Name = '刷新|清理|Refresh|Clean'; Wait = 10 },
-  @{ Page = 'popup';    Name = '扫描|检测|Scan';        Wait = 10 },
-  @{ Page = 'software'; Name = '刷新|安装|清单|Refresh'; Wait = 10 },
-  @{ Page = 'disk';     Name = '扫描|分析|Scan|Analyze'; Wait = 20 }
+  @{ Page = 'checkup';  Nav = 3; Name = '扫描|体检|Start|Scan';  Wait = 20 },
+  @{ Page = 'speedup';  Nav = 4; Name = '扫描|加速|Scan|Boost';  Wait = 15 },
+  @{ Page = 'memory';   Nav = 5; Name = '刷新|清理|Refresh|Clean'; Wait = 10 },
+  @{ Page = 'popup';    Nav = 7; Name = '扫描|检测|Scan';        Wait = 10 },
+  @{ Page = 'software'; Nav = 1; Name = '刷新|安装|清单|Refresh'; Wait = 10 },
+  @{ Page = 'disk';     Nav = 2; Name = '扫描|分析|Scan|Analyze'; Wait = 20 }
 )
 foreach ($pr in $probe) {
-  $ok = Invoke-PageAction $pr.Name $pr.Wait
+  $navOk = Invoke-NavByIndex $pr.Nav
+  Save-Shot ("nav-{0}.png" -f $pr.Page)
+  $ok = $false
+  if ($navOk) { $ok = Invoke-PageAction $pr.Name $pr.Wait }
   Save-Shot ("act-{0}.png" -f $pr.Page)
-  Write-Assert ("action:{0}" -f $pr.Page) $ok "button match '$($pr.Name)' invoked=$ok"
+  Write-Assert ("action:{0}" -f $pr.Page) ($navOk -and $ok) "nav ok=$navOk; button match '$($pr.Name)' invoked=$ok"
 }
 
-# Settings read-write-reset loop (real persistence round trip).
+# Settings read-write-reset loop (real persistence round trip). Walk already
+# ends on settings (plan index 8); navigate explicitly for symmetry.
 try {
-  $okSet = Invoke-PageAction '主题|Theme|保存|Save|应用|Apply' 6
+  $okNavSet = Invoke-NavByIndex 8
+  $okSet = $false
+  if ($okNavSet) { $okSet = Invoke-PageAction '主题|Theme|保存|Save|应用|Apply' 6 }
   Save-Shot "act-settings.png"
-  Write-Assert "settings:read-write-reset" $okSet "theme/save control invoked=$okSet"
+  Write-Assert "settings:read-write-reset" ($okNavSet -and $okSet) "nav ok=$okNavSet; theme/save control invoked=$okSet"
 } catch {
   Write-Assert "settings:read-write-reset" $false $_.Exception.Message
 }
