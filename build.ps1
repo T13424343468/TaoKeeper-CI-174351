@@ -42,6 +42,20 @@ if ($dotnetMajor -eq 8) {
 }
 
 Write-Host '=== 2/4 跑全量单测（红即停）===' -ForegroundColor Cyan
+# 坑册一 3（tao-build-pitfalls）：出包前扫非 ASCII 文件名（TaoPad 打法），先于测试执行
+$badNames = Get-ChildItem -Path (Join-Path $root 'src'), (Join-Path $root 'tests'), (Join-Path $root 'tools'), (Join-Path $root 'native') -Recurse -File |
+    Where-Object { $_.FullName -notmatch '[\\/](obj|bin|\.precheck)[\\/]' } |
+    Where-Object { $_.Name -match '[^\x00-\x7F]' }
+if ($badNames.Count -gt 0) {
+    Write-Host '发现非 ASCII 文件名（真机复制/打包会乱码），先改名再出包：' -ForegroundColor Red
+    $badNames | Select-Object -First 20 | ForEach-Object { Write-Host "  $($_.FullName.Substring($root.Length + 1))" -ForegroundColor Red }
+    $report.Add("[红] 非 ASCII 文件名 $($badNames.Count) 个，先改名再出包")
+    $report | Out-File -FilePath (Join-Path $dist '构建报告.txt') -Encoding utf8
+    exit 2
+}
+Write-Host '  非 ASCII 文件名扫描：0 个，通过'
+$report.Add('[绿] 非 ASCII 文件名扫描：src/tests/tools/native 0 个')
+
 $tests = @('tests/TaoKeeper.Core.Tests', 'tests/TaoKeeper.AppKernel.Tests', 'tests/TaoKeeper.Adapters.Tests')
 foreach ($t in $tests) {
     Write-Host "  --- $t"
