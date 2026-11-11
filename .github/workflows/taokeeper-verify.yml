@@ -108,11 +108,14 @@ jobs:
           $arp3 = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "*TaoKeeper*" }
           Write-Host "[OK] msi full flow: install, uninstall, reinstall(upgrade) all green"
         shell: pwsh
-      - name: Launch app + UIA walk + screenshots (visual evidence)
+      - name: Launch app + live-fire UI walk (all pages, real actions, assertions)
         run: |
           dotnet publish src/TaoKeeper.App -c Release -r win-x64 --self-contained false -p:Platform=x64 -p:WindowsAppSDKSelfContained=true -o tools/msi/publish-ui
           if (-not (Test-Path tools/msi/publish-ui/TaoKeeper.App.exe)) { Write-Host "[ERROR] ui payload missing"; exit 1 }
-          pwsh -NoProfile -ExecutionPolicy Bypass -File ci/ui-walk-screens.ps1 -ExePath (Resolve-Path tools/msi/publish-ui/TaoKeeper.App.exe) -OutDir ci-shots
+          pwsh -NoProfile -ExecutionPolicy Bypass -File ci/live-fire-walk.ps1 -ExePath (Resolve-Path tools/msi/publish-ui/TaoKeeper.App.exe) -OutDir ci-shots
+      - name: Live-fire winget end-to-end (real install -> verify -> uninstall -> verify gone)
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File ci/winget-livefire.ps1 -OutDir winget-shots
         shell: pwsh
       - name: Cleanup (uninstall after visual pass)
         run: |
@@ -124,7 +127,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ui-screenshots
-          path: ci-shots/
+          path: |
+            ci-shots/
+            winget-shots/
       - name: Hash triple (bytes + SHA-256 + manifest)
         run: |
           ci/make-hashes-ci.ps1 -OutDir tools/msi/out
