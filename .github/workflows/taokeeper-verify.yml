@@ -103,9 +103,25 @@ jobs:
           Write-Host "[UPGRADE-REINSTALL] exit=$($p3.ExitCode)"
           if ($p3.ExitCode -ne 0) { Get-Content upgrade.log -Tail 40; exit 1 }
           $arp3 = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "*TaoKeeper*" }
-          if ($arp3) { Start-Process msiexec -ArgumentList "/x",$($arp3.PSChildName),"/qn","/norestart" -Wait }
           Write-Host "[OK] msi full flow: install, uninstall, reinstall(upgrade) all green"
         shell: pwsh
+      - name: Launch app + UIA walk + screenshots (visual evidence)
+        run: |
+          dotnet publish src/TaoKeeper.App -c Release -r win-x64 --self-contained false -p:WindowsAppSDKSelfContained=true -o tools/msi/publish-ui
+          if (-not (Test-Path tools/msi/publish-ui/TaoKeeper.App.exe)) { Write-Host "[ERROR] ui payload missing"; exit 1 }
+          pwsh -NoProfile -ExecutionPolicy Bypass -File ci/ui-walk-screens.ps1 -ExePath (Resolve-Path tools/msi/publish-ui/TaoKeeper.App.exe) -OutDir ci-shots
+        shell: pwsh
+      - name: Cleanup (uninstall after visual pass)
+        run: |
+          $arp = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "*TaoKeeper*" }
+          if ($arp) { Start-Process msiexec -ArgumentList "/x",$arp.PSChildName,"/qn","/norestart" -Wait; Write-Host "[OK] cleanup uninstall done" }
+        shell: pwsh
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: ci-shots/
       - name: Hash triple (bytes + SHA-256 + manifest)
         run: |
           ci/make-hashes-ci.ps1 -OutDir tools/msi/out
