@@ -1,6 +1,6 @@
 # CI-only: uncomment WindowsAppSDK PackageReference in TaoKeeper.App.csproj (pitfall #17)
-# v2 (2026-11-12): csproj uses a two-line comment "<!-- 真机...：\n <PackageReference .../> -->";
-# the single-line regex in v1 never matched, leaving SDK refs commented (114 CS0246/CS0234 errors).
+# v3 (2026-11-12): v2 verification used Select-String -NotMatch with a string value (invalid);
+# replaced with a fail-fast check that the comment opener is gone after substitution.
 # Restores original file afterwards; never commits changes to src/.
 param([string]$CsprojPath, [string]$RepoRoot)
 Copy-Item $CsprojPath "$CsprojPath.orig" -Force
@@ -12,8 +12,8 @@ if ($lines -notmatch $pattern) {
 }
 $lines = $lines -replace $pattern, '$1'
 Set-Content -Path $CsprojPath -Value $lines -Encoding UTF8 -NoNewline
-if ((Select-String -Path $CsprojPath -Pattern '<PackageReference Include="Microsoft.WindowsAppSDK"' -NotMatch '^\s*<!--' | Measure-Object).Count -lt 1) {
-    Write-Host "[ERROR] verification failed: PackageReference still commented"
+if ($lines -match '真机构建前取消下行注释') {
+    Write-Host "[ERROR] verification failed: comment opener still present after substitution"
     exit 1
 }
 Write-Host "[OK] WindowsAppSDK reference uncommented and verified (backup at .orig)"

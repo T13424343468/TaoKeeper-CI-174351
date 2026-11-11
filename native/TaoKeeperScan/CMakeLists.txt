@@ -11,6 +11,12 @@ target_include_directories(taokeeperscan PUBLIC include)
 add_library(taokeeperscan_shared SHARED src/scan.cpp src/mft.cpp src/interop.cpp)
 target_include_directories(taokeeperscan_shared PUBLIC include)
 set_target_properties(taokeeperscan_shared PROPERTIES OUTPUT_NAME TaoKeeperScan)
+# 2026-11-12 云真机修红：MSVC 需显式导出 C ABI 符号（LNK2019），构建 DLL 目标时开 dllexport
+target_compile_definitions(taokeeperscan_shared PRIVATE TK_BUILD_SHARED)
+if(MSVC)
+  # 测试源码含中文字面量，统一按 UTF-8 编译（修 C4566 码页警告，非压制）
+  add_compile_options(/utf-8)
+endif()
 
 enable_testing()
 add_executable(test_scan tests/test_scan.cpp)
