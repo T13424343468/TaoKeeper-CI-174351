@@ -146,3 +146,9 @@ jobs:
           $msi = Get-Item tools/msi/out/TaoKeeper-PC-MSI-v1.0.0.msi
           Write-Host "[HASH] bytes=$($msi.Length) sha256=$((Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower())"
         shell: pwsh
+      - name: Upload final MSI (delivery retrieval; bind needs Windows msi.dll, sandbox cannot produce)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-msi
+          path: tools/msi/out/
