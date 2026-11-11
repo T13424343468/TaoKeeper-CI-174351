@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    弹窗管理页（严格按原型 v19 data-page="popup"）：
+    规则清单（逐条开关）+ 白名单/拦截记录双卡 + 合规脚注。
+    数据经 PopupPageViewModel（规则开关、白名单维护、拦截记录回溯）；
+    合规红线：只做规则识别与提醒，不做窗口劫持、不改系统钩子。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.PopupPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="弹窗管理" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="弹窗管理" FontSize="26" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="合规的安静：规则清单、逐条开关、白名单、拦截可回溯" FontSize="13.5"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <TextBlock x:Name="SummaryText" FontSize="12.5" Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="规则清单" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                    <ItemsControl x:Name="RuleList" />
+                </StackPanel>
+            </Border>
+
+            <Grid ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" CornerRadius="14" BorderThickness="1" Padding="18,14"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="白名单" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock x:Name="WhitelistEmpty" Text="白名单为空；把不想拦的应用加进来，命中即放行并留痕。"
+                                   FontSize="12.5" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}"
+                                   Visibility="Collapsed" />
+                        <ItemsControl x:Name="WhitelistList" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" CornerRadius="14" BorderThickness="1" Padding="18,14"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="拦截记录 · 可回溯" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock x:Name="RecordsEmpty" Text="还没有拦截或放行记录。"
+                                   FontSize="12.5" Foreground="{ThemeResource TaoInk3Brush}" Visibility="Collapsed" />
+                        <ItemsControl x:Name="RecordList" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <TextBlock FontSize="12.5" TextWrapping="Wrap"
+                       Foreground="{ThemeResource TaoInk3Brush}"
+                       Text="只做规则识别与提醒，不做窗口劫持、不改系统钩子——这是合规红线。" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

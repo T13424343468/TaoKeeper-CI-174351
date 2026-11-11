@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    桌面挂件页（严格按原型 v19 data-page="widget"：crumb + 标题 + 副题 + 桌面示意卡[挂件 + 确认浮层] + desk-tip）。
+    数据经 WidgetPageViewModel 注入：未就绪/过期一律灰显如实（不假 62%、不假 3.2 GB、不假 9.9/16 GB）；
+    「清理（进回收站）」在确认浮层内仅作意图入口（执行通道随运行期接线启用，未接前如实禁用），
+    本页零写动作。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.WidgetPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,22,28,30" Spacing="14">
+            <TextBlock Text="桌面挂件" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="桌面挂件" FontSize="26" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="常驻桌面一角，一眼看内存，一键清垃圾——关掉零后台残留" FontSize="13.5"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <!-- 桌面挂件效果示意（真实数据驱动，未就绪灰显） -->
+            <Border CornerRadius="16" BorderThickness="1" Padding="24,22" Margin="0,6,0,0"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="12">
+                    <!-- 挂件本体 -->
+                    <Grid x:Name="WidgetMock" MaxWidth="240" HorizontalAlignment="Center" Padding="18,16"
+                          CornerRadius="14" BorderThickness="1" BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                          Background="{ThemeResource TaoPaperBrush}">
+                        <StackPanel Spacing="8" HorizontalAlignment="Center">
+                            <TextBlock Text="道管家 · 内存" FontSize="13.5" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TaoInkBrush}" HorizontalAlignment="Center" />
+
+                            <!-- 120 环图：底环 + 数据驱动弧线（未就绪不出弧） -->
+                            <Grid Width="120" Height="120" HorizontalAlignment="Center">
+                                <Ellipse Width="96" Height="96" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         Stroke="{ThemeResource TaoLineSoftBrush}" StrokeThickness="10" />
+                                <Path x:Name="RingArc" Stroke="{ThemeResource TaoAzureBrush}" StrokeThickness="10"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Width="120" Height="120" />
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                    <TextBlock x:Name="RingPct" Text="内存占用未知" FontSize="16" FontWeight="Bold"
+                                               Foreground="{ThemeResource TaoInkBrush}" HorizontalAlignment="Center" />
+                                    <TextBlock x:Name="RingSub" FontSize="9.5" Foreground="{ThemeResource TaoInk3Brush}"
+                                               HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock x:Name="JunkLine" FontSize="12.5" HorizontalAlignment="Center"
+                                       Foreground="{ThemeResource TaoInk2Brush}" />
+                            <Button x:Name="CleanEntry" Content="一键清理" Style="{StaticResource AccentButtonStyle}"
+                                    Click="OnCleanEntryClick" HorizontalAlignment="Center" MinWidth="128"
+                                    CornerRadius="10" />
+                            <TextBlock Text="清理前必过明细确认" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{ThemeResource TaoInk3Brush}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 确认清理明细浮层（默认隐藏；一键清理后出现） -->
+                    <Border x:Name="ConfirmLayer" CornerRadius="14" BorderThickness="1" Padding="18,14" Visibility="Collapsed"
+                            BorderBrush="{ThemeResource TaoAzureDeepBrush}" Background="{ThemeResource TaoCardBrush}">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="确认清理明细" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TaoInkBrush}" />
+                            <TextBlock x:Name="DetailList" FontSize="12.5" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TaoInk2Brush}" />
+                            <TextBlock x:Name="DetailNote" FontSize="12" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TaoInk3Brush}"
+                                       Text="逐项可勾、全部移入回收站、可还原；确认后才执行。" />
+                            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                                <Button x:Name="CancelClean" Content="再想想" Click="OnCancelClean"
+                                        CornerRadius="10" Background="{ThemeResource TaoCardBrush}"
+                                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1" />
+                                <Button x:Name="OkClean" Content="清理（进回收站）" Style="{StaticResource AccentButtonStyle}"
+                                        Click="OnOkClean" IsEnabled="False" CornerRadius="10" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center"
+                               Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="挂件随开关自动登记/注销自启；点关闭即彻底退出，任务栏、后台、自启项一样不留。" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

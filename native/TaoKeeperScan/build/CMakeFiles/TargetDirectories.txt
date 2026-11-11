@@ -1,0 +1,10 @@
+/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/CMakeFiles/taokeeperscan.dir
+/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/CMakeFiles/taokeeperscan_shared.dir
+/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/CMakeFiles/test_scan.dir
+/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/CMakeFiles/test_mft.dir
+/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/CMakeFiles/test_mft_tree.dir
+/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/CMakeFiles/test_mft_stream.dir
+/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/CMakeFiles/test_mft_agg_incr.dir
+/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/CMakeFiles/test.dir
+/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/CMakeFiles/edit_cache.dir
+/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!--
+      真机自检台：在用户 Windows 真机上做只读自检（winget 清单/驱动清册/WUA 搜索），
+      零写动作，输出实测证据供真机回流。构建随 sln 的显式项目清单（build.ps1），不走全 sln。
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TaoKeeper.Core\TaoKeeper.Core.csproj" />
+    <ProjectReference Include="..\TaoKeeper.Adapters\TaoKeeper.Adapters.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -O3 -DNDEBUG -shared -Wl,-soname,libTaoKeeperScan.so -o libTaoKeeperScan.so CMakeFiles/taokeeperscan_shared.dir/src/scan.cpp.o CMakeFiles/taokeeperscan_shared.dir/src/mft.cpp.o CMakeFiles/taokeeperscan_shared.dir/src/interop.cpp.o 

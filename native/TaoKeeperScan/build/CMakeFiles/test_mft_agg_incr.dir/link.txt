@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/test_mft_agg_incr.dir/tests/test_mft_agg_incr.cpp.o -o test_mft_agg_incr  -Wl,-rpath,/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build libTaoKeeperScan.so 

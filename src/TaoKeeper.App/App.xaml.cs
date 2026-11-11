@@ -1,0 +1,33 @@
+using System;
+using Microsoft.UI.Xaml;
+using TaoKeeper.App.Theming;
+using TaoKeeper.AppKernel.Navigation;
+
+namespace TaoKeeper.App;
+
+/// <summary>
+/// 应用入口：读用户设置的三主题（水墨/天青/墨白）换入对应资源字典，再起主窗。
+/// 主题色值与 AppKernel.Theming.ThemeTokens 同源（原型 v19），双处只改一处须同步。
+/// </summary>
+public partial class App : Application
+{
+    private Window? _mainWindow;
+
+    /// <summary>主窗引用（页面经此跳转/换肤；未启动完成前为 null）。</summary>
+    internal MainWindow? Shell => _mainWindow as MainWindow;
+
+    public App()
+    {
+        InitializeComponent();
+    }
+
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    {
+        AppTheme.Apply(this, AppTheme.LoadThemeFromSettings());
+
+        _mainWindow = new MainWindow();
+        _mainWindow.Activate();
+
+        GC.KeepAlive(typeof(AppRouteCatalog)); // 导航目录随壳常驻（保持引用，防裁剪）
+    }
+}

@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    软件管家页（严格按原型 v19 data-page="swstore"）：
+    页头三行 + 三来源条 + 四功能页签（软件库/升级中心/卸载中心/安全承诺）。
+    数据经 SoftwarePageViewModel（升级三分桶）；已装清单经 InstalledListProvider 钩子注入
+    （未接线时如实显示「尚未扫描」，不假数据）。安装/升级/卸载动作全部经确认闸门，
+    哈希失配标死不可执行。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.SoftwarePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="软件管家 · 装机升级行家" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="软件管家" FontSize="26" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="一个顶所有：装、升、卸、管，全部官方渠道，装前校验、装后可溯" FontSize="13.5"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <!-- 三来源条 -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" CornerRadius="12" BorderThickness="1" Padding="12,10"
+                        BorderBrush="{ThemeResource TaoAzureBrush}" Background="{ThemeResource TaoAzureWashBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border Width="34" Height="34" CornerRadius="8" Background="{ThemeResource TaoAzureBrush}">
+                            <TextBlock Text="源" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Spacing="1">
+                            <TextBlock Text="winget 官方源" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                            <TextBlock Text="微软官方软件仓库，静默安装、版本托管" FontSize="11.5" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TaoInk2Brush}" />
+                        </StackPanel>
+                        <TextBlock Text="9,000+" FontSize="12" VerticalAlignment="Top" Margin="8,0,0,0"
+                                   Foreground="{ThemeResource TaoInk3Brush}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" CornerRadius="12" BorderThickness="1" Padding="12,10"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border Width="34" Height="34" CornerRadius="8" Background="{ThemeResource TaoAzureBrush}">
+                            <TextBlock Text="开" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Spacing="1">
+                            <TextBlock Text="GitHub Releases" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                            <TextBlock Text="开源软件发行页直取，作者亲签" FontSize="11.5" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TaoInk2Brush}" />
+                        </StackPanel>
+                        <TextBlock Text="20,000+" FontSize="12" VerticalAlignment="Top" Margin="8,0,0,0"
+                                   Foreground="{ThemeResource TaoInk3Brush}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" CornerRadius="12" BorderThickness="1" Padding="12,10"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border Width="34" Height="34" CornerRadius="8" Background="{ThemeResource TaoAzureBrush}">
+                            <TextBlock Text="网" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Spacing="1">
+                            <TextBlock Text="官网精选源" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                            <TextBlock Text="国产头部软件官网直链，覆盖微信、WPS 等全生态" FontSize="11.5" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TaoInk2Brush}" />
+                        </StackPanel>
+                        <TextBlock Text="3,000+" FontSize="12" VerticalAlignment="Top" Margin="8,0,0,0"
+                                   Foreground="{ThemeResource TaoInk3Brush}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 功能页签 -->
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="TabStore" Content="软件库" Click="OnTabClick" Tag="store"
+                        CornerRadius="10" Padding="14,7" />
+                <Button x:Name="TabUpgrade" Content="升级中心" Click="OnTabClick" Tag="upgrade"
+                        CornerRadius="10" Padding="14,7" />
+                <Button x:Name="TabUninstall" Content="卸载中心" Click="OnTabClick" Tag="uninstall"
+                        CornerRadius="10" Padding="14,7" />
+                <Button x:Name="TabPledge" Content="安全承诺" Click="OnTabClick" Tag="pledge"
+                        CornerRadius="10" Padding="14,7" />
+            </StackPanel>
+
+            <!-- 软件库 -->
+            <StackPanel x:Name="PaneStore" Spacing="12">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="StoreSearchBox" Grid.Column="0" PlaceholderText="搜软件名，如：微信、VS Code、7-Zip…"
+                             CornerRadius="10" />
+                    <Button Grid.Column="1" Content="搜一下" Click="OnStoreSearch" CornerRadius="10" Padding="16,7"
+                            Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                </Grid>
+
+                <Border CornerRadius="12" BorderThickness="1" Padding="14,10"
+                        BorderBrush="{ThemeResource TaoAzureBrush}" Background="{ThemeResource TaoAzureWashBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="默认安装位置 D:\TaoKeeper\Soft" FontSize="13.5" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="静默安装一律默认 D 盘，不往 C 盘塞；每款软件安装前可单独改位置，全局默认目录也随时能自定义。"
+                                   FontSize="12" TextWrapping="Wrap" MaxWidth="520" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="精选" IsEnabled="False" CornerRadius="14" Padding="12,4" Background="{ThemeResource TaoAzureWashBrush}" />
+                    <Button Content="社交通讯" CornerRadius="14" Padding="12,4" />
+                    <Button Content="办公学习" CornerRadius="14" Padding="12,4" />
+                    <Button Content="影音娱乐" CornerRadius="14" Padding="12,4" />
+                    <Button Content="开发工具" CornerRadius="14" Padding="12,4" />
+                    <Button Content="系统工具" CornerRadius="14" Padding="12,4" />
+                </StackPanel>
+
+                <TextBlock x:Name="StoreHint" FontSize="12.5" Foreground="{ThemeResource TaoInk3Brush}"
+                           Text="软件库检索随官方源适配层接入后可用；已装清单见下方。" />
+                <ItemsControl x:Name="StoreList" />
+            </StackPanel>
+
+            <!-- 升级中心 -->
+            <StackPanel x:Name="PaneUpgrade" Spacing="12" Visibility="Collapsed">
+                <TextBlock x:Name="UpgradeSummary" FontSize="13" Foreground="{ThemeResource TaoInk2Brush}" />
+                <TextBlock x:Name="BlockedHint" FontSize="12.5" TextWrapping="Wrap"
+                           Foreground="{ThemeResource TaoCinnabarBrush}" Visibility="Collapsed" />
+                <TextBlock Text="需你确认的升级（逐项过目，默认不静默）" FontSize="13.5" FontWeight="SemiBold"
+                           Foreground="{ThemeResource TaoInkBrush}" />
+                <ItemsControl x:Name="UpgradeList" />
+                <TextBlock Text="哈希失配被拦截的安装包根本不进升级清单；静默桶仅限哈希已校验条目且策略开启后生效。"
+                           FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}" />
+            </StackPanel>
+
+            <!-- 卸载中心 -->
+            <StackPanel x:Name="PaneUninstall" Spacing="12" Visibility="Collapsed">
+                <TextBlock Text="卸载走系统正规入口，不做进程强杀；每一步都先经你确认。" FontSize="12.5"
+                           TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                <ItemsControl x:Name="UninstallList" />
+            </StackPanel>
+
+            <!-- 安全承诺 -->
+            <Border x:Name="PanePledge" CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}"
+                    Visibility="Collapsed">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="安全承诺" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock FontSize="12.5" LineHeight="22" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk2Brush}"
+                               Text="只装官方源软件，装前哈希校验、装后可回溯；不捆绑、不装全家桶、不静默装软件；每笔安装记入安装账，随时可查可卸。默认安装位置 D:\TaoKeeper\Soft，不往 C 盘塞。" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

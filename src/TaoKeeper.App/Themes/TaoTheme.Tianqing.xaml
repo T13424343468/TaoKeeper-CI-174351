@@ -1,0 +1,35 @@
+<!--
+    道系主题 · 天青——色值取自原型 v19 [data-theme="tianqing"] 块；
+    未重定义的画刷（卡片/墨色/朱砂/竹青/金）沿用水墨底版同值。
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="TaoPaperBrush" Color="#F0F7FB" />
+    <SolidColorBrush x:Key="TaoCardBrush" Color="#DBF7FCFE" />           <!-- rgba(247,252,254,.86) -->
+    <SolidColorBrush x:Key="TaoLineBrush" Color="#7FA8BD" />
+    <SolidColorBrush x:Key="TaoLineSoftBrush" Color="#E4EEF6" />
+    <SolidColorBrush x:Key="TaoInkBrush" Color="#2B2A26" />
+    <SolidColorBrush x:Key="TaoInk2Brush" Color="#6B6A65" />
+    <SolidColorBrush x:Key="TaoInk3Brush" Color="#86837C" />
+    <SolidColorBrush x:Key="TaoAzureBrush" Color="#4E8296" />
+    <SolidColorBrush x:Key="TaoAzureDeepBrush" Color="#3A6273" />
+    <SolidColorBrush x:Key="TaoAzureWashBrush" Color="#E5F0F6" />
+    <SolidColorBrush x:Key="TaoCinnabarBrush" Color="#B5443A" />
+    <SolidColorBrush x:Key="TaoCinnabarWashBrush" Color="#F9EEEC" />
+    <SolidColorBrush x:Key="TaoBambooBrush" Color="#6A8F6B" />
+    <SolidColorBrush x:Key="TaoBambooWashBrush" Color="#EEF3EE" />
+    <SolidColorBrush x:Key="TaoGoldBrush" Color="#A68A4E" />
+    <SolidColorBrush x:Key="TaoGlazeBrush" Color="#F2FFFFFF" />
+    <SolidColorBrush x:Key="TaoStrongBrush" Color="#3A6273" />           <!-- 选中底/主按钮深一档（与墨白对齐，取 AzureDeep 色值） -->
+
+    <!-- 主操作按钮（强调色实底）：三主题同键，供 WidgetPage 等 StaticResource 引用 -->
+    <Style x:Key="AccentButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource TaoAzureBrush}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="16,8" />
+    </Style>
+</ResourceDictionary>

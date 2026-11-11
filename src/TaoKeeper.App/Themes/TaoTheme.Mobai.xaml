@@ -1,0 +1,35 @@
+<!--
+    道系主题 · 墨白（深色）——色值取自原型 v19 [data-theme="mobai"] 块。
+    墨白点缀亮青只作边框与光泽；主按钮与选中底用深一档保白字可辨（视觉之道阈值 3.0）。
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="TaoPaperBrush" Color="#191B1C" />
+    <SolidColorBrush x:Key="TaoCardBrush" Color="#242729" />
+    <SolidColorBrush x:Key="TaoLineBrush" Color="#535B60" />
+    <SolidColorBrush x:Key="TaoLineSoftBrush" Color="#2E3335" />
+    <SolidColorBrush x:Key="TaoInkBrush" Color="#ECEFF0" />
+    <SolidColorBrush x:Key="TaoInk2Brush" Color="#A7B0B0" />
+    <SolidColorBrush x:Key="TaoInk3Brush" Color="#7E8788" />
+    <SolidColorBrush x:Key="TaoAzureBrush" Color="#7FB2C2" />
+    <SolidColorBrush x:Key="TaoAzureDeepBrush" Color="#93C2D0" />
+    <SolidColorBrush x:Key="TaoAzureWashBrush" Color="#2E3A3E" />
+    <SolidColorBrush x:Key="TaoCinnabarBrush" Color="#CF6B5F" />
+    <SolidColorBrush x:Key="TaoCinnabarWashBrush" Color="#3A2C29" />
+    <SolidColorBrush x:Key="TaoBambooBrush" Color="#8AB48A" />
+    <SolidColorBrush x:Key="TaoBambooWashBrush" Color="#2C352C" />
+    <SolidColorBrush x:Key="TaoGoldBrush" Color="#C2A869" />
+    <SolidColorBrush x:Key="TaoGlazeBrush" Color="#38FFFFFF" />          <!-- 釉光 rgba(255,255,255,.22) -->
+    <SolidColorBrush x:Key="TaoStrongBrush" Color="#4E7D8C" />           <!-- 选中底/主按钮深一档 -->
+
+    <!-- 主操作按钮（强调色实底）：三主题同键，供 WidgetPage 等 StaticResource 引用 -->
+    <Style x:Key="AccentButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource TaoAzureBrush}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="16,8" />
+    </Style>
+</ResourceDictionary>

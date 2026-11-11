@@ -1,0 +1,184 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!--
+    TaoKeeper 微信风格 MSI（WiX v4/v5 口径，产品 TaoKeeper）。
+    统一口径对齐 TaoZip(195792)/TaoPad(198806)/TaoDBM(196708)：
+    自绘单页 MainDlg（欢迎/许可 → 选目录 → 安装，三步即完）；本 UI 块勿擅动，改版走 ReCode。
+    版本：PC-FULL-V1 映射 1.0.0.0（六处同步口径见 docs/MSI打包说明.md）。
+    已知坑（tao-build-pitfalls 第六章）：
+    - Directory/@Name 在 Linux 沙箱必报 WIX0389（WiX 源码硬编码 C:\ 所致，非配置错误）；
+      沙箱静态预检用副本把 Name 换成 "." 跑编译阶段（tools/msi/precheck-sandbox.sh），真机构建用本文件原名。
+    - bind 阶段依赖 Windows 原生 msi.dll，沙箱物理出不了 MSI；最终构建一律真机 tools/msi/build-msi.bat。
+  -->
+  <Package Codepage="936" Name="TaoKeeper" Manufacturer="Tao" Version="1.0.0.0"
+           UpgradeCode="5C4F1E6A-2B7D-4E93-8A60-9D3C7F2B4A15" Scope="perMachine" Compressed="yes">
+
+    <!-- 覆盖安装走 MajorUpgrade 先卸后装；同版本允许重装 -->
+    <MajorUpgrade Schedule="afterInstallInitialize"
+                  DowngradeErrorMessage="已安装了更新版本的 TaoKeeper，如需重装请先在“应用和功能”中卸载。"
+                  AllowSameVersionUpgrades="yes" />
+
+    <!-- 默认装 D:\Program Files\TaoKeeper（界面可改）：与 TaoZip 相同的“目录同名属性覆盖”写法，
+         该写法在用户真机反复验证可装；TaoDBM 的 Type-51 自定义动作写法在该机触发 2723（动作类型不受支持），弃用 -->
+    <Property Id="INSTALLFOLDER" Value="D:\Program Files\TaoKeeper" />
+
+    <!-- 装/卸/升级前先结束运行中的 TaoKeeper：与 TaoZip 完全相同的双动作写法
+         （属性转发定位 taskkill，避免 Value 内嵌 [SystemFolder] 的 WIX1077）；
+         Return=ignore：程序本来没在运行时 taskkill 报错不影响安装 -->
+    <CustomAction Id="SetKillCmd" Property="KILLCMD" Value="[SystemFolder]taskkill.exe" />
+    <CustomAction Id="KillRunningTaoKeeper" Property="KILLCMD"
+                  ExeCommand="/f /im TaoKeeper.App.exe"
+                  Execute="immediate" Return="ignore" />
+    <InstallExecuteSequence>
+      <Custom Action="SetKillCmd" After="InstallValidate" />
+      <Custom Action="KillRunningTaoKeeper" After="SetKillCmd" />
+    </InstallExecuteSequence>
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="DESKTOP_SHORTCUT" Value="1" />
+    <Property Id="STARTMENU_SHORTCUT" Value="1" />
+
+    <UI Id="TaoKeeperInstallUI">
+      <TextStyle Id="DlgFont" FaceName="微软雅黑" Size="9" />
+      <TextStyle Id="TitleFont" FaceName="微软雅黑" Size="13" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="DlgFont" />
+
+      <!-- 微信风格单页：欢迎/许可 + 选目录 + 选项 + 立即安装 -->
+      <Dialog Id="TaoKeeperMainDlg" Width="440" Height="300" Title="[ProductName] 安装程序">
+        <Control Id="Title" Type="Text" X="20" Y="12" Width="400" Height="22" Text="{\TitleFont}安装 TaoKeeper" />
+        <Control Id="LicenseText" Type="Text" X="20" Y="42" Width="400" Height="92"
+                 Text="TaoKeeper 1.0，Tao 系列全能电脑管家，免费使用。本软件按“现状”提供：请仅将它用于合法合规的本机维护用途，作者不对使用本软件产生的任何损失承担责任。" />
+        <Control Id="AcceptCheck" Type="CheckBox" X="20" Y="140" Width="400" Height="16" Property="LICENSE_ACCEPTED" CheckBoxValue="1" Text="我已阅读并同意以上说明" />
+        <Control Id="SepLine" Type="Line" X="20" Y="164" Width="400" Height="1" />
+        <Control Id="DirLabel" Type="Text" X="20" Y="174" Width="400" Height="14" Text="安装目录（可直接输入，不存在的文件夹会自动创建）：" />
+        <Control Id="DirEdit" Type="PathEdit" X="20" Y="192" Width="310" Height="17" Property="INSTALLFOLDER" />
+        <Control Id="DeskCheck" Type="CheckBox" X="20" Y="218" Width="310" Height="16" Property="DESKTOP_SHORTCUT" CheckBoxValue="1" Text="创建桌面快捷方式">
+          <Publish Event="Remove" Value="DeskShortcutF" Condition="NOT DESKTOP_SHORTCUT" />
+          <Publish Event="AddLocal" Value="DeskShortcutF" Condition="DESKTOP_SHORTCUT" />
+        </Control>
+        <Control Id="MenuCheck" Type="CheckBox" X="20" Y="238" Width="310" Height="16" Property="STARTMENU_SHORTCUT" CheckBoxValue="1" Text="创建开始菜单快捷方式">
+          <Publish Event="Remove" Value="MenuShortcutF" Condition="NOT STARTMENU_SHORTCUT" />
+          <Publish Event="AddLocal" Value="MenuShortcutF" Condition="STARTMENU_SHORTCUT" />
+        </Control>
+        <Control Id="InstallNow" Type="PushButton" X="340" Y="240" Width="80" Height="24" Default="yes" Text="立即安装">
+          <Publish Event="SpawnDialog" Value="TaoKeeperAcceptWarnDlg" Condition="NOT LICENSE_ACCEPTED" Order="1" />
+          <Publish Event="NewDialog" Value="TaoKeeperVerifyReadyDlg" Condition="LICENSE_ACCEPTED" Order="2" />
+        </Control>
+        <Control Id="CancelBtn" Type="PushButton" X="340" Y="268" Width="80" Height="18" Cancel="yes" Text="取消">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="TaoKeeperVerifyReadyDlg" Width="440" Height="130" Title="[ProductName] 安装程序">
+        <Control Id="ReadyText" Type="Text" X="20" Y="30" Width="400" Height="24" Text="准备安装 TaoKeeper，点击“安装”开始。" />
+        <Control Id="BackBtn" Type="PushButton" X="270" Y="95" Width="70" Height="22" Text="返回">
+          <Publish Event="NewDialog" Value="TaoKeeperMainDlg" />
+        </Control>
+        <Control Id="InstallBtn" Type="PushButton" X="350" Y="95" Width="70" Height="22" Default="yes" Text="安装">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="TaoKeeperProgressDlg" Width="440" Height="110" Title="[ProductName] 安装程序" Modeless="yes">
+        <Control Id="ProgressText" Type="Text" X="20" Y="24" Width="400" Height="14" Text="正在安装，请稍候……" />
+        <Control Id="ProgressBar" Type="ProgressBar" X="20" Y="48" Width="400" Height="14" Text="正在安装" />
+        <Control Id="CancelBtn" Type="PushButton" X="350" Y="78" Width="70" Height="20" Cancel="yes" Text="取消">
+          <Publish Event="SpawnDialog" Value="TaoKeeperCancelDlg" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="TaoKeeperAcceptWarnDlg" Width="280" Height="90" Title="[ProductName] 安装程序">
+        <Control Id="WarnText" Type="Text" X="20" Y="18" Width="240" Height="18" Text="请先勾选“我已阅读并同意以上说明”。" />
+        <Control Id="OkBtn" Type="PushButton" X="110" Y="55" Width="60" Height="20" Default="yes" Text="确定">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+      <Dialog Id="TaoKeeperCancelDlg" Width="280" Height="90" Title="[ProductName] 安装程序">
+        <Control Id="CancelText" Type="Text" X="20" Y="18" Width="240" Height="18" Text="确定要取消安装吗？" />
+        <Control Id="YesBtn" Type="PushButton" X="100" Y="55" Width="60" Height="20" Default="yes" Text="是">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+        <Control Id="NoBtn" Type="PushButton" X="170" Y="55" Width="60" Height="20" Text="否">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="TaoKeeperExitDialog" Width="440" Height="130" Title="[ProductName] 安装程序">
+        <Control Id="DoneText" Type="Text" X="20" Y="30" Width="400" Height="24" Text="TaoKeeper 安装完成，桌面或开始菜单即可打开。" />
+        <Control Id="FinishBtn" Type="PushButton" X="350" Y="95" Width="70" Height="22" Default="yes" Text="完成">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+      <Dialog Id="TaoKeeperUserExitDlg" Width="440" Height="130" Title="[ProductName] 安装程序">
+        <Control Id="UserExitText" Type="Text" X="20" Y="30" Width="400" Height="24" Text="安装已取消，本机未做任何更改。" />
+        <Control Id="FinishBtn" Type="PushButton" X="350" Y="95" Width="70" Height="22" Default="yes" Text="完成">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+      <Dialog Id="TaoKeeperFatalErrorDlg" Width="440" Height="130" Title="[ProductName] 安装程序">
+        <Control Id="ErrorText" Type="Text" X="20" Y="30" Width="400" Height="24" Text="安装未完成，请重试或联系开发者。" />
+        <Control Id="FinishBtn" Type="PushButton" X="350" Y="95" Width="70" Height="22" Default="yes" Text="完成">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+
+      <InstallUISequence>
+        <!-- 显式 CostFinalize（与 TaoZip 相同，950）：先把默认目录算好再弹窗，目录框不会空着 -->
+        <CostFinalize Sequence="950" />
+        <Show Dialog="TaoKeeperMainDlg" Sequence="1250" />
+        <Show Dialog="TaoKeeperProgressDlg" Before="ExecuteAction" />
+        <Show Dialog="TaoKeeperExitDialog" OnExit="success" />
+        <Show Dialog="TaoKeeperUserExitDlg" OnExit="cancel" />
+        <Show Dialog="TaoKeeperFatalErrorDlg" OnExit="error" />
+      </InstallUISequence>
+    </UI>
+
+    <StandardDirectory Id="DesktopFolder" />
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <!-- 默认装 D:\Program Files\TaoKeeper：盘符由上方 INSTALLFOLDER 属性覆盖实现（界面可改）；
+           Name 为普通 Program Files 下的兜底名。WiX 目录 Name 不允许绝对路径。 -->
+      <Directory Id="INSTALLFOLDER" Name="." />
+    </StandardDirectory>
+
+    <!-- 特性树：Core 必装（发布目录全量收进 INSTALLFOLDER）；两个快捷方式特性由界面勾选控制 -->
+    <Feature Id="Core" Title="TaoKeeper 主程序" Description="程序本体与运行时文件（必装）" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="PublishComponents" />
+      <Component Directory="INSTALLFOLDER">
+        <!-- 卸载时移除安装目录（空目录不留残迹，配合零注册表残留口径） -->
+        <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\Tao\TaoKeeper" Name="InstallFolderCleanup" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </Feature>
+
+    <Feature Id="DeskShortcutF" Title="创建桌面快捷方式" Level="1">
+      <Component Directory="DesktopFolder">
+        <Shortcut Id="DesktopLnk" Name="TaoKeeper" Target="[INSTALLFOLDER]TaoKeeper.App.exe" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\Tao\TaoKeeper" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </Feature>
+
+    <Feature Id="MenuShortcutF" Title="创建开始菜单快捷方式" Level="1">
+      <Component Directory="ApplicationProgramsFolder">
+        <Shortcut Id="MenuLnk" Name="TaoKeeper" Target="[INSTALLFOLDER]TaoKeeper.App.exe" WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveMenuDir" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\Tao\TaoKeeper" Name="MenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </Feature>
+  </Package>
+
+  <!-- 发布目录收割：真机构建时以 -d PublishDir= 指向 dotnet publish 输出目录；
+       未显式传入时默认 tools/msi/publish。 -->
+  <Fragment>
+    <?ifndef PublishDir ?>
+    <?define PublishDir = "publish" ?>
+    <?endif?>
+    <ComponentGroup Id="PublishComponents">
+      <Files Include="$(PublishDir)/**" Directory="INSTALLFOLDER" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>

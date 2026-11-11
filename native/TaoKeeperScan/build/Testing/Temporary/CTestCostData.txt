@@ -1,0 +1,6 @@
+scan_core 2 0.0126797
+mft_parser 2 0.00763404
+mft_tree 2 0.00736215
+mft_stream 2 0.013547
+mft_agg_incr 2 0.00729143
+---

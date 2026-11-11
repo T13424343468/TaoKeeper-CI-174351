@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="TaoKeeper.Core">
+      <HintPath>/root/workspace/projects/575558/dev/tests/TaoKeeper.Core.Tests/bin/Release/net8.0/TaoKeeper.Core.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

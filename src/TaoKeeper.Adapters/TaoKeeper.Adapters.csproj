@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!--
+      Windows 适配层（winget 软件源 / WUA+pnputil 驱动）。
+      全部用进程调用 + 纯 .NET 解析，不引 Windows 专属包，沙箱（Linux）可编译可测试；
+      真实进程只在 Windows 运行，非 Windows 运行时报红不静默跳过（互操作规则同 Core 互操作）。
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TaoKeeper.Core\TaoKeeper.Core.csproj" />
+  </ItemGroup>
+
+</Project>

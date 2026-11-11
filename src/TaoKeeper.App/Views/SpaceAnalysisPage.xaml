@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    空间分析页（原型 v19 工具箱项「磁盘空间分析 · 目录树式空间地图」的单页落地，沿用 v19 卡片设计语言）。
+    数据经 SpaceAnalysisPageViewModel 注入：目录按体积降序 Top-N、体积分层色（朱砂/金/竹青，随主题）；
+    未扫描/空卷/路径重建失败/便携降级一律如实标记，不编路径不假体积。本页零写动作（只看不删）。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.SpaceAnalysisPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="工具箱 · 磁盘空间分析" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="磁盘空间分析" FontSize="26" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="目录树式空间地图——大目录一目了然，只看不删" FontSize="13.5"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <!-- 汇总卡 -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="SummaryText" FontSize="13.5" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="OrphanNote" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
+                               Foreground="{ThemeResource TaoCinnabarBrush}" />
+                    <TextBlock x:Name="PortableNote" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
+                               Foreground="{ThemeResource TaoGoldBrush}"
+                               Text="便携模式：原生库不可用，走目录遍历（无记录号/孤儿语义）。" />
+                </StackPanel>
+            </Border>
+
+            <!-- 目录 Top-N -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="占用最大的目录" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="EmptyHint" FontSize="12.5" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="尚未扫描。空间扫描接线后，目录按体积降序列在这里（体积分层：≥1 GB 朱砂、≥100 MB 金、其余竹青）。" />
+                    <ItemsControl x:Name="DirRows" />
+                    <TextBlock x:Name="HiddenNote" FontSize="12.5" Visibility="Collapsed" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk3Brush}" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}"
+                       Text="本页只做展示：任何删除、移动都要去磁盘清理或工具箱里逐条确认（先进回收站）。" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

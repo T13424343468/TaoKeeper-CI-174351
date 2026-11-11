@@ -1,0 +1,7 @@
+# build artifacts
+obj/
+bin/
+out/
+artifacts/
+__pycache__/
+*.user

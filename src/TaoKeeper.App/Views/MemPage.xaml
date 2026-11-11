@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    内存管理页（严格按原型 v19 data-page="mem"）：
+    双仪表条（物理/虚拟内存）+ 近一小时趋势（双折线手绘）+ 页面文件方案（五预设按钮）。
+    数据经 MemPageViewModel（快照/趋势/排行；零写动作——页面文件改动需三步确认，
+    本页只展示方案与校验转述，不直接写系统设置）。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.MemPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="内存管理" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="内存管理" FontSize="26" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="看得见的内存，托得住的虚拟内存" FontSize="13.5"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <!-- 双仪表 -->
+            <Grid ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" CornerRadius="14" BorderThickness="1" Padding="16,12"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="PhysTitle" Text="物理内存" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TaoInkBrush}" />
+                        <ProgressBar x:Name="PhysBar" Height="8" CornerRadius="4" />
+                        <TextBlock x:Name="PhysDetail" FontSize="12.5" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" CornerRadius="14" BorderThickness="1" Padding="16,12"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="PageFileTitle" Text="虚拟内存（页面文件）" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TaoInkBrush}" />
+                        <ProgressBar x:Name="PageFileBar" Height="8" CornerRadius="4" />
+                        <TextBlock x:Name="PageFileDetail" FontSize="12.5" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 近一小时趋势 -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="近一小时趋势" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                    <Canvas x:Name="TrendCanvas" Height="110" />
+                    <TextBlock FontSize="12" Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="青瓷实线：物理内存 · 金色虚线：页面文件（数据不足时如实留白）" />
+                </StackPanel>
+            </Border>
+
+            <!-- 占用排行 -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="占用排行" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="TopEmpty" Text="尚未采集占用排行。" FontSize="12.5"
+                               Foreground="{ThemeResource TaoInk3Brush}" Visibility="Collapsed" />
+                    <ItemsControl x:Name="TopList" />
+                </StackPanel>
+            </Border>
+
+            <!-- 页面文件方案 -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="页面文件方案" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="PlanSmart" Content="智能推荐" Click="OnPlanClick" Tag="smart"
+                                CornerRadius="10" Padding="14,6" />
+                        <Button x:Name="PlanPerf" Content="性能优先" Click="OnPlanClick" Tag="perf" CornerRadius="10" Padding="14,6" />
+                        <Button x:Name="PlanSpace" Content="空间优先" Click="OnPlanClick" Tag="space" CornerRadius="10" Padding="14,6" />
+                        <Button x:Name="PlanSystem" Content="系统托管" Click="OnPlanClick" Tag="system" CornerRadius="10" Padding="14,6" />
+                        <Button x:Name="PlanCustom" Content="自定义…" Click="OnPlanClick" Tag="custom" CornerRadius="10" Padding="14,6" />
+                    </StackPanel>
+                    <TextBlock x:Name="PlanNote" FontSize="13" LineHeight="22" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk2Brush}"
+                               Text="改动需三步确认，改前自动备份原设置，随时一键回滚；完全关闭页面文件需二次确认并明确警告。" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

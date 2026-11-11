@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    App 层可编译内核：导航路由、主题令牌、设置模型与持久化。
+    严格对齐原型 v19（artifact file-ecce39bb9b9244cca3f3f7f0:19）。
+    纯 .NET 8 类库，沙箱可全量编译与单测；WinUI3 壳引用本层渲染。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>TaoKeeper.AppKernel</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 视图模型消费 Core 的契约与安全闸门（纯 .NET，沙箱可全测） -->
+    <ProjectReference Include="..\TaoKeeper.Core\TaoKeeper.Core.csproj" />
+  </ItemGroup>
+</Project>

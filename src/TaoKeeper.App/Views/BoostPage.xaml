@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    性能加速页（严格按原型 v19 data-page="boost"：启动项建议卡 + 进程占用排行卡）。
+    数据经 SpeedupPageViewModel（只列建议不代做，执行走逐条确认闸门）；
+    未刷新/未接线时如实显示「尚未体检加速」，不假数据不空转。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.BoostPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="性能加速" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="性能加速" FontSize="26" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="开机快人一步，运行从容不迫" FontSize="13.5"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <!-- 启动项建议卡（只列建议；勾选即确认、未勾绝不执行） -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="SuggestHeader" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="SuggestEmpty" FontSize="12.5" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="尚未体检加速，暂无建议（等待运行期接线；不假数据）。" />
+                    <ItemsControl x:Name="SuggestList" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="ApplyButton" Content="执行勾选项（逐条确认后才会动手）" Click="OnApplyClick"
+                                CornerRadius="10" Padding="16,7"
+                                Background="{ThemeResource TaoAzureBrush}" Foreground="White"
+                                Visibility="Collapsed" />
+                        <TextBlock x:Name="ReceiptText" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                    <!-- 启动项只读清单入口：不占独立路由，直达只读页（数据未接线时如实未测态） -->
+                    <HyperlinkButton x:Name="StartupListLink" Content="查看完整启动项清单（只读）"
+                                     Click="OnStartupListClick" Padding="0" Margin="0,2,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- 内存瘦身建议（随体检计划给出，本轮无建议也如实说） -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="内存瘦身" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="MemTrimLine" FontSize="12.5" TextWrapping="Wrap" LineHeight="21"
+                               Foreground="{ThemeResource TaoInk2Brush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- 进程占用排行（数据未接入，如实空置） -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="进程占用排行" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="ProcessEmpty" FontSize="12.5" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="进程占用数据尚未接入（等待适配层接线）；接入前不显示任何进程，不假数据。" />
+                    <ItemsControl x:Name="ProcessList" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

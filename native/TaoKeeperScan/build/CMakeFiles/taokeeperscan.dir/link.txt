@@ -1,0 +1,2 @@
+/usr/bin/ar qc libtaokeeperscan.a CMakeFiles/taokeeperscan.dir/src/scan.cpp.o CMakeFiles/taokeeperscan.dir/src/mft.cpp.o
+/usr/bin/ranlib libtaokeeperscan.a

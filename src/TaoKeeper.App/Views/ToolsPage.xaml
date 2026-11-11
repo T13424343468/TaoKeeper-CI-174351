@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    工具箱页（严格按原型 v19：8 张快捷卡，布局与文案不动）。
+    大文件查找/磁盘空间分析/重复文件 三张卡点击展开结果区（数据经既有 VM 注入，
+    未扫描如实显示「尚未扫描」）；其余工具卡点击如实提示随运行期接线启用。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.ToolsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:TaoKeeper.App.Views">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,22,28,30" Spacing="14">
+            <TextBlock Text="工具箱" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="工具箱" FontSize="26" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="常备小工具，用完即走" FontSize="13.5"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <!-- 8 张快捷卡（4 列 × 2 行，顺序=原型） -->
+            <Grid ColumnSpacing="12" RowSpacing="12" Margin="0,6,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Button x:Name="ToolLarge" Grid.Row="0" Grid.Column="0" Click="OnToolClick" Tag="large"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="大文件查找" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="扫描全盘大文件，哈希核对后处理" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ToolDup" Grid.Row="0" Grid.Column="1" Click="OnToolClick" Tag="dup"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="重复文件" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="三级漏斗识别，零误报才报" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ToolSimilar" Grid.Row="0" Grid.Column="2" Click="OnToolClick" Tag="similar"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="相似图片" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="重复照片一键归拢" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ToolCtxMenu" Grid.Row="0" Grid.Column="3" Click="OnToolClick" Tag="ctxmenu"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="右键菜单管理" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="过长菜单精简" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="ToolShred" Grid.Row="1" Grid.Column="0" Click="OnToolClick" Tag="shred"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="文件粉碎" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="彻底删除，不可恢复（需确认）" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ToolProc" Grid.Row="1" Grid.Column="1" Click="OnToolClick" Tag="proc"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="进程管理" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="详单式进程查看与结束" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ToolSpace" Grid.Row="1" Grid.Column="2" Click="OnToolClick" Tag="space"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="磁盘空间分析" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="目录树式空间地图" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ToolSysInfo" Grid.Row="1" Grid.Column="3" Click="OnToolClick" Tag="sysinfo"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="系统信息" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="硬件配置一屏尽览" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- 状态与结果区（点击卡片后展开；未扫描如实显示） -->
+            <TextBlock x:Name="ToolStatus" FontSize="12.5" TextWrapping="Wrap"
+                       Foreground="{ThemeResource TaoInk3Brush}"
+                       Text="点上面的卡片开始；扫描与处理通道随运行期接线启用。" />
+
+            <Border x:Name="LargeResult" CornerRadius="14" BorderThickness="1" Padding="18,14" Visibility="Collapsed"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="大文件与空文件夹" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="LargeSummary" FontSize="12.5" Foreground="{ThemeResource TaoInk2Brush}" />
+                    <ListView x:Name="LargeItems" MaxHeight="260" SelectionMode="None">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="local:ToolItemRow">
+                                <Grid ColumnSpacing="10" Padding="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{x:Bind PathText}" FontSize="12.5" TextWrapping="NoWrap"
+                                               TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TaoInkBrush}" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" FontSize="12.5" FontWeight="Bold"
+                                               Foreground="{ThemeResource TaoAzureDeepBrush}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <TextBlock FontSize="12" Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="处理前逐条过确认闸门；默认进回收站，可还原。" />
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="SpaceResult" CornerRadius="14" BorderThickness="1" Padding="18,14" Visibility="Collapsed"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="磁盘空间地图（目录 Top-N）" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="SpaceSummary" FontSize="12.5" Foreground="{ThemeResource TaoInk2Brush}" />
+                    <ListView x:Name="SpaceItems" MaxHeight="260" SelectionMode="None">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="local:ToolItemRow">
+                                <Grid ColumnSpacing="10" Padding="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{x:Bind PathText}" FontSize="12.5" TextWrapping="NoWrap"
+                                               TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TaoInkBrush}" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" FontSize="12.5" FontWeight="Bold"
+                                               Foreground="{ThemeResource TaoAzureDeepBrush}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="DupResult" CornerRadius="14" BorderThickness="1" Padding="18,14" Visibility="Collapsed"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="重复文件" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="DupSummary" FontSize="12.5" Foreground="{ThemeResource TaoInk2Brush}" />
+                    <TextBlock FontSize="12" Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="同名同尺寸同哈希才判重；清理前逐组确认，保留份不动。" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

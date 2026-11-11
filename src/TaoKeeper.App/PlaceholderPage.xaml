@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    未落地页占位：如实说明进度，不显示任何假数据（占位页不做数据绑定）。
+    原型 v19 尚未落地页一律导航到此，防「空转白屏」与「假数据」两种错误形态。
+-->
+<Page
+    x:Class="TaoKeeper.App.PlaceholderPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Spacing="10" MaxWidth="420">
+            <TextBlock x:Name="PageTitle" FontSize="22" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TaoInkBrush}" HorizontalAlignment="Center" />
+            <TextBlock x:Name="Hint" FontSize="14" TextWrapping="Wrap" TextAlignment="Center"
+                       Foreground="{ThemeResource TaoInk2Brush}" HorizontalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</Page>

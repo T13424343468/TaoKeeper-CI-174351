@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    体检中心页（严格按原型 v19 data-page="checkup"：crumb + 标题 + 副题 + 环图卡 + 发现卡）。
+    数据经 CheckupPageViewModel 注入（RunCheckup 产物）；未测态如实显示「尚未体检」不假 100 分；
+    环图弧长=真实得分/100（未测不出弧，竹青描边随主题）。「去处理」按 VM.JumpRoute 路由跳转。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.CheckupPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="体检中心" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="体检中心" FontSize="26" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="六维体检，缺项不误扣分" FontSize="13.5"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <Grid ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 环图卡：弧长=得分/100（未测不出弧） -->
+                <Border Grid.Column="0" CornerRadius="14" BorderThickness="1" Padding="18,14"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel Spacing="8" HorizontalAlignment="Center">
+                        <Grid Width="174" Height="174" HorizontalAlignment="Center">
+                            <Ellipse Width="174" Height="174" StrokeThickness="14"
+                                     Stroke="{ThemeResource TaoLineSoftBrush}" />
+                            <Ellipse x:Name="ScoreArc" Width="174" Height="174" StrokeThickness="14"
+                                     Stroke="{ThemeResource TaoBambooBrush}" StrokeDashCap="Round"
+                                     Visibility="Collapsed" />
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="ScoreText" FontSize="32" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" Foreground="{ThemeResource TaoInkBrush}" />
+                                <TextBlock x:Name="ScoreBand" FontSize="11.5" HorizontalAlignment="Center"
+                                           TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock x:Name="RingNote" FontSize="12" HorizontalAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 发现卡 -->
+                <Border Grid.Column="1" CornerRadius="14" BorderThickness="1" Padding="18,14"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="FindingHeader" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock x:Name="FindingEmpty" FontSize="12.5" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk3Brush}"
+                                   Text="尚未体检。各模块扫描接线后，这里给出六维发现清单（按严重度降序，未测维度不误扣分）。" />
+                        <ItemsControl x:Name="FindingRows" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -1,0 +1,93 @@
+Start testing: Nov 09 13:32 CST
+----------------------------------------------------------
+1/5 Testing: scan_core
+1/5 Test: scan_core
+Command: "/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/test_scan"
+Directory: /root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build
+"scan_core" start time: Nov 09 13:32 CST
+Output:
+----------------------------------------------------------
+[PASS] SHA-256 empty string matches FIPS reference
+[PASS] SHA-256 "abc" matches FIPS reference
+[PASS] SHA-256 padding boundary 55/56/64 bytes match sha256sum
+[PASS] SHA-256 streaming across 1MB boundary, equal content = equal hash
+[PASS] scan counts, bytes and large-file marking
+[PASS] scan skips whitelisted directories
+[PASS] progress callback fires per file; cancellation honored
+ALL C++ CORE TESTS PASSED
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"scan_core" end time: Nov 09 13:32 CST
+"scan_core" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/5 Testing: mft_parser
+2/5 Test: mft_parser
+Command: "/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/test_mft"
+Directory: /root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build
+"mft_parser" start time: Nov 09 13:32 CST
+Output:
+----------------------------------------------------------
+ALL MFT PARSER TESTS PASSED
+[INFO] pass=16 fail=0
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"mft_parser" end time: Nov 09 13:32 CST
+"mft_parser" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/5 Testing: mft_tree
+3/5 Test: mft_tree
+Command: "/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/test_mft_tree"
+Directory: /root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build
+"mft_tree" start time: Nov 09 13:32 CST
+Output:
+----------------------------------------------------------
+ALL MFT TREE TESTS PASSED
+[INFO] pass=26 fail=0
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"mft_tree" end time: Nov 09 13:32 CST
+"mft_tree" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/5 Testing: mft_stream
+4/5 Test: mft_stream
+Command: "/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/test_mft_stream"
+Directory: /root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build
+"mft_stream" start time: Nov 09 13:32 CST
+Output:
+----------------------------------------------------------
+ALL MFT STREAM TESTS PASSED
+[INFO] pass=34 fail=0
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"mft_stream" end time: Nov 09 13:32 CST
+"mft_stream" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/5 Testing: mft_agg_incr
+5/5 Test: mft_agg_incr
+Command: "/root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build/test_mft_agg_incr"
+Directory: /root/workspace/projects/575558/TaoKeeper-Package-v1/native/TaoKeeperScan/build
+"mft_agg_incr" start time: Nov 09 13:32 CST
+Output:
+----------------------------------------------------------
+[PASS] test_mft_agg_incr all checks passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"mft_agg_incr" end time: Nov 09 13:32 CST
+"mft_agg_incr" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 09 13:32 CST

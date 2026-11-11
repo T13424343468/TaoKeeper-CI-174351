@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    磁盘清理页（严格按原型 v19 data-page="disk"：crumb + 标题 + 副题 + 环图卡 + 可清项目卡）。
+    数据经 DiskCleanupPageViewModel 注入（未扫描/空态如实显示，不假 3.2 GB、不假 512 GB）；
+    勾选即重算汇总（VM.ToggleRule），「清理（先进回收站）」只产出经确认闸门的清单，
+    实际执行由 CleanupCoordinator 接线（P2），本页零写动作。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.DiskCleanupPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="磁盘清理" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="磁盘清理" FontSize="26" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="扫得全，清得稳——一切清理先进回收站" FontSize="13.5"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <Grid ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 环图卡：弧长=已勾选占可清合计的真实比例（未扫描不出弧） -->
+                <Border Grid.Column="0" CornerRadius="14" BorderThickness="1" Padding="18,14"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel Spacing="8" HorizontalAlignment="Center">
+                        <Grid Width="176" Height="176" HorizontalAlignment="Center">
+                            <Ellipse Width="176" Height="176" StrokeThickness="16"
+                                     Stroke="{ThemeResource TaoLineSoftBrush}" />
+                            <Ellipse x:Name="RingArc" Width="176" Height="176" StrokeThickness="16"
+                                     Stroke="{ThemeResource TaoAzureBrush}" StrokeDashCap="Round"
+                                     Visibility="Collapsed" />
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="RingTotal" FontSize="24" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" Foreground="{ThemeResource TaoInkBrush}" />
+                                <TextBlock Text="可清理 · 先进回收站" FontSize="11.5" HorizontalAlignment="Center"
+                                           Foreground="{ThemeResource TaoInk3Brush}" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock x:Name="VolumeText" FontSize="13" HorizontalAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 可清项目卡 -->
+                <Border Grid.Column="1" CornerRadius="14" BorderThickness="1" Padding="18,14"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="可清项目" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock x:Name="JunkEmpty" FontSize="12.5" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk3Brush}"
+                                   Text="尚未扫描。扫描接线后，各类垃圾按规则聚合在这里（高风险项默认不勾）。" />
+                        <ItemsControl x:Name="JunkRows" />
+                        <Grid x:Name="CleanTotalRow" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="SelectedSummary" Grid.Column="0" FontSize="13" VerticalAlignment="Center"
+                                       Foreground="{ThemeResource TaoInk2Brush}" />
+                            <Button x:Name="CleanButton" Grid.Column="1" Content="清理（先进回收站）" Click="OnCleanClick"
+                                    CornerRadius="10" Padding="16,7" Margin="8,0,0,0"
+                                    Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                        </Grid>
+                        <TextBlock FontSize="12.5" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Foreground="{ThemeResource TaoInk3Brush}"
+                                   Text="大文件、重复文件、相似图片请在工具箱中使用；清理动作全部先进回收站，可随时还原。" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

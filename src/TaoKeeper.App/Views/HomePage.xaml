@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    总览页（严格按原型 v19 首页：远山 hero + 三格统计 + 四快捷卡 + 笔刷分隔 + 清理账最近三笔）。
+    数据经 HomePageViewModel 注入（未测/未扫/未知一律如实显示，不假数据）；
+    远山与落日用 Path 手绘（不依赖图片资源），色值随三主题画刷。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,22,28,30" Spacing="18">
+
+            <!-- 远山 hero（水墨远山 + 一点朱砂落日） -->
+            <Grid>
+                <Viewbox Stretch="Fill" Height="120">
+                    <Canvas Width="1200" Height="150">
+                        <Rectangle Canvas.Left="0" Canvas.Top="0" Width="1200" Height="150"
+                                   Fill="{ThemeResource TaoAzureWashBrush}" />
+                        <Path Fill="{ThemeResource TaoAzureDeepBrush}" Opacity="0.28"
+                              Data="M0,150 L0,96 Q90,44 190,88 Q260,114 330,92 Q420,62 520,100 Q640,142 760,104 Q870,72 980,98 Q1090,124 1200,88 L1200,150 Z" />
+                        <Path Fill="{ThemeResource TaoAzureDeepBrush}" Opacity="0.2"
+                              Data="M0,150 L0,118 Q140,84 280,112 Q400,134 540,116 Q680,98 820,120 Q980,142 1100,116 Q1150,106 1200,112 L1200,150 Z" />
+                        <Path Fill="{ThemeResource TaoAzureDeepBrush}" Opacity="0.12"
+                              Data="M0,150 L0,136 Q200,116 420,132 Q640,146 860,132 Q1040,122 1200,134 L1200,150 Z" />
+                        <Ellipse Canvas.Left="1013" Canvas.Top="21" Width="34" Height="34"
+                                 Fill="{ThemeResource TaoCinnabarBrush}" Opacity="0.55" />
+                    </Canvas>
+                </Viewbox>
+                <StackPanel Margin="26,20,26,0" Spacing="6">
+                    <TextBlock x:Name="HeroTitle" FontSize="24" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="HeroSubtitle" FontSize="13.5" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk2Brush}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 三格统计 -->
+            <Grid ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" CornerRadius="14" BorderThickness="1" Padding="16,12"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                        Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="3">
+                            <TextBlock x:Name="StatScore" FontSize="26" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TaoInkBrush}" />
+                            <TextBlock Text="分" FontSize="13" VerticalAlignment="Bottom" Margin="0,0,0,4"
+                                       Foreground="{ThemeResource TaoInk3Brush}" />
+                        </StackPanel>
+                        <TextBlock x:Name="StatScoreLabel" FontSize="12"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" CornerRadius="14" BorderThickness="1" Padding="16,12"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                        Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="3">
+                            <TextBlock x:Name="StatJunk" FontSize="26" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TaoInkBrush}" />
+                            <TextBlock x:Name="StatJunkUnit" Text="待清" FontSize="13" VerticalAlignment="Bottom"
+                                       Margin="0,0,0,4" Foreground="{ThemeResource TaoInk3Brush}" />
+                        </StackPanel>
+                        <TextBlock Text="可清理垃圾（进回收站）" FontSize="12"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" CornerRadius="14" BorderThickness="1" Padding="16,12"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                        Background="{ThemeResource TaoCardBrush}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="3">
+                            <TextBlock x:Name="StatUpgrades" FontSize="26" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TaoInkBrush}" />
+                            <TextBlock Text="款" FontSize="13" VerticalAlignment="Bottom" Margin="0,0,0,4"
+                                       Foreground="{ThemeResource TaoInk3Brush}" />
+                        </StackPanel>
+                        <TextBlock x:Name="StatUpgradesLabel" FontSize="12"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 四快捷卡 -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="Quick0" Grid.Column="0" CornerRadius="12" HorizontalAlignment="Stretch"
+                        Background="{ThemeResource TaoCardBrush}" BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                        BorderThickness="1" Padding="14,12" HorizontalContentAlignment="Stretch"
+                        Click="OnQuickCardClick">
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Name="Quick0Title" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock x:Name="Quick0Sub" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="Quick1" Grid.Column="1" CornerRadius="12" HorizontalAlignment="Stretch"
+                        Background="{ThemeResource TaoCardBrush}" BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                        BorderThickness="1" Padding="14,12" HorizontalContentAlignment="Stretch"
+                        Click="OnQuickCardClick">
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Name="Quick1Title" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock x:Name="Quick1Sub" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="Quick2" Grid.Column="2" CornerRadius="12" HorizontalAlignment="Stretch"
+                        Background="{ThemeResource TaoCardBrush}" BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                        BorderThickness="1" Padding="14,12" HorizontalContentAlignment="Stretch"
+                        Click="OnQuickCardClick">
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Name="Quick2Title" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock x:Name="Quick2Sub" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="Quick3" Grid.Column="3" CornerRadius="12" HorizontalAlignment="Stretch"
+                        Background="{ThemeResource TaoCardBrush}" BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                        BorderThickness="1" Padding="14,12" HorizontalContentAlignment="Stretch"
+                        Click="OnQuickCardClick">
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Name="Quick3Title" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock x:Name="Quick3Sub" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- 笔刷分隔 -->
+            <Rectangle Height="2" HorizontalAlignment="Stretch"
+                       Fill="{ThemeResource TaoLineSoftBrush}" />
+
+            <!-- 清理账 · 最近三笔 -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="清理账 · 最近三笔" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="LedgerEmpty" FontSize="12.5"
+                               Foreground="{ThemeResource TaoInk3Brush}" Text="还没有清理记录，清一次就会记账（可还原）。"
+                               Visibility="Collapsed" />
+                    <TextBlock x:Name="LedgerLine0" FontSize="12.5" LineHeight="21" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk2Brush}" />
+                    <TextBlock x:Name="LedgerLine1" FontSize="12.5" LineHeight="21" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk2Brush}" />
+                    <TextBlock x:Name="LedgerLine2" FontSize="12.5" LineHeight="21" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk2Brush}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
