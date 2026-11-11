@@ -101,7 +101,7 @@ public sealed partial class DriverPage : Page
         return grid;
     }
 
-    private static void AddText(Grid grid, int column, string text, string brushKey, double size, Microsoft.UI.Text.FontWeight? weight)
+    private static void AddText(Grid grid, int column, string text, string brushKey, double size, Windows.UI.Text.FontWeight? weight)
     {
         var tb = new TextBlock
         {
