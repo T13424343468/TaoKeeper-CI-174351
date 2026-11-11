@@ -67,24 +67,24 @@ int tk_aggregate_dir_sizes(const TkMftEntry* entries, size_t count, uint64_t roo
                            size_t* needed_out, uint64_t* orphan_size_out, uint64_t* orphan_files_out);
 
 /* $MFT 连续读取流式解码：create 返回不透明句柄（record_size=0 返回 null）。 */
-void* TK_INTEROP_API tk_mft_stream_create(size_t record_size);
-int TK_INTEROP_API tk_mft_stream_set_start_offset(void* handle, uint64_t bytes);
-size_t TK_INTEROP_API tk_mft_stream_feed(void* handle, const uint8_t* data, size_t len, size_t* skipped_out);
-size_t TK_INTEROP_API tk_mft_stream_take(void* handle, TkMftEntry* out, size_t out_cap);
-uint64_t TK_INTEROP_API tk_mft_stream_pending(void* handle);
-uint64_t TK_INTEROP_API tk_mft_stream_next_record_no(void* handle);
-void TK_INTEROP_API tk_mft_stream_destroy(void* handle);
+TK_INTEROP_API void* tk_mft_stream_create(size_t record_size);
+TK_INTEROP_API int tk_mft_stream_set_start_offset(void* handle, uint64_t bytes);
+TK_INTEROP_API size_t tk_mft_stream_feed(void* handle, const uint8_t* data, size_t len, size_t* skipped_out);
+TK_INTEROP_API size_t tk_mft_stream_take(void* handle, TkMftEntry* out, size_t out_cap);
+TK_INTEROP_API uint64_t tk_mft_stream_pending(void* handle);
+TK_INTEROP_API uint64_t tk_mft_stream_next_record_no(void* handle);
+TK_INTEROP_API void tk_mft_stream_destroy(void* handle);
 
 /* 分批增量聚合（大卷内存峰值优化）：目录节点常驻、文件体积即弃。
  * 会话非线程安全（单线程流式喂入）；快照非破坏可重复；
  * 产出与 tk_aggregate_dir_sizes 同构（只含连通到卷根且有文件贡献的目录，按记录号升序），
  * 孤儿=父链缺失/成环部分。handle 为 null 或 entries 为 null 时 feed 返回 0；
  * snapshot 返回写入条数，needed_out 回填全部条数（>out_cap 需扩缓冲重试）。 */
-void* TK_INTEROP_API tk_mft_agg_incr_create(uint64_t root_record);
-int TK_INTEROP_API tk_mft_agg_incr_feed(void* handle, const TkMftEntry* entries, size_t count);
-size_t TK_INTEROP_API tk_mft_agg_incr_snapshot(void* handle, TkMftAggItem* out, size_t out_cap,
+TK_INTEROP_API void* tk_mft_agg_incr_create(uint64_t root_record);
+TK_INTEROP_API int tk_mft_agg_incr_feed(void* handle, const TkMftEntry* entries, size_t count);
+TK_INTEROP_API size_t tk_mft_agg_incr_snapshot(void* handle, TkMftAggItem* out, size_t out_cap,
                                 size_t* needed_out, uint64_t* orphan_size_out, uint64_t* orphan_files_out);
-void TK_INTEROP_API tk_mft_agg_incr_destroy(void* handle);
+TK_INTEROP_API void tk_mft_agg_incr_destroy(void* handle);
 
 #ifdef __cplusplus
 } /* extern "C" */
