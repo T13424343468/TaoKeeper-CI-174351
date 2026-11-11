@@ -38,7 +38,7 @@ public sealed partial class HomePage : Page
         StatScoreLabel.Text = $"体检评分 · {vm.ScoreBandText}";
         StatJunk.Text = vm.JunkBytes is long b ? FormatJunkNumber(b) : "—";
         StatUpgrades.Text = vm.UpgradeCount is int u ? u.ToString() : "—";
-        StatUpgradesLabel.Text = vm.UpgradeCount is int u
+        StatUpgradesLabel.Text = vm.UpgradeCount is int uc
             ? (vm.BlockedCount > 0 ? $"软件可升级 · {vm.BlockedCount} 项已拦截" : "软件可升级 · 无拦截")
             : vm.UpgradeSummaryText;
 

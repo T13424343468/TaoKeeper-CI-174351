@@ -89,7 +89,7 @@ public sealed partial class DriverPage : Page
                 CornerRadius = new CornerRadius(10),
                 Padding = new Thickness(12, 5, 12, 5),
             };
-            btn.Click += async (_, _) => await _ = UpgradeAsync(r);
+            btn.Click += async (_, _) => await UpgradeAsync(r);
             Grid.SetColumn(btn, 4);
             grid.Children.Add(btn);
         }

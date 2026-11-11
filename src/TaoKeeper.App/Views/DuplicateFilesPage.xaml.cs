@@ -118,7 +118,7 @@ public sealed partial class DuplicateFilesPage : Page
             Foreground = (Brush)Application.Current.Resources["TaoInk3Brush"],
         });
 
-        card.Content = panel;
+        card.Child = panel;
         return card;
     }
 

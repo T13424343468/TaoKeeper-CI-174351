@@ -89,7 +89,7 @@ public sealed partial class SoftwarePage : Page
             VerticalAlignment = VerticalAlignment.Center,
         };
         var btn = new Button { Content = "确认后升级", CornerRadius = new CornerRadius(10), Padding = new Thickness(12, 5, 12, 5) };
-        btn.Click += async (_, _) => await _ = UpgradeAsync(entry);
+        btn.Click += async (_, _) => await UpgradeAsync(entry);
 
         row.Children.Add(name);
         row.Children.Add(meta);
@@ -213,7 +213,7 @@ public sealed partial class SoftwarePage : Page
                 Foreground = (Brush)Application.Current.Resources["TaoInk2Brush"],
             });
             var btn = new Button { Content = "确认后卸载", CornerRadius = new CornerRadius(10), Padding = new Thickness(12, 5, 12, 5) };
-            btn.Click += async (_, _) => await _ = UninstallAsync(e);
+            btn.Click += async (_, _) => await UninstallAsync(e);
             row.Children.Add(btn);
             return row;
         }).ToList();

@@ -107,7 +107,7 @@ public sealed partial class DiskCleanupPage : Page
     private void OnRowToggle(CheckBox box)
     {
         if (box.Tag is not string ruleId || _vm is null) return;
-        _vm.ToggleRule(ruleId, box.IsChecked);
+        _vm.ToggleRule(ruleId, box.IsChecked == true);
         Refresh();
     }
 
