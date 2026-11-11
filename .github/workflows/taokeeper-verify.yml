@@ -117,6 +117,10 @@ jobs:
         run: |
           pwsh -NoProfile -ExecutionPolicy Bypass -File ci/winget-livefire.ps1 -OutDir winget-shots
         shell: pwsh
+      - name: Soak stability 30min (attach/launch + real disk scan + full metrics)
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File ci/soak-stability.ps1 -MsiPath tools/msi/out/TaoKeeper-PC-MSI-v1.0.0.msi -OutDir soak-shots
+        shell: pwsh
       - name: Cleanup (uninstall after visual pass)
         run: |
           $arp = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "*TaoKeeper*" }
@@ -130,6 +134,12 @@ jobs:
           path: |
             ci-shots/
             winget-shots/
+      - name: Upload soak metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soak-metrics
+          path: soak-shots/
       - name: Hash triple (bytes + SHA-256 + manifest)
         run: |
           ci/make-hashes-ci.ps1 -OutDir tools/msi/out
