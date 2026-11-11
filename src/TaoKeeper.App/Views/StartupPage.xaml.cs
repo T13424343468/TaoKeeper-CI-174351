@@ -104,5 +104,5 @@ public sealed partial class StartupPage : Page
     private static Brush ThemeBrush(string key) =>
         Application.Current.Resources.TryGetValue(key, out var value) && value is Brush brush
             ? brush
-            : new SolidColorBrush(Windows.UI.Colors.Gray);
+            : new SolidColorBrush(Microsoft.UI.Colors.Gray);
 }

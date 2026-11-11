@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using TaoKeeper.AppKernel.Navigation;
 using TaoKeeper.AppKernel.Settings;
+using TaoKeeper.AppKernel.Theming;
 using TaoKeeper.AppKernel.ViewModels;
 
 namespace TaoKeeper.App.Views;
@@ -247,5 +248,5 @@ public sealed partial class SettingsPage : Page
     private static Microsoft.UI.Xaml.Media.Brush ThemeBrush(string key) =>
         Application.Current.Resources.TryGetValue(key, out var value) && value is Microsoft.UI.Xaml.Media.Brush brush
             ? brush
-            : new SolidColorBrush(Windows.UI.Colors.Gray);
+            : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Gray);
 }
