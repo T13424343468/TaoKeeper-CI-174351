@@ -110,7 +110,7 @@ jobs:
         shell: pwsh
       - name: Launch app + UIA walk + screenshots (visual evidence)
         run: |
-          dotnet publish src/TaoKeeper.App -c Release -r win-x64 --self-contained false -p:WindowsAppSDKSelfContained=true -o tools/msi/publish-ui
+          dotnet publish src/TaoKeeper.App -c Release -r win-x64 --self-contained false -p:Platform=x64 -p:WindowsAppSDKSelfContained=true -o tools/msi/publish-ui
           if (-not (Test-Path tools/msi/publish-ui/TaoKeeper.App.exe)) { Write-Host "[ERROR] ui payload missing"; exit 1 }
           pwsh -NoProfile -ExecutionPolicy Bypass -File ci/ui-walk-screens.ps1 -ExePath (Resolve-Path tools/msi/publish-ui/TaoKeeper.App.exe) -OutDir ci-shots
         shell: pwsh
