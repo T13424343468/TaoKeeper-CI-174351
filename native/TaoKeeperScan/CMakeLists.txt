@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(taokeeperscan src/scan.cpp src/mft.cpp)
 target_include_directories(taokeeperscan PUBLIC include)
+# 2026-11-12 r5 修红：Windows 大小写不敏感文件系统上 taokeepsscan.lib 与共享库导入库
+# TaoKeeperScan.lib 同名互相覆盖（导入库后建，覆盖静态库），全部静态测试 LNK2019；
+# 静态库改名，与导入库（跟随 DLL 名 TaoKeeperScan）区分。
+set_target_properties(taokeeperscan PROPERTIES OUTPUT_NAME TaoKeeperScanStatic)
 
 # 共享库：给 .NET P/Invoke 的 C ABI 导出层（沙箱互操作实测用；Windows 真机出 TaoKeeperScan.dll）
 add_library(taokeeperscan_shared SHARED src/scan.cpp src/mft.cpp src/interop.cpp)
