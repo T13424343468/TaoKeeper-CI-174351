@@ -76,7 +76,7 @@ jobs:
       - name: Install WiX 5.0.2 + UI extension
         run: |
           dotnet tool install -g wix --version 5.0.2
-          wix extension add -g WixToolset.UI.wixext --version 5.0.2
+          wix extension add -g WixToolset.UI.wixext -v 5.0.2
         shell: pwsh
       - name: Build MSI (single-msi gate)
         run: |

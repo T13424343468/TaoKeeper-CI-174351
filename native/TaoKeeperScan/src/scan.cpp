@@ -8,6 +8,7 @@
 #include <cctype>
 #include <mutex>
 #include <atomic>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -90,7 +91,9 @@ std::string Sha256File(const std::string& path) {
         h[0]+=a; h[1]+=b; h[2]+=c; h[3]+=d; h[4]+=e; h[5]+=f; h[6]+=g; h[7]+=hh;
     };
 
-    std::array<char, 1024*1024> buf{};
+    // 2026-11-12 r6 修红：1MB 缓冲原为栈上 std::array，Windows 默认栈 1MB 直接爆栈（SEGFAULT，
+    // 沙箱 Linux 8MB 栈掩盖）；改堆分配。
+    std::vector<char> buf(1024 * 1024, 0);
     while (in.read(buf.data(), buf.size()) || in.gcount() > 0) {
         std::streamsize got = in.gcount();
         total_len += static_cast<uint64_t>(got);
