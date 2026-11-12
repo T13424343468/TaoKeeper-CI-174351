@@ -72,7 +72,7 @@ jobs:
       - name: Publish payload offline
         run: |
           ci/uncomment-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
-          dotnet publish src/TaoKeeper.App -c Release -r win-x64 --self-contained false -o tools/msi/publish
+          dotnet publish src/TaoKeeper.App -c Release -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:Platform=x64 -o tools/msi/publish
           if (-not (Test-Path tools/msi/publish/TaoKeeper.App.exe)) { Write-Host "[ERROR] payload exe missing"; exit 1 }
           Write-Host "[OK] publish payload ready"
         shell: pwsh
@@ -95,6 +95,10 @@ jobs:
           if ($p1.ExitCode -ne 0) { Get-Content install.log -Tail 40; exit 1 }
           $arp = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "*TaoKeeper*" }
           Write-Host "[CHECK] ARP entry: $($arp.DisplayName) version $($arp.DisplayVersion)"
+          $desk=[Environment]::GetFolderPath('CommonDesktopDirectory')
+          if (-not (Test-Path "$desk\TaoKeeper.lnk")) { Write-Host "[ERROR] desktop shortcut missing"; Get-ChildItem "$desk" -Filter "*.lnk" | Select-Object -First 20 -ExpandProperty Name; exit 1 }
+          if (-not (Test-Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\TaoKeeper.lnk")) { Write-Host "[ERROR] start-menu shortcut missing"; exit 1 }
+          Write-Host "[OK] desktop + start-menu shortcuts present after install"
           if (-not $arp) { Write-Host "[ERROR] no ARP entry after install"; Get-Content install.log -Tail 40; exit 1 }
           $p2 = Start-Process msiexec -ArgumentList "/x",$($arp.PSChildName),"/qn","/norestart","/l*v","uninstall.log" -Wait -PassThru
           Write-Host "[UNINSTALL] exit=$($p2.ExitCode)"
