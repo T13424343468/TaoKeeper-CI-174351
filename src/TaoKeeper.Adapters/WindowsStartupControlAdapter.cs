@@ -139,10 +139,13 @@ public sealed class WindowsStartupControlAdapter : IStartupControlAdapter
         {
             var id = StartupItemId("启动文件夹", Path.GetFileName(file));
             var enabled = !disabledIds.Contains(id);
+            // 风险按命令真实特征分级（ClassifyRisk），不再硬编码 Low——
+            // 硬编码 Low 会让启动文件夹项永远进不了加速建议清单，禁用入口形同虚设。
+            var risk = ClassifyRisk(file);
             yield return new StartupItemEntry(
                 id, Path.GetFileNameWithoutExtension(file), StartupItemSource.StartupFolder, Publisher: null,
-                Enabled: enabled, StartupRiskLevel.Low,
-                RiskHint: "启动文件夹内的自启动项，可按需禁用（快照可恢复）",
+                Enabled: enabled, risk,
+                RiskHint: RiskHint(risk, "启动文件夹") ?? "启动文件夹内的自启动项，可按需禁用（快照可恢复）",
                 Command: file, OwningProductId: null);
         }
 
@@ -207,7 +210,10 @@ public sealed class WindowsStartupControlAdapter : IStartupControlAdapter
             switch (entry.Source)
             {
                 case StartupItemSource.RegistryRun:
-                    using (var key = Registry.CurrentUser.OpenSubKey(RunKeyCurrentUser, writable: true))
+                    // 恢复写回快照记录的原键（entry.Location）与原值名（entry.Name），
+                    // 不再写回 ItemId 指纹名——否则原值丢失、回滚语义破坏。
+                    var (restoreRoot, restoreSubKey) = ResolveRunKey(entry.Location);
+                    using (var key = restoreRoot.OpenSubKey(restoreSubKey, writable: true))
                     {
                         if (key is null)
                             return new StartupToggleResult(itemId, true, false, "注册表 Run 键不可写（权限不足），未做任何改动。");
@@ -216,7 +222,7 @@ public sealed class WindowsStartupControlAdapter : IStartupControlAdapter
                             "REG_EXPAND_SZ" => RegistryValueKind.ExpandString,
                             _ => RegistryValueKind.String,
                         };
-                        key.SetValue(ValueNameOf(entry.ItemId), entry.OriginalValue, kind);
+                        key.SetValue(entry.Name, entry.OriginalValue, kind);
                     }
                     break;
                 case StartupItemSource.StartupFolder:
@@ -245,7 +251,8 @@ public sealed class WindowsStartupControlAdapter : IStartupControlAdapter
 
     private StartupSnapshotEntry? DisableRegistryRun(StartupItemEntry item)
     {
-        var name = ValueNameOf(item.Id);
+        // 禁用按真实注册表值名（item.Name=枚举时的值名）查删；ItemId 是展示用指纹（哈希），不是值名。
+        var name = item.Name;
         foreach (var (root, subKey) in new[] { (Registry.CurrentUser, RunKeyCurrentUser), (Registry.LocalMachine, RunKeyLocalMachine) })
         {
             try
@@ -323,7 +330,11 @@ public sealed class WindowsStartupControlAdapter : IStartupControlAdapter
         => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
                System.Text.Encoding.UTF8.GetBytes(sourceLabel + "|" + name)))[..24].ToLowerInvariant();
 
-    private static string ValueNameOf(string itemId) => itemId;
+    /// <summary>按快照记录的键路径解析回写目标（HKLM/HKCU 兼容；未知路径按 HKCU 处理）。</summary>
+    private static (RegistryKey Root, string SubKey) ResolveRunKey(string location)
+        => string.Equals(location, RunKeyLocalMachine, StringComparison.OrdinalIgnoreCase)
+            ? (Registry.LocalMachine, RunKeyLocalMachine)
+            : (Registry.CurrentUser, RunKeyCurrentUser);
 
     private static string? StartupFolderPath() => OperatingSystem.IsWindows()
         ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup))
