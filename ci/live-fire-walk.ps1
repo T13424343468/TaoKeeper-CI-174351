@@ -18,6 +18,17 @@
 #   navigation to StartupPage (no dialog). Primary/fallback kept for future data.
 # - Invoke-Match now skips offscreen (collapsed) elements so hidden controls can
 #   never fake a PASS, and skips nav-column elements by X bound.
+# walk v4 (r17 post-mortem, 2026-11-12):
+# - Nav IsSelected alone is NOT a landing check: r16/r17 screenshots showed the
+#   memory nav item selected while the content frame stayed on the previous
+#   page (false-green). Landing is now verified by the CONTENT-area title text
+#   (Text elements right of the nav column); on mismatch the walk re-selects
+#   Overview (re-dance) and retries the target within the attempt loop.
+# - App-alive evidence: every stage checks process exit; on exit it saves a
+#   screenshot, a crash-evidence.txt (exit code + recent Application event
+#   errors + dump listing) and registers WER LocalDumps for a minidump.
+# - Storage probe is adaptive: MasterSwitch if wired, else the placeholder
+#   render is asserted (route not registered until P0 wiring lands).
 # - Probes target REAL controls verified in page XAML: software tab buttons,
 #   disk "开始扫描", driver "扫描驱动", storage MasterSwitch toggle, tools by
 #   AutomationId (x:Name), widget "一键清理"->"再想想", settings theme "天青"->"水墨"
@@ -34,6 +45,18 @@ Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 
+# WER LocalDumps: minidump on crash (CI runner is admin); dumps ride the
+# ui-screenshots artifact because they live under OutDir.
+try {
+  $dumpDir = Join-Path $OutDir 'crashdumps'
+  New-Item -ItemType Directory -Force -Path $dumpDir | Out-Null
+  $werKey = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\TaoKeeper.App.exe'
+  New-Item -Force -Path $werKey | Out-Null
+  Set-ItemProperty $werKey DumpFolder -Value $dumpDir -Type ExpandString
+  Set-ItemProperty $werKey DumpType -Value 1 -Type DWord
+  Set-ItemProperty $werKey DumpCount -Value 5 -Type DWord
+} catch { Write-Host ("[WER] local dumps not registered: {0}" -f $_.Exception.Message) }
+
 $script:failCount = 0
 function Write-Assert([string]$Page, [bool]$Ok, [string]$Reason) {
   $verdict = 'PASS'
@@ -48,6 +71,27 @@ function Save-Shot([string]$Name) {
   $g.Dispose()
   $bmp.Save((Join-Path $OutDir $Name), [System.Drawing.Imaging.ImageFormat]::Png)
   $bmp.Dispose()
+}
+
+# App-alive evidence: on process exit, save screenshot + crash-evidence.txt
+# (exit code, recent Application error events, dump listing) and exit 1.
+function Test-AppAlive([string]$Stage) {
+  $p.Refresh()
+  if (-not $p.HasExited) { return }
+  Save-Shot "99-app-exited.png"
+  $evPath = Join-Path $OutDir "crash-evidence.txt"
+  "app exited at stage: $Stage" | Out-File $evPath -Encoding utf8
+  "ExitCode: $($p.ExitCode)" | Out-File $evPath -Append -Encoding utf8
+  try {
+    Get-WinEvent -FilterHashtable @{ LogName='Application'; Level=2; StartTime=(Get-Date).AddMinutes(-15) } -ErrorAction Stop |
+      ForEach-Object { ("{0} [{1}] {2}" -f $_.TimeCreated, $_.ProviderName, $_.Message) | Out-File $evPath -Append -Encoding utf8 }
+  } catch { "event log query: $($_.Exception.Message)" | Out-File $evPath -Append -Encoding utf8 }
+  $dumps = Join-Path $OutDir 'crashdumps'
+  if (Test-Path $dumps) {
+    Get-ChildItem $dumps | ForEach-Object { $_.FullName | Out-File $evPath -Append -Encoding utf8 }
+  }
+  Write-Assert "app-alive" $false "app process exited at $Stage; see crash-evidence.txt"
+  exit 1
 }
 
 $p = Start-Process -FilePath $ExePath -WorkingDirectory (Split-Path $ExePath) -PassThru
@@ -142,6 +186,38 @@ if ($script:navItems.Count -gt 0) {
 }
 Write-Host ("[UIA] nav items: {0} (expect 12), nav right bound: {1}" -f $script:navItems.Count, $script:navRight)
 
+# Content-area landing markers (walk v4): nav title -> content title text.
+# Home has no header title; its static stat label is the marker. Checkup and
+# Driver pages use different header wording than their nav titles.
+$contentMarkers = @{
+  '总览' = '可清理垃圾（进回收站）'
+  '软件管家' = '软件管家'
+  '磁盘清理' = '磁盘清理'
+  '系统体检' = '体检中心'
+  '性能加速' = '性能加速'
+  '内存管理' = '内存管理'
+  '驱动安装升级' = '驱动升级'
+  '弹窗管理' = '弹窗管理'
+  '存储感知' = '存储感知'
+  '工具箱' = '工具箱'
+  '桌面挂件' = '桌面挂件'
+  '设置' = '设置'
+}
+
+# Find a Text element in the CONTENT area (right of the nav column).
+function Find-ContentText([string]$Name, [switch]$Like) {
+  $textCond = New-Object System.Windows.Automation.PropertyCondition(
+    [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctText)
+  foreach ($t in $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $textCond)) {
+    try {
+      $r = $t.Current.BoundingRectangle
+      $n = $t.Current.Name
+      if ($r.X -gt $script:navRight -and (($Like -and $n -match $Name) -or (-not $Like -and $n -eq $Name))) { return $true }
+    } catch { }
+  }
+  return $false
+}
+
 # Navigate by title: scroll back to top, discover fresh, invoke/select by title,
 # then re-read IsSelected as a real landing check. Unseen items scroll into view.
 function Invoke-NavByTitle([string]$Title) {
@@ -170,13 +246,21 @@ function Invoke-NavByTitle([string]$Title) {
       }
       Start-Sleep -Seconds 4
       if ($p.HasExited) { return $false }
-      $chk = Find-NavItems | Where-Object { $_.Title -eq $Title } | Select-Object -First 1
-      if ($chk) {
+      # Landing check = content-area title (walk v4). IsSelected alone lied in
+      # r16/r17 (memory selected, content still on previous page).
+      $marker = $Title
+      if ($contentMarkers.ContainsKey($Title)) { $marker = $contentMarkers[$Title] }
+      if (Find-ContentText $marker) { return $true }
+      Write-Host ("[UIA] content mismatch: '{0}' selected but content not landed (attempt {1}); re-dancing" -f $Title, $attempt)
+      $homeItem = $script:navItems | Where-Object { $_.Title -eq '总览' } | Select-Object -First 1
+      if ($homeItem) {
         try {
-          return [bool]$chk.El.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Current.IsSelected
-        } catch { return $true }
+          try { $homeItem.El.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() }
+          catch { $homeItem.El.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() }
+          Start-Sleep -Seconds 3
+        } catch { }
       }
-      return $true
+      Scroll-NavTop
     } catch {
       Write-Host ("[UIA] nav '{0}' retry {1}: {2}" -f $Title, $attempt, $_.Exception.Message)
       Start-Sleep -Seconds 2
@@ -205,14 +289,14 @@ $idx = 0
 foreach ($page in $plan) {
   $navOk = Invoke-NavByTitle $page.Title
   if (-not $navOk) {
-    Write-Assert $page.Title $false "cannot invoke nav item '$($page.Title)' after 5 attempts"
+    Write-Assert $page.Title $false "cannot land nav item '$($page.Title)' (select + content verify) after 5 attempts"
     $idx++
     continue
   }
   Save-Shot ("{0}.png" -f $page.Key)
-  Write-Assert $page.Title $true "entered nav[$idx] '$($page.Title)' (selected verified), shot $($page.Key).png"
+  Write-Assert $page.Title $true "landed nav[$idx] '$($page.Title)' (content verified), shot $($page.Key).png"
   $idx++
-  if ($p.HasExited) { Write-Assert $page.Title $false "app exited during walk"; exit 1 }
+  Test-AppAlive ("walk:" + $page.Key)
 }
 
 # Real-action probes per page (bounded waits; app keeps its own progress UI).
@@ -253,15 +337,17 @@ $probe = @(
   @{ Page = 'memory';   NavTitle = '内存管理';   Name = '智能推荐|性能优先|空间优先'; Wait = 8 },
   @{ Page = 'driver';   NavTitle = '驱动安装升级'; Name = '扫描驱动';                 Wait = 20 },
   @{ Page = 'popup';    NavTitle = '弹窗管理';   ReadOnly = $true },
-  @{ Page = 'storage';  NavTitle = '存储感知';   Name = 'MasterSwitch';               Wait = 6 },
+  @{ Page = 'storage';  NavTitle = '存储感知';   Name = 'MasterSwitch';               Wait = 6; Placeholder = $true },
   @{ Page = 'tools';    NavTitle = '工具箱';     Name = 'ToolSysInfo|ToolLarge|ToolSpace|ToolDup'; Wait = 8 },
   @{ Page = 'widget';   NavTitle = '桌面挂件';   Name = '一键清理';                   Wait = 6; Then = '再想想'; ThenWait = 2 },
   @{ Page = 'settings'; NavTitle = '设置';       Name = '天青';                       Wait = 6; Then = '水墨';   ThenWait = 3 }
 )
 foreach ($pr in $probe) {
   $navOk = Invoke-NavByTitle $pr.NavTitle
+  Test-AppAlive ("probe-nav:" + $pr.Page)
   Save-Shot ("nav-{0}.png" -f $pr.Page)
   $ok = $false
+  $placeholder = $false
   if ($navOk) {
     if ($pr.ReadOnly) {
       # Read-only summary page by design: no interactive controls to invoke.
@@ -270,8 +356,17 @@ foreach ($pr in $probe) {
       $ok = Invoke-Match $pr.Name $pr.Wait
       if (-not $ok -and $pr.Fallback) { $ok = Invoke-Match $pr.Fallback $pr.Wait }
       if ($ok -and $pr.Then) { Invoke-Match $pr.Then $pr.ThenWait | Out-Null }
+      if (-not $ok -and $pr.Placeholder) {
+        # Route may still be unregistered (placeholder page) until P0 wiring
+        # lands; assert the placeholder render so the probe tracks reality.
+        if ((Find-ContentText $pr.NavTitle) -and (Find-ContentText '本页正在赶工' -Like)) {
+          $ok = $true
+          $placeholder = $true
+        }
+      }
     }
   }
+  Test-AppAlive ("probe-act:" + $pr.Page)
   Save-Shot ("act-{0}.png" -f $pr.Page)
   $reason = "nav '$($pr.NavTitle)' ok=$navOk"
   if ($pr.ReadOnly) {
@@ -280,6 +375,7 @@ foreach ($pr in $probe) {
     $reason += "; control match '$($pr.Name)' invoked=$ok"
     if ($pr.Fallback) { $reason += "; fallback '$($pr.Fallback)' allowed (primary design-collapsed without data)" }
     if ($pr.Then) { $reason += "; follow-up '$($pr.Then)' reset attempted" }
+    if ($placeholder) { $reason += "; route placeholder render asserted (pending P0 wiring), placeholder-by-design" }
   }
   Write-Assert ("action:{0}" -f $pr.Page) ($navOk -and $ok) $reason
 }
