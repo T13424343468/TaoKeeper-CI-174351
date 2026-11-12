@@ -51,6 +51,9 @@
                                Foreground="{ThemeResource TaoInkBrush}" />
                     <TextBlock x:Name="MemTrimLine" FontSize="12.5" TextWrapping="Wrap" LineHeight="21"
                                Foreground="{ThemeResource TaoInk2Brush}" />
+                    <TextBlock x:Name="BootTimeText" FontSize="12.5" TextWrapping="Wrap" LineHeight="21"
+                               Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="开机耗时：未测" />
                 </StackPanel>
             </Border>
 
@@ -63,7 +66,7 @@
                                Foreground="{ThemeResource TaoInkBrush}" />
                     <TextBlock x:Name="ProcessEmpty" FontSize="12.5" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk3Brush}"
-                               Text="进程占用数据尚未接入（等待适配层接线）；接入前不显示任何进程，不假数据。" />
+                               Text="进程枚举不可得时如实空置（不假数据）；正常情况下这里显示真实进程内存占用 Top 10。" />
                     <ItemsControl x:Name="ProcessList" />
                 </StackPanel>
             </Border>

@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using TaoKeeper.AppKernel.ViewModels;
+using TaoKeeper.Core.Models;
 using TaoKeeper.Core.Modules;
 
 namespace TaoKeeper.App.Views;
@@ -13,11 +14,19 @@ namespace TaoKeeper.App.Views;
 /// 性能加速页 code-behind：数据经 SpeedupPageViewModel 注入（Bind），
 /// 未刷新/未接线时按未测态如实展示。建议只列不代做——
 /// 勾选进确认集合，点执行才交 VM 确认闸门逐条处理（未勾绝不进执行清单）。
+/// 进入页面时若适配器已接线但计划未刷新，自动跑一次真实计划（注册表/启动文件夹实况）；
+/// 开机耗时为事件日志口径读数（近 3 次中位数，不可读=未测态）。
 /// </summary>
 public sealed partial class BoostPage : Page
 {
     private SpeedupPageViewModel _vm = new();
     private readonly HashSet<string> _confirmedIds = new();
+
+    /// <summary>当前内存快照提供者（宿主接线；加速计划的内存瘦身建议判定用）。</summary>
+    public static Func<MemorySnapshot?>? CurrentMemoryProvider { get; set; }
+
+    /// <summary>开机耗时读数（宿主接线；事件日志口径近 3 次毫秒值，新→旧；不可读为空清单）。</summary>
+    public static Func<IReadOnlyList<long>>? BootTimesProvider { get; set; }
 
     public BoostPage()
     {
@@ -30,7 +39,37 @@ public sealed partial class BoostPage : Page
         base.OnNavigatedTo(e);
 
         // 主窗在导航参数里带 VM（运行期接线前为 null → 未测态兜底）
-        if (e.Parameter is SpeedupPageViewModel vm) Bind(vm);
+        if (e.Parameter is SpeedupPageViewModel vm)
+        {
+            Bind(vm);
+            if (vm.Plan is null) _ = RefreshPlanIfNeededAsync(vm);
+        }
+        RefreshBootTimeLine();
+    }
+
+    /// <summary>计划未刷新时自动跑一次真实计划（只读：列建议不执行）；完成后回 UI 线程重绑。</summary>
+    private async System.Threading.Tasks.Task RefreshPlanIfNeededAsync(SpeedupPageViewModel vm)
+    {
+        try
+        {
+            await vm.RefreshPlanAsync(CurrentMemoryProvider?.Invoke()).ConfigureAwait(true);
+            // 完成后重绑：计划就绪即换出建议清单（仅当用户仍停留本页）
+            if (ReferenceEquals(_vm, vm)) Bind(vm);
+        }
+        catch (Exception)
+        {
+            // 计划刷新失败保持未测态；用户可再进本页重试，不假数据
+        }
+    }
+
+    /// <summary>P5-2：开机耗时读数（事件日志口径，3 次中位数；不可读=未测态如实说明）。</summary>
+    private void RefreshBootTimeLine()
+    {
+        var times = BootTimesProvider?.Invoke() ?? Array.Empty<long>();
+        BootTimeText.Text = times.Count == 0
+            ? "开机耗时：未测（本机事件日志不可读，需要诊断性能日志权限；不做估算）"
+            : $"开机耗时（事件日志口径，近 {times.Count} 次）："
+              + string.Join(" / ", times) + " 毫秒，中位数 " + times.OrderBy(t => t).ElementAt(times.Count / 2) + " 毫秒（数字可复现）";
     }
 
     /// <summary>注入加速数据（未刷新态经 VM 层保证如实，不假建议数）。</summary>

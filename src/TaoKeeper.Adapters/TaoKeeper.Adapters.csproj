@@ -13,6 +13,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TaoKeeper.Core\TaoKeeper.Core.csproj" />
+    <!-- 启动项适配器（P5/P4）编译所需：注册表 Run 键与事件日志开机耗时读数；
+         均为可还原包引用（沙箱缓存可用），运行期动作仍只在 Windows 真机生效 -->
+    <PackageReference Include="Microsoft.Win32.Registry" Version="4.7.0" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.0" />
   </ItemGroup>
 
 </Project>
