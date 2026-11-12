@@ -220,25 +220,24 @@ function Invoke-NavByTitle([string]$Title) {
     }
     foreach ($el in $items) {
       try { if ($el.Current.IsOffscreen) { continue } } catch { }
-      # NavItem's outer element has no Name; inner TextBlock carries the title.
-      # Resolve like live-fire-walk: fall back to descendant Text element names.
+      # NavItem outer Name is the class name ("TaoKeeper.App.NavItem") on WinUI,
+      # NOT the display title. Match like live-fire-walk: ask whether this
+      # item's descendant Text elements contain the target title.
       $title = ''
-      try { $title = $el.Current.Name } catch { }
-      if ($title) { $title = $title.Trim() }
+      try {
+        foreach ($t in $el.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+              [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctText)))) {
+          try {
+            $n = $t.Current.Name
+            if ($n -and $n.Trim() -eq $Title) { $title = $n.Trim(); break }
+          } catch { }
+        }
+      } catch { }
       if (-not $title) {
-        try {
-          foreach ($t in $el.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-              (New-Object System.Windows.Automation.PropertyCondition(
-                [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctText)))) {
-            try {
-              $n = $t.Current.Name
-              if ($n -and $n.Trim()) { $title = $n.Trim(); break }
-            } catch { }
-          }
-        } catch { }
+        try { $n = $el.Current.Name; if ($n -and $n.Trim() -eq $Title) { $title = $n.Trim() } } catch { }
       }
       if (-not $title) { continue }
-      if ($title -ne $Title) { continue }
       try {
         try { $el.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() }
         catch { $el.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() }
