@@ -281,6 +281,19 @@ if (-not $scanOk) { Save-Shot "99-scan-assert.png"; $script:effectLines | Out-Fi
 
 # ---------- drive: clean with confirm dialog ----------
 $freePreClean = (New-Object System.IO.DriveInfo($env:SystemDrive.TrimEnd('\'))).AvailableFreeSpace
+# r33 d1-free-delta telemetry: on a shared GH runner the Temp dir is actively used
+# by concurrent processes (provjobd, VBCSCompiler, runner cleanup) that free their
+# OWN files during the probe window — a bare two-point delta cannot attribute
+# causation. Sample free space through the clean window so any environmental
+# drift shows itself in the log; the |delta| <= 24MB assertion itself is unchanged.
+$freeSamples = New-Object System.Collections.Generic.List[string]
+$freeSampler = [System.Threading.Tasks.Task]::Run([Action]{
+  for ($i = 0; $i -lt 40; $i++) {
+    $f = (New-Object System.IO.DriveInfo($env:SystemDrive.TrimEnd('\'))).AvailableFreeSpace
+    $freeSamples.Add(("{0:HH:mm:ss.fff} free={1}" -f [DateTime]::Now, $f))
+    Start-Sleep -Milliseconds 500
+  }
+})
 $cleanInvoked = Invoke-ContentMatch '清理（先进回收站）|CleanButton' 4
 Write-Effect $cleanInvoked "clean-invoked" "'清理（先进回收站）' clicked; confirmation dialog expected"
 if (-not $cleanInvoked) { Save-Shot "99-clean-fail.png"; $script:effectLines | Out-File (Join-Path $OutDir "effect-evidence.txt") -Encoding utf8; $p.Kill(); exit 1 }
@@ -323,6 +336,9 @@ Write-Effect $keepIntact "keep-file-intact" "keep file outside any rule untouche
 # ---------- assert: free-space delta (recycle-bin path: ~unchanged) ----------
 $freeAfter = (New-Object System.IO.DriveInfo($env:SystemDrive.TrimEnd('\'))).AvailableFreeSpace
 $delta = $freeAfter - $freePreClean
+try { $freeSampler.Wait() } catch { }
+Write-Host ("[FREE-SAMPLES] n={0}" -f $freeSamples.Count)
+foreach ($s in $freeSamples) { Write-Host ("[FREE-SAMPLE] {0}" -f $s) }
 # Recycle-bin move keeps bytes on the same volume: delta must stay inside the
 # noise band. delta ~= +seeded bytes would prove silent PERMANENT deletion
 # (red-line breach); delta << 0 means unexpected writes during the probe window.
@@ -336,11 +352,17 @@ $ledgerOk = $false
 $ledgerDetail = ""
 try {
   if (Test-Path $ledgerPath) {
-    $ledger = Get-Content $ledgerPath -Raw -Encoding utf8 | ConvertFrom-Json
-    $entries = @($ledger)
-    if ($entries.Count -eq 0 -and $ledger -isnot [array]) { $entries = @() }
-    # accept both array-root and object-with-entries shapes
-    if (-not $entries.Count -and $ledger.PSObject.Properties['entries']) { $entries = @($ledger.entries) }
+    # r33 root cause: the ledger is APPEND-ONLY JSON LINES (CleanupLedger.AppendAsync
+    # writes one LedgerEntry per line) — a single ConvertFrom-Json on the whole
+    # file dies with "Additional text encountered after finished reading JSON".
+    $ledgerRaw = Get-Content $ledgerPath -Raw -Encoding utf8
+    $entries = New-Object System.Collections.Generic.List[object]
+    foreach ($line in ($ledgerRaw -split "`r?`n")) {
+      $t = $line.Trim()
+      if (-not $t) { continue }
+      try { $e = $t | ConvertFrom-Json } catch { continue }
+      if ($e) { $entries.Add($e) }
+    }
     $matched = 0
     $bytesMatched = 0L
     $ruleOk = $true
@@ -394,7 +416,9 @@ try {
       foreach ($v in $verbs) {
         $vn = ''
         try { $vn = $v.Name } catch { }
-        if ($vn -match '还原') { $v.DoIt(); $done = $true; break }
+        # r33 root cause: runner OS locale is en-US — the bin verb is "Restore"/"Restore(&U)",
+        # the probe only matched Chinese 还原, so no verb fired (done=False, file back=False).
+        if ($vn -match '还原|[Rr]estore') { $v.DoIt(); $done = $true; break }
       }
       Start-Sleep -Seconds 3
       $restored = $seeds | Where-Object { [System.IO.File]::Exists($_) } | Select-Object -First 1
@@ -404,7 +428,8 @@ try {
         $restoreOk = ($sizeRestored -eq $wantSize) -and ($sizeRestored -gt 0)
         Write-Effect $restoreOk "d1-restore" ("restored '{0}' via recycle-bin verb; size {1} == seeded {2} (byte-intact; free space ~unchanged on recycle path by design)" -f $restored, $sizeRestored, $wantSize)
       } else {
-        Write-Effect $false "d1-restore" ("restore verb done=$done, file back=$([bool]$restored)")
+        $verbNames = (@($verbs) | ForEach-Object { try { $_.Name } catch { '<no-name>' } }) -join ' | '
+        Write-Effect $false "d1-restore" ("restore verb done=$done, file back=$([bool]$restored); available verbs: [$verbNames]")
       }
     }
   }
