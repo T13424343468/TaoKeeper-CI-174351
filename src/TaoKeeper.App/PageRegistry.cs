@@ -23,6 +23,7 @@ public static class PageRegistry
         [AppRoute.Mem]      = typeof(Views.MemPage),
         [AppRoute.Driver]   = typeof(Views.DriverPage),
         [AppRoute.Popup]    = typeof(Views.PopupPage),
+        [AppRoute.Storage]  = typeof(Views.StoragePage),
         [AppRoute.Tools]    = typeof(Views.ToolsPage),
         [AppRoute.Widget]   = typeof(Views.WidgetPage),
         [AppRoute.Settings] = typeof(Views.SettingsPage),

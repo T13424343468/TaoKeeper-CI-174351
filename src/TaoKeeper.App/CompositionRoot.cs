@@ -24,6 +24,13 @@ internal static class CompositionRoot
     private static MemPageViewModel? _mem;
     private static SpeedupPageViewModel? _boost;
     private static DriverPageViewModel? _driver;
+    private static PopupPageViewModel? _popup;
+    private static StorageSensePageViewModel? _storage;
+    private static StartupPageViewModel? _startup;
+    private static WidgetPageViewModel? _widget;
+    private static ToolboxPageViewModel? _toolbox;
+    private static SpaceAnalysisPageViewModel? _space;
+    private static DuplicateFilesPageViewModel? _duplicates;
 
     /// <summary>已装清单缓存（后台 winget 扫描回填；完成前 null=界面如实「尚未扫描」）。</summary>
     private static IReadOnlyList<SoftwareEntry>? _installedCache;
@@ -31,23 +38,51 @@ internal static class CompositionRoot
     /// <summary>最近一次真实内存快照的物理占用百分比（未取到快照为 null，总览按未知态显示）。</summary>
     private static int? _memPercent;
 
+    /// <summary>最近一次真实内存快照（体检/加速/挂件共用；不可得为 null）。</summary>
+    private static MemorySnapshot? _latestMemory;
+
+    /// <summary>后台垃圾扫描缓存（体检/存储感知/挂件共用；未完成为 null）。</summary>
+    private static JunkScanResult? _junkScanCache;
+
+    /// <summary>后台启动项扫描缓存（体检启动项维度；未完成为 null）。</summary>
+    private static IReadOnlyList<StartupItemEntry>? _startupItemsCache;
+
+    /// <summary>体检上下文缓存（各维度就绪后重建；全空=未测态）。</summary>
+    private static HealthContext _checkupContext = HealthContext.Empty;
+
+    /// <summary>近 3 次开机耗时（毫秒，事件日志口径；不可读为空清单=未测态）。</summary>
+    private static IReadOnlyList<long> _bootTimesMs = Array.Empty<long>();
+
     /// <summary>清理执行器（DiskCleanupPage 确认后调用；null=未接线，页面如实提示）。</summary>
     internal static Func<IReadOnlyList<CleanupActionItem>, Task<CleanupBatchResult>>? CleanupExecutor { get; private set; }
 
-    private static string LedgerPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TaoKeeper", "cleanup-ledger.json");
+    private static string LedgerPath => Path.Combine(DataDir, "cleanup-ledger.json");
+
+    private static string DataDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TaoKeeper");
 
     internal static void Wire(MainWindow shell)
     {
+        var startupAdapter = new WindowsStartupControlAdapter(Path.Combine(DataDir, "startup-snapshot.json"));
+        var popupStore = new PopupConfigStore(DataDir);
+        var storageStore = new StorageSenseStore(DataDir);
+
         _disk = new DiskCleanupPageViewModel();
         _software = new SoftwarePageViewModel();
         _mem = new MemPageViewModel();
-        _boost = new SpeedupPageViewModel();
+        _boost = new SpeedupPageViewModel(new SpeedupCoordinator(startupAdapter)); // P5：真实注册表/启动文件夹适配器
         _driver = new DriverPageViewModel();
+        _popup = new PopupPageViewModel(popupStore.LoadRules(), popupStore.LoadWhitelist()); // P8：持久化规则/白名单
+        _popup.LoadRecords(popupStore.LoadRecords());
+        _popup.ConfigChanged = () => PersistPopup(popupStore, _popup);
+        _storage = new StorageSensePageViewModel(); // P9：默认关（引擎 Default），从盘上回放用户既有方案
+        _storage.LoadPlan(storageStore.Load());
+        _storage.PlanChanged = () => storageStore.Save(_storage.Plan);
+        _widget = new WidgetPageViewModel();
 
         // 总览：体检未测态 + 当前各页真实读数（null=尚未扫描，总览按未测态如实显示）
         shell.HomeViewModelProvider = () => HomePageViewModel.Build(
-            new CheckupPageViewModel().RunCheckup(HealthContext.Empty), null,
+            new CheckupPageViewModel().RunCheckup(_checkupContext), null,
             _disk.HasScan ? _disk.LastScan : null,
             _software.Plan is null ? null : _software,
             MemUsedPercent(),
@@ -59,12 +94,37 @@ internal static class CompositionRoot
         shell.SettingsViewModelProvider = () => new SettingsPageViewModel();
         shell.DiskViewModelProvider = () => _disk;
         shell.DriverViewModelProvider = () => _driver;
+        shell.CheckupViewModelProvider = () => new CheckupPageViewModel().RunCheckup(_checkupContext); // P4：真实上下文
+        shell.PopupViewModelProvider = () => _popup;
+        shell.StorageViewModelProvider = () => _storage;
+        shell.WidgetViewModelProvider = () => _widget;
+        shell.ToolsBundleProvider = () => new ToolsPageBundle(_toolbox, _space, _duplicates);
 
-        // 性能加速：真实进程快照（System.Diagnostics 枚举；启动项清册暂未接线，如实空）
+        // P4/P5 启动项页：后台扫描完成后回填缓存 VM（未完成时如实「尚未扫描」）
+        StartupPage.ViewModelProvider = () => _startup;
+
+        // P8 弹窗页：真实窗口扫描 + 用户确认后的优雅关闭
+        PopupPage.WindowScannerProvider = () => OperatingSystem.IsWindows() ? new PopupWindowScanner() : null;
+
+        // P9 存储感知页：真实候选扫描 + 清理执行（与磁盘清理同一执行链，回收站语义）
+        StoragePage.StorageCandidatesProvider = ScanStorageCandidates;
+        StoragePage.CleanupExecutorProvider = items => CleanupExecutor!(items);
+
+        // P10 工具箱：大文件扫描根（用户目录，只读）+ 真实系统读数
+        ToolsPage.LargeScanRootsProvider = DefaultLargeScanRoots;
+
+        // P11 挂件：一键清理走与主程序同一执行链（同确认、同回收站语义、同清理账）
+        WidgetPage.CleanupExecutorProvider = items => CleanupExecutor!(items);
+        WidgetPage.JunkCandidatesProvider = JunkCandidatesForWidget;
+
+        // 性能加速：真实进程快照（System.Diagnostics 枚举）；内存读数供加速计划判定
         _boost.ProcessSnapshotProvider = CaptureProcessSnapshot;
+        BoostPage.CurrentMemoryProvider = () => _latestMemory;
+        BoostPage.BootTimesProvider = () => _bootTimesMs; // P5-2：事件日志开机耗时口径
 
         // 内存管理：真实内存快照（GlobalMemoryStatusEx；读不到时调用方按未测态兜底）
         TryWireMemory(_mem);
+        RefreshWidgetFrame(); // P11：内存就绪即出真实帧（垃圾/进程未就绪字段如实 null，挂件灰显该项）
 
         // 软件管家：后台 winget 已装清单缓存 + 页面钩子（缓存未就绪时返回 null，页面如实显示未扫描）
         KickOffInstalledScan();
@@ -77,6 +137,11 @@ internal static class CompositionRoot
         var ledger = new CleanupLedger(LedgerPath);
         var coordinator = new CleanupCoordinator(new Win32RecycleBinAdapter(), ledger);
         CleanupExecutor = items => coordinator.ExecuteAsync(items);
+
+        // 后台真实扫描：启动项清单（体检+加速）、垃圾候选（体检+存储感知+挂件）、开机耗时读数
+        KickOffStartupScan(startupAdapter);
+        KickOffJunkScan();
+        KickOffBootTimeRead();
     }
 
     private static int? MemUsedPercent() => _memPercent;
@@ -87,6 +152,7 @@ internal static class CompositionRoot
         {
             var snapshot = new Win32MemorySnapshotAdapter().Capture();
             mem.ApplySnapshot(snapshot);
+            _latestMemory = snapshot;
             _memPercent = (int)snapshot.PhysicalUsedPercent;
         }
         catch (Exception ex) when (ex is PlatformNotSupportedException or InvalidOperationException)
@@ -120,6 +186,24 @@ internal static class CompositionRoot
         }
     }
 
+    /// <summary>P11：聚合当前真实读数为挂件一帧（内存/进程取实时快照，垃圾用最近一次真实扫描）；
+    /// 任一数据未就绪对应字段如实 null（挂件灰显该项），不编数。</summary>
+    private static void RefreshWidgetFrame()
+    {
+        if (_widget is null) return;
+        try
+        {
+            var processScan = CaptureProcessSnapshot();
+            var frame = WidgetSnapshotAggregator.Build(
+                DateTimeOffset.Now, _latestMemory, _junkScanCache, processScan);
+            _widget.ApplyFrame(frame, DateTimeOffset.Now);
+        }
+        catch (Exception)
+        {
+            // 聚合失败保持当前帧（可能为 null=未就绪态），不假数据
+        }
+    }
+
     private static void KickOffInstalledScan()
     {
         _ = Task.Run(async () =>
@@ -134,5 +218,143 @@ internal static class CompositionRoot
                 // winget 不可得/失败保持缓存 null：页面如实「尚未扫描」，不假数据
             }
         });
+    }
+
+    /// <summary>P4/P5：后台真实启动项扫描（注册表 Run 键 + 启动文件夹），完成后重建体检上下文。</summary>
+    private static void KickOffStartupScan(WindowsStartupControlAdapter adapter)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                _startupItemsCache = await adapter.ListStartupItemsAsync();
+                _startup = await new StartupPageViewModel().LoadAsync(adapter);
+                RebuildCheckupContext();
+            }
+            catch (Exception)
+            {
+                // 扫描失败保持未测态：体检启动项维度如实缺席，不假数据
+            }
+        });
+    }
+
+    /// <summary>P4：后台真实垃圾扫描（与磁盘清理页同一规则引擎与 %TEMP% 等真实目录），完成后重建体检上下文。</summary>
+    private static void KickOffJunkScan()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var engine = new JunkRuleEngine();
+                _junkScanCache = await engine.ScanAsync(Environment.ExpandEnvironmentVariables, new HashSet<string>());
+                RebuildCheckupContext();
+                RefreshWidgetFrame(); // P11：垃圾概览就绪后补全挂件帧（真实字节数与项数）
+            }
+            catch (Exception)
+            {
+                // 扫描失败保持未测态：体检垃圾维度如实缺席
+            }
+        });
+    }
+
+    /// <summary>P5-2：开机耗时读数（事件日志口径，3 次取中位数；不可读=空清单未测态）。</summary>
+    private static void KickOffBootTimeRead()
+    {
+        _ = Task.Run(() =>
+        {
+            try { _bootTimesMs = new BootTimeReader().ReadRecentBootTimesMs(3); }
+            catch (Exception) { _bootTimesMs = Array.Empty<long>(); }
+        });
+    }
+
+    /// <summary>P4：用各维度最新真实数据重建体检上下文（未就绪维度保持 null=未测，不填零冒充实测）。</summary>
+    private static void RebuildCheckupContext()
+    {
+        long? freeBytes = null, totalBytes = null;
+        try
+        {
+            var root = Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\";
+            var drive = new DriveInfo(root);
+            if (drive.IsReady)
+            {
+                freeBytes = drive.AvailableFreeSpace;
+                totalBytes = drive.TotalSize;
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or System.Security.SecurityException)
+        {
+            // 系统盘定位失败：该维度本轮未测
+        }
+
+        _checkupContext = CheckupContextBuilder.Build(
+            junkScan: _junkScanCache,
+            startupItems: _startupItemsCache,
+            systemDiskFreeBytes: freeBytes,
+            systemDiskTotalBytes: totalBytes,
+            storageSensePlan: _storage?.Plan);
+    }
+
+    /// <summary>P8：规则/白名单/记录落盘（VM 钩子触发；本层只转交存储）。</summary>
+    private static void PersistPopup(PopupConfigStore store, PopupPageViewModel vm)
+    {
+        try
+        {
+            store.SaveRules(vm.Rules);
+            store.SaveWhitelist(vm.Whitelist);
+            store.SaveRecords(vm.RecentRecords);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // 持久化失败不影响内存态判定；下次变更重试。诊断数据不出本机。
+        }
+    }
+
+    /// <summary>P9：按当前勾选范围做真实候选扫描（临时文件→%TEMP% 实测；其余范围到点并入确认预览，本版以实测范围为准）。</summary>
+    private static IReadOnlyList<CleanupActionItem> ScanStorageCandidates()
+    {
+        var scope = _storage?.Plan.Scope ?? StorageCleanupScope.None;
+        var items = new List<CleanupActionItem>();
+        if ((scope & StorageCleanupScope.TempFiles) != 0)
+        {
+            var junk = _junkScanCache;
+            if (junk is null) return items; // 尚无扫描结果：候选如实为空，不编数
+            items.AddRange(junk.Candidates
+                .Where(c => c.Rule.Id == "system-temp")
+                .Select(c => new CleanupActionItem(c.FullPath, c.SizeBytes, "storage-sense", Confirmed: false, c.Rule.Id)));
+        }
+        return items;
+    }
+
+    /// <summary>P11：挂件一键清理的候选（与体检/存储感知同一垃圾扫描缓存；未扫描为空清单，不编明细）。</summary>
+    private static IReadOnlyList<CleanupActionItem> JunkCandidatesForWidget()
+    {
+        var junk = _junkScanCache;
+        if (junk is null) return Array.Empty<CleanupActionItem>();
+        return junk.Candidates
+            .Select(c => new CleanupActionItem(c.FullPath, c.SizeBytes, "widget", Confirmed: false, c.Rule.Id))
+            .ToList();
+    }
+
+    /// <summary>P10：大文件扫描根（当前用户常用目录，只读；不存在则跳过）。</summary>
+    private static IReadOnlyList<string> DefaultLargeScanRoots()
+    {
+        var roots = new List<string>();
+        foreach (var special in new[] { Environment.SpecialFolder.Downloads,
+                                        Environment.SpecialFolder.MyDocuments,
+                                        Environment.SpecialFolder.DesktopDirectory,
+                                        Environment.SpecialFolder.MyPictures,
+                                        Environment.SpecialFolder.MyVideos })
+        {
+            try
+            {
+                var path = Environment.GetFolderPath(special);
+                if (!string.IsNullOrEmpty(path) && Directory.Exists(path)) roots.Add(path);
+            }
+            catch (Exception ex) when (ex is System.Security.SecurityException or ArgumentException)
+            {
+                // 目录定位失败：跳过该根
+            }
+        }
+        return roots;
     }
 }

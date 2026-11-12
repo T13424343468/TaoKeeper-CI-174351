@@ -159,6 +159,11 @@ public sealed partial class MainWindow : Window
         AppRoute.Settings => SettingsViewModelProvider?.Invoke(),
         AppRoute.Disk => DiskViewModelProvider?.Invoke(),
         AppRoute.Driver => DriverViewModelProvider?.Invoke(),
+        AppRoute.Checkup => CheckupViewModelProvider?.Invoke(),
+        AppRoute.Popup => PopupViewModelProvider?.Invoke(),
+        AppRoute.Storage => StorageViewModelProvider?.Invoke(),
+        AppRoute.Widget => WidgetViewModelProvider?.Invoke(),
+        AppRoute.Tools => ToolsBundleProvider?.Invoke(),
         _ => null,
     };
 
@@ -182,6 +187,21 @@ public sealed partial class MainWindow : Window
 
     /// <summary>驱动升级数据提供者（运行期接线；未接线时驱动页显示未扫描态）。</summary>
     public Func<TaoKeeper.AppKernel.ViewModels.DriverPageViewModel>? DriverViewModelProvider { get; set; }
+
+    /// <summary>体检数据提供者（运行期接线；上下文未就绪时体检页按未测态显示）。</summary>
+    public Func<TaoKeeper.AppKernel.ViewModels.CheckupPageViewModel>? CheckupViewModelProvider { get; set; }
+
+    /// <summary>弹窗管理数据提供者（运行期接线；未接线时弹窗页按空态显示）。</summary>
+    public Func<TaoKeeper.AppKernel.ViewModels.PopupPageViewModel>? PopupViewModelProvider { get; set; }
+
+    /// <summary>存储感知数据提供者（运行期接线；默认关，按盘上方案回放）。</summary>
+    public Func<TaoKeeper.AppKernel.ViewModels.StorageSensePageViewModel>? StorageViewModelProvider { get; set; }
+
+    /// <summary>桌面挂件数据提供者（运行期接线；帧数据未就绪时挂件页灰显）。</summary>
+    public Func<TaoKeeper.AppKernel.ViewModels.WidgetPageViewModel>? WidgetViewModelProvider { get; set; }
+
+    /// <summary>工具箱注入包提供者（运行期接线；未接线时工具箱按未扫描空态显示）。</summary>
+    public Func<Views.ToolsPageBundle>? ToolsBundleProvider { get; set; }
 
     /// <summary>程序化选中导航项（页面间互跳用）；design 路由不在交付导航条内。</summary>
     public void SelectRoute(AppRoute route)
