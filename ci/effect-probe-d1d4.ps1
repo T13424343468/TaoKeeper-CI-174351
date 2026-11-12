@@ -159,9 +159,23 @@ function Invoke-NavByTitle([string]$Title) {
     $items = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $itemCond)
     foreach ($el in $items) {
       try { if ($el.Current.IsOffscreen) { continue } } catch { }
+      # NavItem's outer element has no Name; inner TextBlock carries the title.
+      # Resolve like live-fire-walk: fall back to descendant Text element names.
       $title = ''
       try { $title = $el.Current.Name } catch { }
-      # NavItem's outer element has no Name; inner TextBlock carries the title.
+      if ($title) { $title = $title.Trim() }
+      if (-not $title) {
+        try {
+          foreach ($t in $el.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+              (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctText)))) {
+            try {
+              $n = $t.Current.Name
+              if ($n -and $n.Trim()) { $title = $n.Trim(); break }
+            } catch { }
+          }
+        } catch { }
+      }
       if (-not $title) { continue }
       if ($title -ne $Title) { continue }
       try {
