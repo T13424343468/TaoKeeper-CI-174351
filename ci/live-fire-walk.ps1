@@ -27,6 +27,10 @@
 # - App-alive evidence: every stage checks process exit; on exit it saves a
 #   screenshot, a crash-evidence.txt (exit code + recent Application event
 #   errors + dump listing) and registers WER LocalDumps for a minidump.
+# - Content markers are UNIQUE page subtitles (v6): nav-title strings also
+#   appear inside overview quick cards (r19 false-passed memory via the
+#   overview card literally named 'neicun'). Regex markers now match each
+#   page's subtitle line which exists on exactly one page.
 # - Probe invoke now scrolls page content down stepwise so below-the-fold
 #   controls (memory plan buttons, storage master switch) can be reached;
 #   offscreen elements still can never fake a PASS.
@@ -193,19 +197,21 @@ Write-Host ("[UIA] nav items: {0} (expect 12), nav right bound: {1}" -f $script:
 # Content-area landing markers (walk v4): nav title -> content title text.
 # Home has no header title; its static stat label is the marker. Checkup and
 # Driver pages use different header wording than their nav titles.
+# v6: regex markers = per-page subtitle text, unique across the whole app
+# (overview quick cards repeat nav titles, so nav-title markers are unusable).
 $contentMarkers = @{
   '总览' = '可清理垃圾（进回收站）'
-  '软件管家' = '软件管家'
-  '磁盘清理' = '磁盘清理'
-  '系统体检' = '体检中心'
-  '性能加速' = '性能加速'
-  '内存管理' = '内存管理'
-  '驱动安装升级' = '驱动升级'
-  '弹窗管理' = '弹窗管理'
-  '存储感知' = '存储感知'
-  '工具箱' = '工具箱'
-  '桌面挂件' = '桌面挂件'
-  '设置' = '设置'
+  '软件管家' = '一个顶所有'
+  '磁盘清理' = '扫得全，清得稳'
+  '系统体检' = '六维体检，缺项不误扣分'
+  '性能加速' = '开机快人一步'
+  '内存管理' = '看得见的内存，托得住的虚拟内存'
+  '驱动安装升级' = '只装官方驱动'
+  '弹窗管理' = '合规的安静'
+  '存储感知' = '到点只出确认预览|本页正在赶工'
+  '工具箱' = '常备小工具'
+  '桌面挂件' = '常驻桌面一角'
+  '设置' = '常用设置都归好类'
 }
 
 # Find a Text element in the CONTENT area (right of the nav column).
@@ -248,14 +254,29 @@ function Invoke-NavByTitle([string]$Title) {
       } catch {
         $item.El.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
       }
-      Start-Sleep -Seconds 4
-      if ($p.HasExited) { return $false }
-      # Landing check = content-area title (walk v4). IsSelected alone lied in
-      # r16/r17 (memory selected, content still on previous page).
+      # Landing check = unique content-area subtitle (walk v6), polled up to
+      # 10s so slow page loads are not misread as mismatches.
       $marker = $Title
       if ($contentMarkers.ContainsKey($Title)) { $marker = $contentMarkers[$Title] }
-      if (Find-ContentText $marker) { return $true }
+      $landed = $false
+      for ($poll = 0; $poll -lt 10; $poll++) {
+        if ($p.HasExited) { return $false }
+        Start-Sleep -Seconds 1
+        if (Find-ContentText $marker -Like) { $landed = $true; break }
+      }
+      if ($landed) { return $true }
       Write-Host ("[UIA] content mismatch: '{0}' selected but content not landed (attempt {1}); re-dancing" -f $Title, $attempt)
+      Save-Shot ("mismatch-{0}-a{1}.png" -f ($Title -replace '\s',''), $attempt)
+      $dump = @()
+      foreach ($t in $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+          (New-Object System.Windows.Automation.PropertyCondition(
+            [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctText)))) {
+        try {
+          $r = $t.Current.BoundingRectangle
+          if ($r.X -gt $script:navRight -and $t.Current.Name) { $dump += $t.Current.Name }
+        } catch { }
+      }
+      Write-Host ("[UIA] content texts at mismatch: {0}" -f (($dump | Select-Object -First 15) -join ' | '))
       $homeItem = $script:navItems | Where-Object { $_.Title -eq '总览' } | Select-Object -First 1
       if ($homeItem) {
         try {
