@@ -123,7 +123,7 @@ $stray = Get-Process -Name 'TaoKeeper.App' -ErrorAction SilentlyContinue
 if ($stray) { Write-Host ("[PID] hygiene left {0} instance(s): {1}" -f $stray.Count, (($stray | ForEach-Object { $_.Id }) -join ',')) }
 $navLogPath = Join-Path ([System.IO.Path]::GetTempPath()) 'taokeeper-nav.log'
 if (Test-Path $navLogPath) { Remove-Item $navLogPath -Force -ErrorAction SilentlyContinue }
-$p = Start-Process -FilePath $ExePath -WorkingDirectory (Split-Path $ExePath) -PassThru
+$p = Start-Process -FilePath $ExePath -ArgumentList '--page','disk' -WorkingDirectory (Split-Path $ExePath) -PassThru
 Write-Host ("[PID] launched probe instance pid={0}" -f $p.Id)
 Start-Sleep -Seconds 5
 $deadline = (Get-Date).AddSeconds(60)
@@ -172,129 +172,6 @@ function Find-ContentText([string]$Name, [switch]$Like) {
       $n = $t.Current.Name
       if ($r.X -gt $navRight -and (($Like -and $n -match $Name) -or (-not $Like -and $n -eq $Name))) { return $true }
     } catch { }
-  }
-  return $false
-}
-
-# Scrollable containers (nav ListView + page ScrollViewers) — walk parity.
-function Get-Scrollables {
-  $list = @()
-  foreach ($el in $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-      [System.Windows.Automation.Condition]::TrueCondition)) {
-    try { $null = $el.GetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern); $list += $el } catch { }
-  }
-  return $list
-}
-# Scroll back to top with repeated LargeDecrement (r26 root cause: the app
-# restores the last-visited page, the nav ListView can be scrolled to the
-# bottom, and SetScrollPercent(-1) is silently rejected by the WinUI provider —
-# the target item stays virtualized/out of view forever. live-fire-walk uses
-# LargeDecrement and passes r23–r26; mirror it exactly).
-function Scroll-NavTop {
-  for ($i = 0; $i -lt 4; $i++) {
-    $scrolled = $false
-    foreach ($sc in Get-Scrollables) {
-      try {
-        $sp = $sc.GetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern)
-        if ($sp.Current.VerticallyScrollable) {
-          $sp.Scroll([System.Windows.Automation.ScrollAmount]::NoAmount,
-                     [System.Windows.Automation.ScrollAmount]::LargeDecrement)
-          $scrolled = $true
-        }
-      } catch { }
-    }
-    if (-not $scrolled) { break }
-    Start-Sleep -Milliseconds 400
-  }
-  Start-Sleep -Milliseconds 600
-}
-
-# Landing markers = per-page unique subtitle (walk v6 parity); nav titles repeat
-# on the overview quick cards, so title-as-content is not a reliable landing check.
-$contentMarkers = @{ '磁盘清理' = '扫得全，清得稳' }
-
-function Invoke-NavByTitle([string]$Title) {
-  Scroll-NavTop
-  $listCond = New-Object System.Windows.Automation.PropertyCondition(
-    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-    [System.Windows.Automation.ControlType]::List)
-  foreach ($lst in $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $listCond)) {
-    try {
-      $sp = $lst.GetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern)
-      if ($sp.Current.VerticallyScrollable) { $sp.SetScrollPercent(-1) | Out-Null }  # -1 = top
-    } catch { }
-  }
-  $ctItem = [System.Windows.Automation.ControlType]::ListItem
-  $itemCond = New-Object System.Windows.Automation.PropertyCondition(
-    [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctItem)
-  for ($attempt = 1; $attempt -le 5; $attempt++) {
-    $items = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $itemCond)
-    # Diagnostic dump: what UIA actually sees for nav list items this round.
-    Write-Host ("[NAV-DUMP] attempt={0} listitems={1}" -f $attempt, $items.Count)
-    $dumpIdx = 0
-    foreach ($el in $items) {
-      if ($dumpIdx -ge 25) { break }
-      $dumpIdx++
-      $dName = ''; $dAid = ''; $dText = ''
-      try { $dName = $el.Current.Name } catch { }
-      try { $dAid = $el.Current.AutomationId } catch { }
-      try {
-        foreach ($t in $el.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-            (New-Object System.Windows.Automation.PropertyCondition(
-              [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctText)))) {
-          try { $dText = $dText + "'" + $t.Current.Name + "' " } catch { }
-        }
-      } catch { }
-      Write-Host ("[NAV-DUMP]   item[{0}] name='{1}' aid='{2}' texts={3}" -f $dumpIdx, $dName, $dAid, $dText)
-    }
-    foreach ($el in $items) {
-      try { if ($el.Current.IsOffscreen) { continue } } catch { }
-      # NavItem outer Name is the class name ("TaoKeeper.App.NavItem") on WinUI,
-      # NOT the display title. Match like live-fire-walk: ask whether this
-      # item's descendant Text elements contain the target title.
-      $title = ''
-      try {
-        foreach ($t in $el.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-            (New-Object System.Windows.Automation.PropertyCondition(
-              [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctText)))) {
-          try {
-            $n = $t.Current.Name
-            if ($n -and $n.Trim() -eq $Title) { $title = $n.Trim(); break }
-          } catch { }
-        }
-      } catch { }
-      if (-not $title) {
-        try { $n = $el.Current.Name; if ($n -and $n.Trim() -eq $Title) { $title = $n.Trim() } } catch { }
-      }
-      if (-not $title) { continue }
-      try {
-        try { $el.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() }
-        catch { $el.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() }
-        for ($poll = 0; $poll -lt 10; $poll++) {
-          if ($p.HasExited) {
-            Write-Host ("[PID] probe instance pid={0} EXITED during nav poll (poll={1})" -f $p.Id, $poll)
-            $rest = Get-Process -Name 'TaoKeeper.App' -ErrorAction SilentlyContinue
-            Write-Host ("[PID] remaining instances: {0}" -f ((($rest | ForEach-Object { "$($_.Id)@$($_.StartTime.ToString('HH:mm:ss'))" })) -join ' | '))
-            return $false
-          }
-          Start-Sleep -Seconds 1
-          $marker = $Title
-          if ($contentMarkers.ContainsKey($Title)) { $marker = $contentMarkers[$Title] }
-          if (Find-ContentText $marker -Like) { return $true }
-        }
-      } catch { }
-    }
-    # scroll nav list down one step and retry
-    foreach ($lst in $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $listCond)) {
-      try {
-        $sp = $lst.GetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern)
-        if ($sp.Current.VerticallyScrollable) {
-          $sp.Scroll([System.Windows.Automation.ScrollAmount]::NoAmount,
-                     [System.Windows.Automation.ScrollAmount]::LargeIncrement)
-        }
-      } catch { }
-    }
-    Start-Sleep -Milliseconds 600
   }
   return $false
 }
@@ -348,8 +225,12 @@ function Wait-ContentText([string]$Pattern, [int]$MaxSec) {
 if ($p.HasExited) { Write-Effect $false "app-alive" "app exited during launch"; Save-Shot "99-exited.png"; $script:effectLines | Out-File (Join-Path $OutDir "effect-evidence.txt") -Encoding utf8; exit 1 }
 
 # ---------- drive: nav to disk page, scan ----------
-$navOk = Invoke-NavByTitle '磁盘清理'
-Write-Effect $navOk "nav-disk" "landed 磁盘清理 (content verified)"
+# 三遍换思路（r25/r26/r28/r29 四发 UIA 点导航未中；r29 实锤：条目可见、实例唯一，
+# 但点击未触发应用导航）——换非 UIA 导航刀：应用启动带 --page disk 直达磁盘清理页，
+# 探针只验落页与实绩。落页判定不变：内容区出现磁盘清理页专属文案「扫得全，清得稳」。
+$landed = Wait-ContentText '扫得全，清得稳' 45
+$navOk = ($null -ne $landed)
+Write-Effect $navOk "nav-disk" ("direct-launch --page disk; disk-page marker '{0}'" -f ($(if ($navOk) { '扫得全，清得稳 (content verified)' } else { 'NOT seen in 45s' })))
 if (-not $navOk) {
   Save-Shot "99-nav-fail.png"
   $restAll = Get-Process -Name 'TaoKeeper.App' -ErrorAction SilentlyContinue

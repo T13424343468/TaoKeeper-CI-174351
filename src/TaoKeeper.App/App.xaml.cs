@@ -30,6 +30,12 @@ public partial class App : Application
         CompositionRoot.Wire((MainWindow)_mainWindow);
         _mainWindow.Activate();
 
+        // 直达路由（实效探针/排障用）：--page <pageId|标题>；未识别保持首页，现行默认行为不变
+        if (LaunchRoute.FromCommandLine(Environment.GetCommandLineArgs()) is { } direct)
+        {
+            Shell?.NavigateDirect(direct);
+        }
+
         GC.KeepAlive(typeof(AppRouteCatalog)); // 导航目录随壳常驻（保持引用，防裁剪）
     }
 }

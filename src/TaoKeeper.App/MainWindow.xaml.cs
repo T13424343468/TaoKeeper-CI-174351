@@ -74,6 +74,17 @@ public sealed partial class MainWindow : Window
         Navigate(item.Route);
     }
 
+    /// <summary>
+    /// 启动直达页（--page）：选中导航项即切页，走与手点一致的事件链，界面选中态同步；
+    /// 目标已是当前选中项（事件不会触发）或路由无导航项时，直接按路由切页。
+    /// </summary>
+    public void NavigateDirect(AppRoute route)
+    {
+        var idx = _navItems.FindIndex(n => n.Route == route);
+        if (idx < 0 || NavList.SelectedIndex == idx) { Navigate(route); return; }
+        NavList.SelectedIndex = idx; // 触发 OnNavSelectionChanged → Navigate
+    }
+
     /// <summary>按路由切页：已落地页直达（VM Provider 有接线则带数据参数）；未落地页显示占位（占位不假数据，如实说明）。</summary>
     public void Navigate(AppRoute route)
     {
