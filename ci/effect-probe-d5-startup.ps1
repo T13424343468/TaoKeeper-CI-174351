@@ -1,4 +1,4 @@
-# TaoKeeper effect probe D-5: startup-item disable + snapshot rollback — real-effect gate.
+﻿# TaoKeeper effect probe D-5: startup-item disable + snapshot rollback — real-effect gate.
 #
 # Acceptance sheet D-5 (产品验收单.md 第五节): 性能加速真提速 — 禁用一个启动项 ->
 # 核验注册表/启动项实际变化 -> 回滚 -> 复核还原；开机耗时个体数字读数留痕
@@ -168,28 +168,49 @@ function Wait-ContentText([string]$Pattern, [int]$MaxSec) {
 
 # Toggle the checkbox of the suggestion row whose text contains Marker.
 function Toggle-ItemCheckbox([string]$Marker) {
-  $textCond = New-Object System.Windows.Automation.PropertyCondition(
-    [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $script:ctText)
+  # r37 收口（run 43310153590）：页面里种子项与勾选框都真实存在（见 99-toggle-fail.png），
+  # 旧实现从标题文本向上只走 4 层且只搜 Children 找不到勾选框。改为直接枚举内容区
+  # 全部 CheckBox，沿祖先链（8 层）核对行文本含种子名；TogglePattern 失败则退化为
+  # 真实鼠标点击（SetCursorPos+mouse_event），仍失败则把探因写入证据行，不静默吞错。
   $cbCond = New-Object System.Windows.Automation.PropertyCondition(
     [System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::CheckBox)
   $trueCond = [System.Windows.Automation.Condition]::TrueCondition
-  foreach ($t in $script:root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $textCond)) {
+  $diag = ''
+  foreach ($cb in $script:root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cbCond)) {
+    try { if ($cb.Current.BoundingRectangle.X -le $script:navRight) { continue } } catch { }
+    $chain = ''
+    $cur = $cb
+    for ($hops = 0; $hops -lt 8; $hops++) {
+      $cur = $cur.FindFirst([System.Windows.Automation.TreeScope]::Parent, $trueCond)
+      if ($null -eq $cur) { break }
+      try { $chain += ' ' + $cur.Current.Name } catch { }
+      if ($chain -match $Marker) { break }
+    }
+    if ($chain -notmatch $Marker) { continue }
     try {
-      $n = $t.Current.Name
-      if ($t.Current.BoundingRectangle.X -le $script:navRight -or $n -notmatch $Marker) { continue }
-      $cur = $t
-      for ($hops = 0; $hops -lt 4; $hops++) {
-        $cur = $cur.FindFirst([System.Windows.Automation.TreeScope]::Parent, $trueCond)
-        if ($null -eq $cur) { break }
-        $cb = $cur.FindFirst([System.Windows.Automation.TreeScope]::Children, $cbCond)
-        if ($null -ne $cb) {
-          $cb.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()
-          Start-Sleep -Seconds 2
-          return $true
-        }
-      }
-    } catch { }
+      $cb.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()
+      Start-Sleep -Seconds 2
+      Write-Host "[D5] toggled via TogglePattern (row chain matched)"
+      return $true
+    } catch {
+      $diag = "TogglePattern failed: " + $_.Exception.Message
+    }
+    try {
+      $pt = $cb.GetClickablePoint()
+      Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class W32C { [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y); [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, UIntPtr e); }'
+      [W32C]::SetCursorPos([int]$pt.X, [int]$pt.Y) | Out-Null
+      Start-Sleep -Milliseconds 200
+      [W32C]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero)  # LEFTDOWN
+      Start-Sleep -Milliseconds 80
+      [W32C]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero)  # LEFTUP
+      Start-Sleep -Seconds 2
+      Write-Host ("[D5] toggled via real mouse click at ({0},{1}) after: {2}" -f $pt.X, $pt.Y, $diag)
+      return $true
+    } catch {
+      $diag += " | click fallback failed: " + $_.Exception.Message
+    }
   }
+  if ($diag) { Write-Host ("[D5] toggle diagnosis: {0}" -f $diag) }
   return $false
 }
 

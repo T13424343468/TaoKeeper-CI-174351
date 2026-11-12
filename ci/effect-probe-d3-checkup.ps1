@@ -1,4 +1,4 @@
-# TaoKeeper effect probe D-3: health checkup — real detect, real fix, real re-check.
+﻿# TaoKeeper effect probe D-3: health checkup — real detect, real fix, real re-check.
 #
 # Acceptance sheet D-3 (产品验收单.md 第五节): 体检真检出真修复 — 规则路径造可检出
 # 样本 -> 系统体检页报出该项（带三态与依据）-> 经路由到磁盘清理真清理 -> 复检该项
@@ -140,6 +140,31 @@ function Invoke-ContentMatch([string]$Pattern, [int]$WaitSec) {
   return $false
 }
 
+function Invoke-NavTitle([string]$Title) {
+  # r37 收口：体检页在导航时一次性绑定上下文，后台扫描完成不会自动刷新已绑定页；
+  # 靠导航栏「总览↔系统体检」来回点击触发新的 Provider 调用重新绑定。
+  $textCond = New-Object System.Windows.Automation.PropertyCondition(
+    [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $script:ctText)
+  $trueCond = [System.Windows.Automation.Condition]::TrueCondition
+  foreach ($t in $script:root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $textCond)) {
+    try {
+      $n = $t.Current.Name
+      if ($t.Current.BoundingRectangle.X -gt $script:navRight -or $n -ne $Title) { continue }
+    } catch { continue }
+    $cur = $t
+    for ($hops = 0; $hops -lt 5; $hops++) {
+      $cur = $cur.FindFirst([System.Windows.Automation.TreeScope]::Parent, $trueCond)
+      if ($null -eq $cur) { break }
+      try {
+        $cur.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+        Start-Sleep -Seconds 2
+        return $true
+      } catch { }
+    }
+  }
+  return $false
+}
+
 function Wait-ContentText([string]$Pattern, [int]$MaxSec) {
   if ($null -eq $script:root) { return $null }
   $textCond = New-Object System.Windows.Automation.PropertyCondition(
@@ -174,28 +199,39 @@ for ($i = 0; $i -lt $seedCount; $i++) {
 Write-Host ("[SEED] dir={0} files={1} bytes={2} (>= 1GB junk-accumulation threshold; system-temp rule, pattern *)" -f $seedDir, $seedCount, $seedBytes)
 
 # ---------- phase A: checkup must REPORT the seeded junk (真检出) ----------
+# r37 收口（run 43310153590）：两次启动+短轮询红在「后台垃圾扫描未完成时页面已按空上下文
+# 绑定」，页面不会随扫描完成自动刷新；靠导航栏来回重绑定轮询，直到真实发现出现。
 $phaseAOk = $false
 $findingText = $null
-foreach ($attempt in 1..2) {
-  if (-not (Launch-App 'checkup')) {
-    Write-Effect $false "launch" ("main window not found in 60s (checkup attempt {0})" -f $attempt)
-    Save-Shot "99-no-window.png"; Save-EvidenceAndExit 1
-  }
-  if ($null -ne $script:p -and $script:p.HasExited) { Write-Effect $false "app-alive" "app exited during launch"; Save-Shot "99-exited.png"; Save-EvidenceAndExit 1 }
-  $landed = Wait-ContentText '六维体检' 45
-  Write-Effect ($null -ne $landed) "nav-checkup" ("direct-launch --page checkup; marker '{0}' (attempt {1})" -f ($(if ($landed) { '六维体检 (content verified)' } else { 'NOT seen in 45s' })), $attempt)
-  if (-not $landed) { Save-Shot "99-nav-fail.png"; Save-EvidenceAndExit 1 }
-  # the context is rebuilt when the startup junk scan completes; poll for the
-  # finding (one relaunch covers the untested-at-navigation race)
-  $deadline = (Get-Date).AddSeconds(75)
+if (-not (Launch-App 'checkup')) {
+  Write-Effect $false "launch" "main window not found in 60s"
+  Save-Shot "99-no-window.png"; Save-EvidenceAndExit 1
+}
+$landed = Wait-ContentText '六维体检' 45
+Write-Effect ($null -ne $landed) "nav-checkup" ("direct-launch --page checkup; marker '{0}'" -f ($(if ($landed) { '六维体检 (content verified)' } else { 'NOT seen in 45s' })))
+if (-not $landed) { Save-Shot "99-nav-fail.png"; Save-EvidenceAndExit 1 }
+for ($cycle = 1; $cycle -le 6 -and -not $phaseAOk; $cycle++) {
+  $deadline = (Get-Date).AddSeconds(20)
   while ((Get-Date) -lt $deadline) {
     if ($null -ne $script:p -and $script:p.HasExited) { break }
     if (Find-ContentText '垃圾堆积' -Like) { $phaseAOk = $true; break }
     Start-Sleep -Seconds 3
   }
   if ($phaseAOk) { break }
-  if ($attempt -eq 1) { Write-Host "[D3] attempt 1: no junk finding (possible untested-at-nav race) — relaunching once"; Save-Shot "99-checkup-nofinding-a1.png" }
+  if ($cycle -eq 3) { Save-Shot "99-checkup-nofinding-a3.png" }
+  Write-Host ("[D3] rebind cycle {0}: no finding yet (background junk scan still running) — navigating away and back" -f $cycle)
+  Invoke-NavTitle '总览' | Out-Null
+  Start-Sleep -Seconds 45   # 后台扫描在离开体检页期间推进
+  Invoke-NavTitle '系统体检' | Out-Null
+  Start-Sleep -Seconds 5
+  $deadline = (Get-Date).AddSeconds(25)
+  while ((Get-Date) -lt $deadline) {
+    if ($null -ne $script:p -and $script:p.HasExited) { break }
+    if (Find-ContentText '垃圾堆积' -Like) { $phaseAOk = $true; break }
+    Start-Sleep -Seconds 3
+  }
 }
+if (-not $phaseAOk) { Save-Shot "99-checkup-nofinding-final.png" }
 Start-Sleep -Seconds 2
 Save-Shot "e2-checkup-with-finding.png"
 if ($phaseAOk) { $findingText = Wait-ContentText '可清理垃圾约' 10 }
@@ -258,14 +294,22 @@ if (-not (Launch-App 'checkup')) { Write-Effect $false "launch-recheck" "main wi
 $landed2 = Wait-ContentText '六维体检' 45
 Write-Effect ($null -ne $landed2) "nav-checkup-recheck" ("direct-launch --page checkup for re-check; marker '{0}'" -f ($(if ($landed2) { '六维体检 (content verified)' } else { 'NOT seen in 45s' })))
 if (-not $landed2) { Save-Shot "99-nav-fail-recheck.png"; Save-EvidenceAndExit 1 }
+# 复检同样要等后台扫描完成并重绑定（r37 收口：直启后轮询永远看到未测态）
 $tested = $false
 $junkBack = $false
-$deadline = (Get-Date).AddSeconds(120)
-while ((Get-Date) -lt $deadline) {
-  if ($null -ne $script:p -and $script:p.HasExited) { break }
-  if (Find-ContentText '垃圾堆积' -Like) { $junkBack = $true; break }
-  if (Find-ContentText '体检得分' -Like) { $tested = $true; break }
-  Start-Sleep -Seconds 3
+for ($cycle = 1; $cycle -le 6 -and -not $tested; $cycle++) {
+  $deadline = (Get-Date).AddSeconds(20)
+  while ((Get-Date) -lt $deadline) {
+    if ($null -ne $script:p -and $script:p.HasExited) { break }
+    if (Find-ContentText '垃圾堆积' -Like) { $junkBack = $true; break }
+    if (Find-ContentText '体检得分' -Like) { $tested = $true; break }
+    Start-Sleep -Seconds 3
+  }
+  if ($tested -or $junkBack) { break }
+  Invoke-NavTitle '总览' | Out-Null
+  Start-Sleep -Seconds 45
+  Invoke-NavTitle '系统体检' | Out-Null
+  Start-Sleep -Seconds 5
 }
 if ($tested -and -not $junkBack) {
   Start-Sleep -Seconds 5

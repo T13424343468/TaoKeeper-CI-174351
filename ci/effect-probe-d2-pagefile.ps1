@@ -1,4 +1,4 @@
-# TaoKeeper effect probe D-2: memory page-file plan — real-effect gate.
+﻿# TaoKeeper effect probe D-2: memory page-file plan — real-effect gate.
 #
 # Acceptance sheet D-2 (产品验收单.md 第五节): 内存优化真生效 — 读优化前占用读数 ->
 # 经 MemPage 的 PageFileApplyExecutor 真执行方案 -> 读数可复现变化且与系统实际值一致 ->
@@ -164,7 +164,7 @@ function Wait-ContentText([string]$Pattern, [int]$MaxSec) {
 }
 
 # ---------- ground truth: system page-file state ----------
-$mmKey = 'HKLM:\SYSTEM\CurrentControlSet\Session Manager\Memory Management'
+$mmKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
 function Get-PagingFilesRaw {
   try { return @((Get-ItemProperty $mmKey -ErrorAction Stop).PagingFiles) } catch { return @('<unreadable>') }
 }

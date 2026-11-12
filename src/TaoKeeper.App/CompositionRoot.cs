@@ -124,6 +124,8 @@ internal static class CompositionRoot
 
         // 内存管理：真实内存快照（GlobalMemoryStatusEx；读不到时调用方按未测态兜底）
         TryWireMemory(_mem);
+        // P-D2 页面文件方案真执行：三步确认后的执行器接线（改前自动备份、快照可回滚；未确认绝不碰系统）
+        MemPage.PageFileApplyExecutor = ApplyPageFilePlan;
         RefreshWidgetFrame(); // P11：内存就绪即出真实帧（垃圾/进程未就绪字段如实 null，挂件灰显该项）
 
         // 软件管家：后台 winget 已装清单缓存 + 页面钩子（缓存未就绪时返回 null，页面如实显示未扫描）
@@ -145,6 +147,44 @@ internal static class CompositionRoot
     }
 
     private static int? MemUsedPercent() => _memPercent;
+
+    /// <summary>
+    /// P-D2：页面文件方案真执行（MemPage 三步确认后调用）。改前自动备份原 PagingFiles，写目标条目；
+    /// custom 档位无输入界面时如实回执；权限不足/键不可读写如实上报，未做任何半截改动不假成功。
+    /// </summary>
+    private static string ApplyPageFilePlan(string planKey)
+    {
+        try
+        {
+            if (!OperatingSystem.IsWindows()) return "页面文件管理仅 Windows 真机可用。";
+            var snapshot = _latestMemory ?? new Win32MemorySnapshotAdapter().Capture();
+            var physicalBytes = snapshot.TotalPhysicalBytes;
+            if (physicalBytes <= 0) return "物理内存读数不可用，未做任何改动。";
+            var settings = PageFilePlanComposer.FromPlanKey(planKey);
+            if (settings is null)
+                return "自定义档位需要数值输入界面（本版未提供），请先使用智能推荐/性能优先/空间优先/系统托管。";
+
+            var adapter = new Win32PageFileApplyAdapter();
+            var current = adapter.ReadCurrentPagingFiles();
+            var systemDrive = Path.GetPathRoot(Environment.SystemDirectory) ?? "C:";
+            var target = PageFilePlanComposer.ComposeTargetEntries(settings, physicalBytes, systemDrive);
+            if (PageFilePlanComposer.SameAsCurrent(target, current))
+                return $"当前已是该方案（{PageFilePlanComposer.Describe(current)}），无需改动。";
+
+            adapter.BackupCurrent(current); // 先落盘快照再动系统：断电/崩溃后快照仍在，可回滚
+            adapter.ApplyEntries(target);
+            return $"已应用：{PageFilePlanComposer.Describe(current)} → {PageFilePlanComposer.Describe(target)}。"
+                + "重启后生效；改前设置已备份，可随时一键回滚。";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return "权限不足（页面文件设置需要管理员权限），未做任何改动。";
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IO.IOException or ArgumentException)
+        {
+            return $"应用未完成：{ex.Message}";
+        }
+    }
 
     private static void TryWireMemory(MemPageViewModel mem)
     {
