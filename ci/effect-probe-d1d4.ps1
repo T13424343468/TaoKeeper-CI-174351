@@ -159,6 +159,15 @@ if ($handle -eq [IntPtr]::Zero) {
   exit 1
 }
 Start-Sleep -Seconds 5
+# r32 evidence (99-clean-fail.png): scan succeeded (89 items / 404.7MB) but the
+# clean-button row revealed after scanning sits BELOW the probe window fold —
+# window laid out ~530px tall, IsOffscreen filtered the offscreen button.
+# WinUI lays out to client size, not screen size: enlarge the window so the
+# whole page is in-window before driving UIA.
+$sigResize = 'using System; using System.Runtime.InteropServices; public static class W32R { [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags); }'
+Add-Type -TypeDefinition $sigResize -ErrorAction SilentlyContinue
+[W32R]::SetWindowPos($handle, [IntPtr]::Zero, 0, 0, 1400, 1000, 0x0040) | Out-Null
+Start-Sleep -Seconds 2
 $root = [System.Windows.Automation.AutomationElement]::FromHandle($handle)
 $ctText = [System.Windows.Automation.ControlType]::Text
 $navRight = 260.0
