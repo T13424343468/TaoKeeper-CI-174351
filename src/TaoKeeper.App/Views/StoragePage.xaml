@@ -75,6 +75,31 @@
                                Text="所有清理动作走回收站语义：先确认、先进回收站、可还原。" />
                 </StackPanel>
             </Border>
+
+            <!-- 闭环演示卡：感知（到点判定）→ 提示（确认预览）→ 确认 → 执行（回收站语义） -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="到点检查与确认执行" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <Button x:Name="CheckNowButton" Content="立即检查一次（到点才提示，未到点不动任何文件）"
+                            Click="OnCheckNowClick" CornerRadius="10" Padding="14,7" HorizontalAlignment="Left" />
+                    <TextBlock x:Name="CheckResult" FontSize="12.5" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk2Brush}"
+                               Text="开启后到点会在这里给出确认预览；未到点不做任何事。" />
+                    <StackPanel x:Name="PendingActions" Orientation="Horizontal" Spacing="10" Visibility="Collapsed">
+                        <Button x:Name="ConfirmRunButton" Content="确认清理（进回收站，可还原）"
+                                Style="{StaticResource AccentButtonStyle}" Click="OnConfirmRunClick"
+                                CornerRadius="10" />
+                        <Button x:Name="SkipRunButton" Content="这次先不清" Click="OnSkipRunClick"
+                                CornerRadius="10" />
+                    </StackPanel>
+                    <TextBlock FontSize="12" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="与手动清理不冲突：到点只提示你确认，不会碰磁盘清理页正在处理的清单；两边执行都走同一回收站语义与清理账。" />
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

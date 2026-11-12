@@ -22,6 +22,16 @@ public sealed class StorageSensePageViewModel
     /// <summary>当前计划（默认：关、无范围、7 天）。</summary>
     public StorageSensePlan Plan { get; private set; } = StorageSensePlan.Default;
 
+    /// <summary>方案变化钩子（宿主接线后落盘持久化；本层不做 IO）。</summary>
+    public Action? PlanChanged { get; set; }
+
+    /// <summary>把持久化的方案回放进 VM（宿主启动时调用；不触发钩子，避免回写循环）。</summary>
+    public void LoadPlan(StorageSensePlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        Plan = plan;
+    }
+
     /// <summary>到点后待确认的清理预览；用户确认或到点解除前一直保留。</summary>
     public ScheduledCleanupPreview? PendingPreview { get; private set; }
 
@@ -50,21 +60,29 @@ public sealed class StorageSensePageViewModel
         if (Plan.Enabled && next == StorageCleanupScope.None)
             throw new InvalidOperationException("至少保留一项清理范围；要全停请先关闭存储感知。");
         Plan = Plan with { Scope = next };
+        PlanChanged?.Invoke();
     }
 
     /// <summary>设置清理间隔（天），最小 1。</summary>
     public void SetIntervalDays(int days)
-        => Plan = Plan with { IntervalDays = Math.Max(1, days) };
+    {
+        Plan = Plan with { IntervalDays = Math.Max(1, days) };
+        PlanChanged?.Invoke();
+    }
 
     /// <summary>开启存储感知（范围至少一项，由引擎校验报红）。</summary>
     public void Enable(bool runOnStartupIfOverdue, DateTimeOffset now)
-        => Plan = StorageSenseEngine.Enable(Plan, Plan.Scope, Plan.IntervalDays, runOnStartupIfOverdue, now);
+    {
+        Plan = StorageSenseEngine.Enable(Plan, Plan.Scope, Plan.IntervalDays, runOnStartupIfOverdue, now);
+        PlanChanged?.Invoke();
+    }
 
     /// <summary>关闭存储感知（清除到点待确认状态；已勾选范围保留，便于下次再开）。</summary>
     public void Disable()
     {
         Plan = Plan with { Enabled = false };
         PendingPreview = null;
+        PlanChanged?.Invoke();
     }
 
     /// <summary>检查到点并产出确认预览；未到点返回 false 且不做任何事。</summary>
@@ -81,6 +99,13 @@ public sealed class StorageSensePageViewModel
     public void MarkRunCompleted(DateTimeOffset completedUtc)
     {
         Plan = Plan with { LastRunUtc = completedUtc };
+        PendingPreview = null;
+        PlanChanged?.Invoke();
+    }
+
+    /// <summary>用户本轮选择先不清：只解除待确认预览，不改上次运行锚点（下次到点再次提示）。</summary>
+    public void DismissPendingPreview()
+    {
         PendingPreview = null;
     }
 }
