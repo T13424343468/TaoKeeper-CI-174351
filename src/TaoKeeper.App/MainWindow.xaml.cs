@@ -80,7 +80,12 @@ public sealed partial class MainWindow : Window
     /// </summary>
     public void NavigateDirect(AppRoute route)
     {
-        var idx = _navItems.FindIndex(n => n.Route == route);
+        // IReadOnlyList 无 FindIndex（List 专属），手工索引查找（零 LINQ 依赖）
+        var idx = -1;
+        for (var i = 0; i < _navItems.Count; i++)
+        {
+            if (_navItems[i].Route == route) { idx = i; break; }
+        }
         if (idx < 0 || NavList.SelectedIndex == idx) { Navigate(route); return; }
         NavList.SelectedIndex = idx; // 触发 OnNavSelectionChanged → Navigate
     }
