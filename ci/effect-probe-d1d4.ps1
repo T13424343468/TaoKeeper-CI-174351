@@ -111,18 +111,47 @@ Save-Shot "e0-before.png"
 # Single-instance hygiene: kill stray app instances left by the UI walk and
 # clear the nav trace so this probe's own evidence is unambiguous.
 Get-Process -Name 'TaoKeeper.App' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 2
+# r28 evidence: probe instance exited while a live Overview window remained on
+# screen — instance identity must be proven, not assumed. Poll until every
+# stray instance is truly gone (kill is asynchronous) before launching ours.
+$hygDeadline = (Get-Date).AddSeconds(10)
+while ((Get-Date) -lt $hygDeadline) {
+  if (-not (Get-Process -Name 'TaoKeeper.App' -ErrorAction SilentlyContinue)) { break }
+  Start-Sleep -Milliseconds 500
+}
+$stray = Get-Process -Name 'TaoKeeper.App' -ErrorAction SilentlyContinue
+if ($stray) { Write-Host ("[PID] hygiene left {0} instance(s): {1}" -f $stray.Count, (($stray | ForEach-Object { $_.Id }) -join ',')) }
 $navLogPath = Join-Path ([System.IO.Path]::GetTempPath()) 'taokeeper-nav.log'
 if (Test-Path $navLogPath) { Remove-Item $navLogPath -Force -ErrorAction SilentlyContinue }
 $p = Start-Process -FilePath $ExePath -WorkingDirectory (Split-Path $ExePath) -PassThru
+Write-Host ("[PID] launched probe instance pid={0}" -f $p.Id)
 Start-Sleep -Seconds 5
 $deadline = (Get-Date).AddSeconds(60)
 $handle = [IntPtr]::Zero
 while ((Get-Date) -lt $deadline) {
   Start-Sleep -Seconds 3
   $p.Refresh()
+  if ($p.HasExited) { break }
   if ($p.MainWindowHandle -ne [IntPtr]::Zero) { $handle = $p.MainWindowHandle; break }
 }
+# Window-identity check: the window we drive via UIA must belong to OUR pid.
+if ($handle -ne [IntPtr]::Zero) {
+  $winPid = 0
+  try {
+    $sig = 'using System; using System.Runtime.InteropServices; public static class W32 { [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid); }'
+    Add-Type -TypeDefinition $sig -ErrorAction SilentlyContinue
+    $w = [uint32]0
+    [W32]::GetWindowThreadProcessId($handle, [ref]$w) | Out-Null
+    $winPid = [int]$w
+  } catch { }
+  if ($winPid -ne 0 -and $winPid -ne $p.Id) {
+    Write-Host ("[PID] MISMATCH window pid={0} probe pid={1} — driving a foreign instance!" -f $winPid, $p.Id)
+  } else {
+    Write-Host ("[PID] window bound to probe instance pid={0}" -f $p.Id)
+  }
+}
+$alive = Get-Process -Name 'TaoKeeper.App' -ErrorAction SilentlyContinue
+Write-Host ("[PID] running instances after launch: {0}" -f ((($alive | ForEach-Object { "$($_.Id)@$($_.StartTime.ToString('HH:mm:ss'))" })) -join ' | '))
 if ($handle -eq [IntPtr]::Zero) {
   Save-Shot "99-no-window.png"
   Write-Effect $false "launch" "main window not found in 60s"
@@ -242,7 +271,12 @@ function Invoke-NavByTitle([string]$Title) {
         try { $el.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() }
         catch { $el.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() }
         for ($poll = 0; $poll -lt 10; $poll++) {
-          if ($p.HasExited) { return $false }
+          if ($p.HasExited) {
+            Write-Host ("[PID] probe instance pid={0} EXITED during nav poll (poll={1})" -f $p.Id, $poll)
+            $rest = Get-Process -Name 'TaoKeeper.App' -ErrorAction SilentlyContinue
+            Write-Host ("[PID] remaining instances: {0}" -f ((($rest | ForEach-Object { "$($_.Id)@$($_.StartTime.ToString('HH:mm:ss'))" })) -join ' | '))
+            return $false
+          }
           Start-Sleep -Seconds 1
           $marker = $Title
           if ($contentMarkers.ContainsKey($Title)) { $marker = $contentMarkers[$Title] }
@@ -318,6 +352,12 @@ $navOk = Invoke-NavByTitle '磁盘清理'
 Write-Effect $navOk "nav-disk" "landed 磁盘清理 (content verified)"
 if (-not $navOk) {
   Save-Shot "99-nav-fail.png"
+  $restAll = Get-Process -Name 'TaoKeeper.App' -ErrorAction SilentlyContinue
+  if ($restAll) {
+    Write-Host ("[PID] instances at nav-fail time: {0}" -f ((($restAll | ForEach-Object { "$($_.Id)@$($_.StartTime.ToString('HH:mm:ss')) win=$($_.MainWindowHandle)" })) -join ' | '))
+  } else {
+    Write-Host "[PID] NO TaoKeeper.App instances alive at nav-fail time (probe instance exited)"
+  }
   $navLog = Join-Path ([System.IO.Path]::GetTempPath()) 'taokeeper-nav.log'
   if (Test-Path $navLog) { Write-Host "[NAVLOG] --- app nav trace ---"; Get-Content $navLog | ForEach-Object { Write-Host ("[NAVLOG] " + $_) } }
   else { Write-Host "[NAVLOG] no nav trace file written" }
