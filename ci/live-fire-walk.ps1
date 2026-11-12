@@ -27,6 +27,9 @@
 # - App-alive evidence: every stage checks process exit; on exit it saves a
 #   screenshot, a crash-evidence.txt (exit code + recent Application event
 #   errors + dump listing) and registers WER LocalDumps for a minidump.
+# - Probe invoke now scrolls page content down stepwise so below-the-fold
+#   controls (memory plan buttons, storage master switch) can be reached;
+#   offscreen elements still can never fake a PASS.
 # - Storage probe is adaptive: MasterSwitch if wired, else the placeholder
 #   render is asserted (route not registered until P0 wiring lands).
 # - Probes target REAL controls verified in page XAML: software tab buttons,
@@ -79,6 +82,7 @@ function Test-AppAlive([string]$Stage) {
   $p.Refresh()
   if (-not $p.HasExited) { return }
   Save-Shot "99-app-exited.png"
+  Start-Sleep -Seconds 20  # WER writes LocalDumps minidump asynchronously
   $evPath = Join-Path $OutDir "crash-evidence.txt"
   "app exited at stage: $Stage" | Out-File $evPath -Encoding utf8
   "ExitCode: $($p.ExitCode)" | Out-File $evPath -Append -Encoding utf8
@@ -305,25 +309,42 @@ foreach ($page in $plan) {
 # offscreen elements so collapsed-by-design controls cannot fake a PASS.
 function Invoke-Match([string]$Pattern, [int]$WaitSec) {
   try {
-    $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-      [System.Windows.Automation.Condition]::TrueCondition)
-    foreach ($el in $all) {
-      try { if ($el.Current.IsOffscreen) { continue } } catch { }
-      try { if ($el.Current.BoundingRectangle.X -lt $script:navRight) { continue } } catch { }
-      $n = ''; $a = ''
-      try { $n = $el.Current.Name } catch { }
-      try { $a = $el.Current.AutomationId } catch { }
-      if (-not (($n -match $Pattern) -or ($a -match $Pattern))) { continue }
-      try {
-        $el.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-        Start-Sleep -Seconds $WaitSec
-        return $true
-      } catch { }
-      try {
-        $el.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()
-        Start-Sleep -Seconds $WaitSec
-        return $true
-      } catch { }
+    # Walk v5: content can extend below the fold (memory plan buttons, storage
+    # master switch). Re-scan after each downward scroll step so offscreen
+    # controls get a real chance; offscreen elements still never fake a PASS.
+    for ($scrollTry = 0; $scrollTry -lt 8; $scrollTry++) {
+      if ($scrollTry -gt 0) {
+        foreach ($sc in Get-Scrollables) {
+          try {
+            $sp = $sc.GetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern)
+            if ($sp.Current.VerticallyScrollable) {
+              $sp.Scroll([System.Windows.Automation.ScrollAmount]::NoAmount,
+                         [System.Windows.Automation.ScrollAmount]::SmallIncrement)
+            }
+          } catch { }
+        }
+        Start-Sleep -Milliseconds 500
+      }
+      $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+        [System.Windows.Automation.Condition]::TrueCondition)
+      foreach ($el in $all) {
+        try { if ($el.Current.IsOffscreen) { continue } } catch { }
+        try { if ($el.Current.BoundingRectangle.X -lt $script:navRight) { continue } } catch { }
+        $n = ''; $a = ''
+        try { $n = $el.Current.Name } catch { }
+        try { $a = $el.Current.AutomationId } catch { }
+        if (-not (($n -match $Pattern) -or ($a -match $Pattern))) { continue }
+        try {
+          $el.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+          Start-Sleep -Seconds $WaitSec
+          return $true
+        } catch { }
+        try {
+          $el.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()
+          Start-Sleep -Seconds $WaitSec
+          return $true
+        } catch { }
+      }
     }
     return $false
   } catch { return $false }
