@@ -126,6 +126,11 @@ jobs:
         run: |
           pwsh -NoProfile -ExecutionPolicy Bypass -File ci/effect-probe-d2-pagefile.ps1 -ExePath (Resolve-Path tools/msi/publish-ui/TaoKeeper.App.exe) -OutDir effect-shots-d2
         shell: pwsh
+      - name: Effect probe D-3 (checkup - seeded junk reported with basis -> real clean via disk page -> re-check clean)
+        if: always()
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File ci/effect-probe-d3-checkup.ps1 -ExePath (Resolve-Path tools/msi/publish-ui/TaoKeeper.App.exe) -OutDir effect-shots-d3
+        shell: pwsh
       - name: Live-fire winget end-to-end (real install -> verify -> uninstall -> verify gone)
         run: |
           pwsh -NoProfile -ExecutionPolicy Bypass -File ci/winget-livefire.ps1 -OutDir winget-shots
@@ -148,6 +153,7 @@ jobs:
             ci-shots/
             effect-shots/
             effect-shots-d2/
+            effect-shots-d3/
             winget-shots/
       - name: Upload soak metrics
         if: always()
