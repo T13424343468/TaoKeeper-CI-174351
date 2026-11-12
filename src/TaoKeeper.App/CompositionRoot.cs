@@ -335,20 +335,26 @@ internal static class CompositionRoot
             .ToList();
     }
 
-    /// <summary>P10：大文件扫描根（当前用户常用目录，只读；不存在则跳过）。</summary>
+    /// <summary>P10：大文件扫描根（当前用户常用目录，只读；不存在则跳过）。
+    /// 注意：.NET 的 SpecialFolder 枚举没有 Downloads 项，下载目录按用户主目录下的 Downloads 定位。</summary>
     private static IReadOnlyList<string> DefaultLargeScanRoots()
     {
         var roots = new List<string>();
-        foreach (var special in new[] { Environment.SpecialFolder.Downloads,
-                                        Environment.SpecialFolder.MyDocuments,
-                                        Environment.SpecialFolder.DesktopDirectory,
-                                        Environment.SpecialFolder.MyPictures,
-                                        Environment.SpecialFolder.MyVideos })
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var candidates = new List<string?>
         {
+            string.IsNullOrEmpty(profile) ? null : Path.Combine(profile, "Downloads"),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+        };
+        foreach (var path in candidates)
+        {
+            if (string.IsNullOrEmpty(path)) continue;
             try
             {
-                var path = Environment.GetFolderPath(special);
-                if (!string.IsNullOrEmpty(path) && Directory.Exists(path)) roots.Add(path);
+                if (Directory.Exists(path)) roots.Add(path);
             }
             catch (Exception ex) when (ex is System.Security.SecurityException or ArgumentException)
             {
