@@ -217,8 +217,10 @@ public sealed partial class DiskCleanupPage : Page
                 ? "扫描完成：很干净，暂无可清。"
                 : $"扫描完成：发现 {scan.Candidates.Count} 条、合计 {Fmt(scan.TotalBytes)}，勾选后清理。";
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        catch (Exception ex)
         {
+            // async void 处理器不得让异常逃逸（逃逸即 WinUI stowed exception 闪退）；
+            // 任何失败都如实显示原文，未动任何文件、可重试。
             ScanStatus.Text = $"扫描未完成：{ex.Message}（未动任何文件，可重试）";
         }
         finally

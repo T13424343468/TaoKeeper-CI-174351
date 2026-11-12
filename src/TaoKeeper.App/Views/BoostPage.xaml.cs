@@ -120,10 +120,19 @@ public sealed partial class BoostPage : Page
     private async void OnApplyClick(object sender, RoutedEventArgs e)
     {
         // 确认闸门：空勾选直接返回；执行结果逐条转述，不做任何勾选外动作
-        var results = await _vm.ApplyConfirmedAsync(_confirmedIds).ConfigureAwait(true);
-        ReceiptText.Text = results.Count == 0
-            ? "未勾选任何项，未执行任何动作。"
-            : string.Join("；", results.Select(static r => $"{r.ItemId}:{r.DisplayText}"));
+        try
+        {
+            var results = await _vm.ApplyConfirmedAsync(_confirmedIds).ConfigureAwait(true);
+            ReceiptText.Text = results.Count == 0
+                ? "未勾选任何项，未执行任何动作。"
+                : string.Join("；", results.Select(static r => $"{r.ItemId}:{r.DisplayText}"));
+        }
+        catch (Exception ex)
+        {
+            // async void 处理器不得让异常逃逸（逃逸即 WinUI stowed exception 闪退）；
+            // 失败如实显示原文，不夸大也不静默。
+            ReceiptText.Text = $"执行未完成：{ex.Message}";
+        }
     }
 
     private void OnStartupListClick(object sender, RoutedEventArgs e)

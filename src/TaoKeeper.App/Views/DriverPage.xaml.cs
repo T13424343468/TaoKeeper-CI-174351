@@ -58,8 +58,10 @@ public sealed partial class DriverPage : Page
             var vm = await _vm.LoadAsync(DriverAdapterProvider());
             Bind(vm);
         }
-        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException)
+        catch (Exception ex)
         {
+            // async void 处理器不得让异常逃逸（逃逸即 WinUI stowed exception 闪退，
+            // r18 实证 0xc000027b）；任何失败都如实显示原文，不动驱动、可重试。
             SummaryText.Text = $"扫描未完成：{ex.Message}（未动任何驱动，可重试）";
         }
         finally
