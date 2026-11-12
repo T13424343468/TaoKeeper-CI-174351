@@ -281,19 +281,11 @@ if (-not $scanOk) { Save-Shot "99-scan-assert.png"; $script:effectLines | Out-Fi
 
 # ---------- drive: clean with confirm dialog ----------
 $freePreClean = (New-Object System.IO.DriveInfo($env:SystemDrive.TrimEnd('\'))).AvailableFreeSpace
-# r33 d1-free-delta telemetry: on a shared GH runner the Temp dir is actively used
-# by concurrent processes (provjobd, VBCSCompiler, runner cleanup) that free their
-# OWN files during the probe window — a bare two-point delta cannot attribute
-# causation. Sample free space through the clean window so any environmental
-# drift shows itself in the log; the |delta| <= 24MB assertion itself is unchanged.
-$freeSamples = New-Object System.Collections.Generic.List[string]
-$freeSampler = [System.Threading.Tasks.Task]::Run([Action]{
-  for ($i = 0; $i -lt 40; $i++) {
-    $f = (New-Object System.IO.DriveInfo($env:SystemDrive.TrimEnd('\'))).AvailableFreeSpace
-    $freeSamples.Add(("{0:HH:mm:ss.fff} free={1}" -f [DateTime]::Now, $f))
-    Start-Sleep -Milliseconds 500
-  }
-})
+# r34: replace the r33 background sampler (PS scriptblock under Task.Run never
+# ran — [FREE-SAMPLES] n=0) with a synchronous two-window drift comparison:
+# the launch+scan window (no product free-space action) is the control drift;
+# the clean window is the asserted one. The |delta| <= 24MB assertion is unchanged.
+Write-Host ("[FREE-DRIFT] control window (launch+scan): {0} -> {1} (delta {2})" -f $freeBefore, $freePreClean, ($freePreClean - $freeBefore))
 $cleanInvoked = Invoke-ContentMatch '清理（先进回收站）|CleanButton' 4
 Write-Effect $cleanInvoked "clean-invoked" "'清理（先进回收站）' clicked; confirmation dialog expected"
 if (-not $cleanInvoked) { Save-Shot "99-clean-fail.png"; $script:effectLines | Out-File (Join-Path $OutDir "effect-evidence.txt") -Encoding utf8; $p.Kill(); exit 1 }
@@ -336,9 +328,7 @@ Write-Effect $keepIntact "keep-file-intact" "keep file outside any rule untouche
 # ---------- assert: free-space delta (recycle-bin path: ~unchanged) ----------
 $freeAfter = (New-Object System.IO.DriveInfo($env:SystemDrive.TrimEnd('\'))).AvailableFreeSpace
 $delta = $freeAfter - $freePreClean
-try { $freeSampler.Wait() } catch { }
-Write-Host ("[FREE-SAMPLES] n={0}" -f $freeSamples.Count)
-foreach ($s in $freeSamples) { Write-Host ("[FREE-SAMPLE] {0}" -f $s) }
+Write-Host ("[FREE-DRIFT] clean window: {0} -> {1} (delta {2}); control window delta {3}" -f $freePreClean, $freeAfter, $delta, ($freePreClean - $freeBefore))
 # Recycle-bin move keeps bytes on the same volume: delta must stay inside the
 # noise band. delta ~= +seeded bytes would prove silent PERMANENT deletion
 # (red-line breach); delta << 0 means unexpected writes during the probe window.
@@ -368,7 +358,16 @@ try {
     $ruleOk = $true
     foreach ($s in $seeds) {
       $want = (Get-Item $s -ErrorAction SilentlyContinue)
-      $e = $entries | Where-Object { $_.OriginalPath -ieq $s } | Select-Object -First 1
+      # r34 root cause: the scan engine records 8.3 short paths (r33 dialog:
+      # 'C:\Users\RUNNER~1\AppData\...') while the probe compares long paths —
+      # exact -ieq never matches. Match on unique leaf name + marker dir instead.
+      $seedName = Split-Path -Leaf $s
+      $seedDirName = Split-Path (Split-Path -Parent $s) -Leaf
+      $e = $entries | Where-Object {
+        $_.OriginalPath -and
+        ((Split-Path -Leaf $_.OriginalPath) -ieq $seedName) -and
+        ($_.OriginalPath -match [regex]::Escape($seedDirName))
+      } | Select-Object -First 1
       if ($e) {
         $matched++
         if ($e.RuleId -and $e.RuleId -eq 'system-temp') { } else { $ruleOk = $false }
@@ -416,9 +415,9 @@ try {
       foreach ($v in $verbs) {
         $vn = ''
         try { $vn = $v.Name } catch { }
-        # r33 root cause: runner OS locale is en-US — the bin verb is "Restore"/"Restore(&U)",
-        # the probe only matched Chinese 还原, so no verb fired (done=False, file back=False).
-        if ($vn -match '还原|[Rr]estore') { $v.DoIt(); $done = $true; break }
+        # r34 root cause (verb list dumped this run): en-US verb is 'R&estore' —
+        # the & breaks '[Rr]estore'; allow the mnemonic & between characters.
+        if ($vn -match '还原|[Rr]&?e&?s&?t&?o&?r&?e') { $v.DoIt(); $done = $true; break }
       }
       Start-Sleep -Seconds 3
       $restored = $seeds | Where-Object { [System.IO.File]::Exists($_) } | Select-Object -First 1
