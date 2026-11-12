@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -55,6 +56,10 @@ public sealed partial class MainWindow : Window
         // 标题栏带显式版本号（与 csproj/Product.wxs 交付版号 1.0.0.0 同口径，映射源码戳 PC-FULL-V1）
         Title = "道管家 · TaoKeeper v1.0.0.0";
 
+        // 导航失败不静默：Frame 吞掉页激活异常只发 NavigationFailed 事件，
+        // r20 实证内存路由选中后内容不切且无任何提示——失败必须可见可取证。
+        ContentFrame.NavigationFailed += OnNavFailed;
+
         _navItems = AppRouteCatalog.NavBarRoutes.Select(r => new NavItem(r)).ToList();
         NavList.ItemsSource = _navItems;
         NavList.SelectedIndex = 0; // 首启=总览（原型首页）
@@ -72,15 +77,76 @@ public sealed partial class MainWindow : Window
     /// <summary>按路由切页：已落地页直达（VM Provider 有接线则带数据参数）；未落地页显示占位（占位不假数据，如实说明）。</summary>
     public void Navigate(AppRoute route)
     {
+        TraceNav($"navigate {route} begin");
         var pageType = PageRegistry.PageFor(route);
-        if (pageType is not null)
+        try
         {
-            // 导航参数带数据 VM（各页 Provider 未接线时为 null，页面按未测态如实兜底）
-            ContentFrame.Navigate(pageType, ParameterFor(route));
-            return;
+            if (pageType is not null)
+            {
+                // 导航参数带数据 VM（各页 Provider 未接线时为 null，页面按未测态如实兜底）
+                ContentFrame.Navigate(pageType, ParameterFor(route));
+            }
+            else
+            {
+                ContentFrame.Navigate(typeof(PlaceholderPage), AppRouteCatalog.TitleOf(route));
+            }
+            TraceNav($"navigate {route} ok");
         }
+        catch (Exception ex)
+        {
+            // 导航抛异常时同样不静默：如实占位说明原因（真机与走查都能看到）。
+            TraceNav($"navigate {route} FAIL {ex.GetType().Name}: {ex.Message}");
+            TryShowNavFailure(route, ex);
+        }
+    }
 
-        ContentFrame.Navigate(typeof(PlaceholderPage), AppRouteCatalog.TitleOf(route));
+    private bool _navFailureReentry;
+
+    private void OnNavFailed(object sender, Microsoft.UI.Xaml.Navigation.NavigationFailedEventArgs e)
+    {
+        TraceNav($"nav FAILED event: {e.Exception?.GetType().Name}: {e.Exception?.Message}");
+        if (_navFailureReentry) return;
+        _navFailureReentry = true;
+        try
+        {
+            ContentFrame.Navigate(typeof(PlaceholderPage),
+                $"页面打开失败：{e.Exception?.Message ?? "未知原因"}（可从左侧重新进入）");
+        }
+        finally
+        {
+            _navFailureReentry = false;
+        }
+    }
+
+    /// <summary>导航失败如实占位：标题=失败原因，不静默留在旧页（r20 内存路由实证）。</summary>
+    private void TryShowNavFailure(AppRoute route, Exception ex)
+    {
+        if (_navFailureReentry) return;
+        _navFailureReentry = true;
+        try
+        {
+            ContentFrame.Navigate(typeof(PlaceholderPage),
+                $"「{AppRouteCatalog.TitleOf(route)}」打开失败：{ex.Message}");
+        }
+        finally
+        {
+            _navFailureReentry = false;
+        }
+    }
+
+    /// <summary>导航审计追踪：本地临时目录追加一行（时间、路由、结果）；只在本机，不外发。</summary>
+    private static void TraceNav(string line)
+    {
+        try
+        {
+            File.AppendAllText(
+                Path.Combine(Path.GetTempPath(), "taokeeper-nav.log"),
+                $"{DateTimeOffset.Now:HH:mm:ss.fff} {line}{Environment.NewLine}");
+        }
+        catch
+        {
+            // 追踪写不进去也不影响导航本身（诊断用途，失败保持静默）
+        }
     }
 
     /// <summary>按路由取导航参数（VM Provider 未接线返回 null，页面按未测态兜底）。</summary>

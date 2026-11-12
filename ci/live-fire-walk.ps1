@@ -422,6 +422,14 @@ foreach ($pr in $probe) {
   Write-Assert ("action:{0}" -f $pr.Page) ($navOk -and $ok) $reason
 }
 
+# Print the app's nav audit trail (MainWindow TraceNav writes %TEMP%/taokeeper-nav.log)
+# so the CI log carries definitive evidence of which Navigate calls ran and how they ended.
+$navLog = Join-Path ([System.IO.Path]::GetTempPath()) 'taokeeper-nav.log'
+if (Test-Path $navLog) {
+  Write-Host "[NAVLOG] --- app nav trace ---"
+  Get-Content $navLog | ForEach-Object { Write-Host ("[NAVLOG] " + $_) }
+}
+
 Save-Shot "98-final.png"
 Write-Host "[SUMMARY] fails=$script:failCount"
 if ($script:failCount -gt 0) { exit 1 }
