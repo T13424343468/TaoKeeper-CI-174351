@@ -18,7 +18,7 @@ namespace TaoKeeper.App.Views;
 public sealed partial class SoftwarePage : Page
 {
     /// <summary>已装清单提供者（运行期由宿主接线；未接线=null → 如实显示未扫描）。</summary>
-    public static Func<IReadOnlyList<SoftwareEntry>>? InstalledListProvider { get; set; }
+    public static Func<IReadOnlyList<SoftwareEntry>?>? InstalledListProvider { get; set; }
 
     private SoftwarePageViewModel? _vm;
 
