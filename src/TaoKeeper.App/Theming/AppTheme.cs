@@ -31,7 +31,9 @@ public static class AppTheme
             if (merged[i].Source?.OriginalString.Contains("Themes/TaoTheme.") == true)
                 merged.RemoveAt(i);
         }
-        merged.Insert(0, dict);
+        // 合并字典按"后者优先"解析：主题字典必须排在 XamlControlsResources 等基础字典
+        // 之后（末尾），否则换肤后自研色值会被基础资源覆盖。
+        merged.Insert(merged.Count, dict);
     }
 
     /// <summary>从设置文件读主题（损坏/缺失回退默认水墨，设置层已有回退语义）。</summary>
