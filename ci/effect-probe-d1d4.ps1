@@ -15,12 +15,17 @@
 #      text reports the seeded rule volume (page shows per-rule aggregate) ->
 #      清理（先进回收站） -> ContentDialog confirm ("确认清理") -> result dialog.
 #   4. Assert every seeded sample file GONE from its original path.
-#   5. Assert free-bytes delta >= seeded bytes minus small tolerance (other CI
-#      noise can only INCREASE free space, so delta must be >= seeded - tol);
+#   5. Free-space semantics (corrected 14:55): cleanup goes to the recycle bin
+#      (same-volume move), so free space must stay ~UNCHANGED: a big POSITIVE
+#      delta would mean silent PERMANENT deletion = red-line breach; a big
+#      negative delta means unexpected writes. Assert |delta| <= noise band.
+#      Real release happens only at confirmed bin emptying (acceptance-sheet
+#      D-1 item-2 wording needs the product-side fix). Ledger (D-4) verifies
+#      exact-clean accounting.
 #      exact-clean verification comes from the ledger (D-4).
 #   6. Recycle-bin verification via Shell.Application NameSpace(10) Items: every
 #      marker found; restore ONE sample via item verb 还原(&U) -> file back at
-#      original path + free space falls back by its size.
+#      original path with its original byte size intact.
 #   7. Evidence: before/scan/clean/after/restore screenshots +
 #      effect-evidence.txt with [OK]/[FAIL] lines. No fake PASS: any failed
 #      assertion is recorded and the script exits 1.
@@ -76,6 +81,7 @@ $tempDir = [System.IO.Path]::GetTempPath()
 $seedCount = 8
 $seedBytes = 0L
 $seeds = New-Object System.Collections.Generic.List[string]
+$seedSizes = @{}
 $seedDir = Join-Path $tempDir ("tk-effect-" + $marker)
 New-Item -ItemType Directory -Force -Path $seedDir | Out-Null
 for ($i = 0; $i -lt $seedCount; $i++) {
@@ -85,6 +91,7 @@ for ($i = 0; $i -lt $seedCount; $i++) {
   (New-Object Random($i)).NextBytes($bytes)
   [System.IO.File]::WriteAllBytes($p, $bytes)
   $seeds.Add($p)
+  $seedSizes[$p] = $size
   $seedBytes += $size
 }
 # control file: matches system-temp (pattern *), will be cleaned too - honest scope
@@ -304,16 +311,15 @@ $keepIntact = [System.IO.File]::Exists($keepPath)
 Write-Effect $goneOk "d1-files-gone" (($goneList | Select-Object -First 3) -join '; ')
 Write-Effect $keepIntact "keep-file-intact" "keep file outside any rule untouched: $keepPath"
 
-# ---------- assert: free-space delta (>= seeded - tolerance) ----------
+# ---------- assert: free-space delta (recycle-bin path: ~unchanged) ----------
 $freeAfter = (New-Object System.IO.DriveInfo($env:SystemDrive.TrimEnd('\'))).AvailableFreeSpace
 $delta = $freeAfter - $freePreClean
-# noise can only add free space (other processes delete too); we expect delta >= seeds-control-ish.
-# tolerance 1MB for control file variance and FS overhead; if delta < expected-tol, real FAIL.
-$expected = $seedBytes + (Get-Item $controlInTemp -ErrorAction SilentlyContinue).Length
-if (-not (Test-Path $controlInTemp)) { $expected = $seedBytes + 60 }  # control was cleaned (small text file)
-$tol = 1MB
-$deltaOk = ($delta -ge ($expected - $tol))
-Write-Effect $deltaOk "d1-free-delta" ("free {0} -> {1}, delta={2}, expected >= {3} (seeded {4} + control), tol={5}; note: CI noise can only add free space so lower-bound assert is honest" -f $freePreClean, $freeAfter, $delta, ($expected - $tol), $seedBytes, $tol)
+# Recycle-bin move keeps bytes on the same volume: delta must stay inside the
+# noise band. delta ~= +seeded bytes would prove silent PERMANENT deletion
+# (red-line breach); delta << 0 means unexpected writes during the probe window.
+$tol = 24MB
+$deltaOk = (($delta -ge -$tol) -and ($delta -le $tol))
+Write-Effect $deltaOk "d1-free-delta" ("free {0} -> {1}, delta={2}; recycle-bin path expects |delta| <= {3} (no silent permanent deletion; real release happens only at confirmed bin emptying)" -f $freePreClean, $freeAfter, $delta, $tol)
 
 # ---------- D-4: ledger match ----------
 $ledgerPath = Join-Path $env:LOCALAPPDATA "TaoKeeper\cleanup-ledger.json"
@@ -384,10 +390,10 @@ try {
       Start-Sleep -Seconds 3
       $restored = $seeds | Where-Object { [System.IO.File]::Exists($_) } | Select-Object -First 1
       if ($done -and $restored) {
-        $freePostRestore = (New-Object System.IO.DriveInfo($env:SystemDrive.TrimEnd('\'))).AvailableFreeSpace
         $sizeRestored = (Get-Item $restored).Length
-        $restoreOk = ($freePostRestore -le $freeAfter) -and ($sizeRestored -gt 0)
-        Write-Effect $restoreOk "d1-restore" ("restored '{0}' ({1} bytes) via recycle-bin verb; free {2} -> {3} (space falls back)" -f $restored, $sizeRestored, $freeAfter, $freePostRestore)
+        $wantSize = $seedSizes[$restored]
+        $restoreOk = ($sizeRestored -eq $wantSize) -and ($sizeRestored -gt 0)
+        Write-Effect $restoreOk "d1-restore" ("restored '{0}' via recycle-bin verb; size {1} == seeded {2} (byte-intact; free space ~unchanged on recycle path by design)" -f $restored, $sizeRestored, $wantSize)
       } else {
         Write-Effect $false "d1-restore" ("restore verb done=$done, file back=$([bool]$restored)")
       }
