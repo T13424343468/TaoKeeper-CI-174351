@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Versioning;
 using System.Text.Json;
 using Microsoft.Win32;
@@ -48,11 +50,11 @@ public sealed class Win32PageFileApplyAdapter
     }
 
     /// <summary>写目标条目（REG_MULTI_SZ）。重启后生效，本方法不做即时生效承诺。</summary>
-    public void ApplyEntries(string[] targetEntries)
+    public void ApplyEntries(IReadOnlyList<string> targetEntries)
     {
         using var key = Registry.LocalMachine.OpenSubKey(MemoryManagementKey, writable: true)
             ?? throw new UnauthorizedAccessException("注册表 Memory Management 键不可写（需要管理员权限）。");
-        key.SetValue(PagingFilesValue, targetEntries, RegistryValueKind.MultiString);
+        key.SetValue(PagingFilesValue, targetEntries.ToArray(), RegistryValueKind.MultiString);
     }
 
     /// <summary>是否有可回滚快照。</summary>

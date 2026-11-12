@@ -40,20 +40,19 @@ public static class PageFilePlanComposer
     }
 
     /// <summary>现值人类可读摘要：托管态/固定大小/空，用于回执对照。</summary>
-    public static string Describe(string?[] currentEntries)
+    public static string Describe(IReadOnlyList<string?>? currentEntries)
     {
-        if (currentEntries is null || currentEntries.Length == 0) return "（未配置）";
+        if (currentEntries is null || currentEntries.Count == 0) return "（未配置）";
         if (currentEntries.Any(e => string.Equals(e?.Trim(), SystemManagedEntry, StringComparison.OrdinalIgnoreCase)))
             return "系统托管（自动管理所有驱动器）";
         return string.Join("；", currentEntries.Where(e => !string.IsNullOrWhiteSpace(e)).Select(e => e!.Trim()));
     }
 
     /// <summary>目标值与现值逐串相等判定（大小写与连续空白不敏感），相同则不写系统。</summary>
-    public static bool SameAsCurrent(IReadOnlyList<string> target, string?[] current)
-        => target.Count == (current?.Length ?? 0)
+    public static bool SameAsCurrent(IReadOnlyList<string> target, IReadOnlyList<string?> current)
+        => target.Count == current.Count
            && target.Select(NormalizeEntry)
-               .SequenceEqual((current ?? Array.Empty<string?>()).Select(NormalizeEntry),
-                   StringComparer.OrdinalIgnoreCase);
+               .SequenceEqual(current.Select(NormalizeEntry), StringComparer.OrdinalIgnoreCase);
 
     /// <summary>条目归一：按空白切分后以单空格重连（"C:\pagefile.sys  2048 4096" ≡ "c:\pagefile.sys 2048 4096"）。</summary>
     private static string NormalizeEntry(string? entry)

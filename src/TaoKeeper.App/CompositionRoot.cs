@@ -180,7 +180,7 @@ internal static class CompositionRoot
         {
             return "权限不足（页面文件设置需要管理员权限），未做任何改动。";
         }
-        catch (Exception ex) when (ex is InvalidOperationException or IO.IOException or ArgumentException)
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or ArgumentException)
         {
             return $"应用未完成：{ex.Message}";
         }
