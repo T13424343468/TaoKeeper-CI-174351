@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using TaoKeeper.Adapters;
 using TaoKeeper.AppKernel.ViewModels;
 using TaoKeeper.Core.Models;
 using TaoKeeper.Core.Modules;
