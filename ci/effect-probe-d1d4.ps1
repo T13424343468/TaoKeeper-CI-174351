@@ -147,8 +147,45 @@ function Find-ContentText([string]$Name, [switch]$Like) {
   return $false
 }
 
+# Scrollable containers (nav ListView + page ScrollViewers) — walk parity.
+function Get-Scrollables {
+  $list = @()
+  foreach ($el in $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+      [System.Windows.Automation.Condition]::TrueCondition)) {
+    try { $null = $el.GetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern); $list += $el } catch { }
+  }
+  return $list
+}
+# Scroll back to top with repeated LargeDecrement (r26 root cause: the app
+# restores the last-visited page, the nav ListView can be scrolled to the
+# bottom, and SetScrollPercent(-1) is silently rejected by the WinUI provider —
+# the target item stays virtualized/out of view forever. live-fire-walk uses
+# LargeDecrement and passes r23–r26; mirror it exactly).
+function Scroll-NavTop {
+  for ($i = 0; $i -lt 4; $i++) {
+    $scrolled = $false
+    foreach ($sc in Get-Scrollables) {
+      try {
+        $sp = $sc.GetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern)
+        if ($sp.Current.VerticallyScrollable) {
+          $sp.Scroll([System.Windows.Automation.ScrollAmount]::NoAmount,
+                     [System.Windows.Automation.ScrollAmount]::LargeDecrement)
+          $scrolled = $true
+        }
+      } catch { }
+    }
+    if (-not $scrolled) { break }
+    Start-Sleep -Milliseconds 400
+  }
+  Start-Sleep -Milliseconds 600
+}
+
+# Landing markers = per-page unique subtitle (walk v6 parity); nav titles repeat
+# on the overview quick cards, so title-as-content is not a reliable landing check.
+$contentMarkers = @{ '磁盘清理' = '扫得全，清得稳' }
+
 function Invoke-NavByTitle([string]$Title) {
-  # nav list: first scroll to top via the nav ListView scroll provider
+  Scroll-NavTop
   $listCond = New-Object System.Windows.Automation.PropertyCondition(
     [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
     [System.Windows.Automation.ControlType]::List)
@@ -208,7 +245,9 @@ function Invoke-NavByTitle([string]$Title) {
         for ($poll = 0; $poll -lt 10; $poll++) {
           if ($p.HasExited) { return $false }
           Start-Sleep -Seconds 1
-          if (Find-ContentText $Title -Like) { return $true }
+          $marker = $Title
+          if ($contentMarkers.ContainsKey($Title)) { $marker = $contentMarkers[$Title] }
+          if (Find-ContentText $marker -Like) { return $true }
         }
       } catch { }
     }
