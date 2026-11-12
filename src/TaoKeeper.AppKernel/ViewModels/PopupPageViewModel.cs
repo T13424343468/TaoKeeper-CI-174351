@@ -18,12 +18,35 @@ public sealed class PopupPageViewModel
     private readonly List<PopupWhitelistEntry> _whitelist;
     private readonly List<PopupInterceptionRecord> _recent = new();
 
+    /// <summary>配置变化钩子（宿主接线后落盘持久化；本层不做 IO）。</summary>
+    public Action? ConfigChanged { get; set; }
+
     public PopupPageViewModel(
         IEnumerable<PopupRule>? rules = null,
         IEnumerable<PopupWhitelistEntry>? whitelist = null)
     {
         _rules = rules?.ToList() ?? new List<PopupRule>();
         _whitelist = whitelist?.ToList() ?? new List<PopupWhitelistEntry>();
+    }
+
+    /// <summary>把持久化的拦截记录回放进 VM（入参时间乱序均可，内部按新→旧重排并回填计数）。</summary>
+    public void LoadRecords(IEnumerable<PopupInterceptionRecord> records)
+    {
+        ArgumentNullException.ThrowIfNull(records);
+        _recent.Clear();
+        _recent.AddRange(records.OrderByDescending(r => r.OccurredUtc));
+        if (_recent.Count > RecentLimit)
+            _recent.RemoveRange(RecentLimit, _recent.Count - RecentLimit);
+        BlockedCount = _recent.Count(r => r.Action == PopupAction.Blocked);
+        WhitelistedCount = _recent.Count(r => r.Action == PopupAction.Whitelisted);
+        AllowedCount = _recent.Count(r => r.Action == PopupAction.Allowed);
+    }
+
+    /// <summary>只判不留痕：把一个真实窗口文本交给规则引擎，返回处置类别（检测清单展示用，不计数不入记录）。</summary>
+    public PopupInterceptionRecord Classify(PopupEvent popup)
+    {
+        ArgumentNullException.ThrowIfNull(popup);
+        return new PopupRuleEngine(_rules).Evaluate(popup, _whitelist);
     }
 
     /// <summary>当前规则清单（只读视图）。</summary>
@@ -56,6 +79,7 @@ public sealed class PopupPageViewModel
         if (index < 0)
             throw new KeyNotFoundException($"规则不存在：{ruleId}");
         _rules[index] = _rules[index] with { Enabled = enabled };
+        ConfigChanged?.Invoke();
     }
 
     /// <summary>新增一条规则；Id 重复视为配置错误，报红不改静默。</summary>
@@ -66,6 +90,7 @@ public sealed class PopupPageViewModel
         if (_rules.Any(r => r.Id == rule.Id))
             throw new InvalidOperationException($"规则 Id 重复：{rule.Id}");
         _rules.Add(rule);
+        ConfigChanged?.Invoke();
     }
 
     /// <summary>移除一条规则；不存在时报红。</summary>
@@ -74,6 +99,7 @@ public sealed class PopupPageViewModel
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         if (_rules.RemoveAll(r => r.Id == ruleId) == 0)
             throw new KeyNotFoundException($"规则不存在：{ruleId}");
+        ConfigChanged?.Invoke();
     }
 
     /// <summary>加入白名单；Id 重复报红。</summary>
@@ -84,6 +110,7 @@ public sealed class PopupPageViewModel
         if (_whitelist.Any(w => w.Id == entry.Id))
             throw new InvalidOperationException($"白名单 Id 重复：{entry.Id}");
         _whitelist.Add(entry);
+        ConfigChanged?.Invoke();
     }
 
     /// <summary>移除白名单条目；不存在时报红。</summary>
@@ -92,6 +119,7 @@ public sealed class PopupPageViewModel
         ArgumentException.ThrowIfNullOrWhiteSpace(entryId);
         if (_whitelist.RemoveAll(w => w.Id == entryId) == 0)
             throw new KeyNotFoundException($"白名单条目不存在：{entryId}");
+        ConfigChanged?.Invoke();
     }
 
     /// <summary>判定一次弹窗并留痕（白名单优先 → 启用规则 → 默认放行）。</summary>
@@ -110,6 +138,7 @@ public sealed class PopupPageViewModel
             case PopupAction.Whitelisted: WhitelistedCount++; break;
             default: AllowedCount++; break;
         }
+        ConfigChanged?.Invoke();
         return record;
     }
 

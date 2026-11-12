@@ -19,11 +19,30 @@
 
             <TextBlock x:Name="SummaryText" FontSize="12.5" Foreground="{ThemeResource TaoInk2Brush}" />
 
+            <!-- 真实弹窗检测：只读枚举可见顶层窗口，命中规则才给处置按钮（合规形态，不注入不劫持） -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="真实弹窗检测" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                    <Button x:Name="DetectButton" Content="检测当前可见窗口（只读，不碰任何窗口）"
+                            Click="OnDetectClick" CornerRadius="10" Padding="14,7" HorizontalAlignment="Left" />
+                    <TextBlock x:Name="DetectSummary" FontSize="12.5" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk2Brush}"
+                               Text="点上面按钮枚举当前可见顶层窗口：命中启用规则的窗口可确认后屏蔽（WM_CLOSE 优雅关闭），白名单命中放行并留痕。" />
+                    <ItemsControl x:Name="DetectList" />
+                </StackPanel>
+            </Border>
+
             <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
                     BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                 <StackPanel Spacing="8">
                     <TextBlock Text="规则清单" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
                     <ItemsControl x:Name="RuleList" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBox x:Name="RuleProcessInput" PlaceholderText="按进程名新增规则，如 popup-push（不填通配）"
+                                 Width="360" CornerRadius="8" />
+                        <Button x:Name="AddRuleButton" Content="新增拦截规则" Click="OnAddRuleClick" CornerRadius="10" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
