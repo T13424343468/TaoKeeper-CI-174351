@@ -31,6 +31,13 @@
 #   appear inside overview quick cards (r19 false-passed memory via the
 #   overview card literally named 'neicun'). Regex markers now match each
 #   page's subtitle line which exists on exactly one page.
+# walk v7 (r22 post-mortem, 2026-11-12):
+# - Invoke-Match scrolls page content through ABSOLUTE positions 0/20/40/60/80/100%
+#   (SetScrollPercent, LargeIncrement fallback). r19/r22 showed the memory plan
+#   buttons stayed below the fold after 8 SmallIncrement steps — the only
+#   remaining red. Offscreen skip and nav-column X bound unchanged.
+# - Memory probe pattern additionally matches AutomationIds PlanSmart/PlanPerf/
+#   PlanSpace as a name-independent fallback.
 # - Probe invoke now scrolls page content down stepwise so below-the-fold
 #   controls (memory plan buttons, storage master switch) can be reached;
 #   offscreen elements still can never fake a PASS.
@@ -330,17 +337,25 @@ foreach ($page in $plan) {
 # offscreen elements so collapsed-by-design controls cannot fake a PASS.
 function Invoke-Match([string]$Pattern, [int]$WaitSec) {
   try {
-    # Walk v5: content can extend below the fold (memory plan buttons, storage
-    # master switch). Re-scan after each downward scroll step so offscreen
-    # controls get a real chance; offscreen elements still never fake a PASS.
-    for ($scrollTry = 0; $scrollTry -lt 8; $scrollTry++) {
+    # Walk v7 (r22 post-mortem, 2026-11-12): r19/r22 evidence showed memory plan
+    # buttons (PlanSmart/PlanPerf/PlanSpace, page-file card at the very bottom)
+    # never entered the viewport because SmallIncrement steps (8x) cover too
+    # little distance on the tall memory page. Scroll content ABSOLUTELY through
+    # 0/20/40/60/80/100% via ScrollPattern.SetScrollPercent (fall back to
+    # LargeIncrement when the provider rejects absolute scroll), re-scanning at
+    # each stop. Offscreen elements still can never fake a PASS.
+    for ($scrollTry = 0; $scrollTry -lt 6; $scrollTry++) {
       if ($scrollTry -gt 0) {
         foreach ($sc in Get-Scrollables) {
           try {
             $sp = $sc.GetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern)
             if ($sp.Current.VerticallyScrollable) {
-              $sp.Scroll([System.Windows.Automation.ScrollAmount]::NoAmount,
-                         [System.Windows.Automation.ScrollAmount]::SmallIncrement)
+              try {
+                $sp.SetScrollPercent([double](20 * $scrollTry))
+              } catch {
+                $sp.Scroll([System.Windows.Automation.ScrollAmount]::NoAmount,
+                           [System.Windows.Automation.ScrollAmount]::LargeIncrement)
+              }
             }
           } catch { }
         }
@@ -376,7 +391,7 @@ $probe = @(
   @{ Page = 'disk';     NavTitle = '磁盘清理';   Name = '扫描|分析|Scan|Analyze';     Wait = 20 },
   @{ Page = 'checkup';  NavTitle = '系统体检';   ReadOnly = $true },
   @{ Page = 'speedup';  NavTitle = '性能加速';   Name = '执行勾选项';                 Wait = 8; Fallback = '查看完整启动项清单' },
-  @{ Page = 'memory';   NavTitle = '内存管理';   Name = '智能推荐|性能优先|空间优先'; Wait = 8 },
+  @{ Page = 'memory';   NavTitle = '内存管理';   Name = '智能推荐|性能优先|空间优先|PlanSmart|PlanPerf|PlanSpace'; Wait = 8 },
   @{ Page = 'driver';   NavTitle = '驱动安装升级'; Name = '扫描驱动';                 Wait = 20 },
   @{ Page = 'popup';    NavTitle = '弹窗管理';   ReadOnly = $true },
   @{ Page = 'storage';  NavTitle = '存储感知';   Name = 'MasterSwitch';               Wait = 6; Placeholder = $true },
