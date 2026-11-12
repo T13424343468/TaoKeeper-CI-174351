@@ -178,9 +178,7 @@ function Find-ContentText([string]$Name, [switch]$Like) {
 
 # Invoke the first matching, on-screen, content-area control; returns $true if invoked.
 function Invoke-ContentMatch([string]$Pattern, [int]$WaitSec) {
-  $allCond = New-Object System.Windows.Automation.PropertyCondition(
-    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-    [System.Windows.Automation.AutomationElement]::ControlTypeProperty)
+  # r31: unused PropertyCondition ctor passed property as value (must be ControlType) — removed dead $allCond
   $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
     [System.Windows.Automation.Condition]::TrueCondition)
   foreach ($el in $all) {
