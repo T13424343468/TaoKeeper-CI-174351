@@ -98,7 +98,7 @@ internal static class CompositionRoot
         shell.PopupViewModelProvider = () => _popup;
         shell.StorageViewModelProvider = () => _storage;
         shell.WidgetViewModelProvider = () => _widget;
-        shell.ToolsBundleProvider = () => new ToolsPageBundle(_toolbox, _space, _duplicates);
+        shell.ToolsBundleProvider = () => new ToolsPageBundle { Toolbox = _toolbox, Space = _space, Duplicate = _duplicates };
 
         // P4/P5 启动项页：后台扫描完成后回填缓存 VM（未完成时如实「尚未扫描」）
         StartupPage.ViewModelProvider = () => _startup;
