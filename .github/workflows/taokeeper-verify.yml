@@ -147,7 +147,7 @@ jobs:
           Write-Host "[HASH] bytes=$($msi.Length) sha256=$((Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower())"
         shell: pwsh
       - name: Upload final MSI (delivery retrieval; bind needs Windows msi.dll, sandbox cannot produce)
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: final-msi
