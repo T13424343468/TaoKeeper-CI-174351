@@ -108,6 +108,12 @@ Write-Host ("[FREE] before={0}" -f $freeBefore)
 Save-Shot "e0-before.png"
 
 # ---------- launch app ----------
+# Single-instance hygiene: kill stray app instances left by the UI walk and
+# clear the nav trace so this probe's own evidence is unambiguous.
+Get-Process -Name 'TaoKeeper.App' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+$navLogPath = Join-Path ([System.IO.Path]::GetTempPath()) 'taokeeper-nav.log'
+if (Test-Path $navLogPath) { Remove-Item $navLogPath -Force -ErrorAction SilentlyContinue }
 $p = Start-Process -FilePath $ExePath -WorkingDirectory (Split-Path $ExePath) -PassThru
 Start-Sleep -Seconds 5
 $deadline = (Get-Date).AddSeconds(60)
@@ -157,6 +163,24 @@ function Invoke-NavByTitle([string]$Title) {
     [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctItem)
   for ($attempt = 1; $attempt -le 5; $attempt++) {
     $items = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $itemCond)
+    # Diagnostic dump: what UIA actually sees for nav list items this round.
+    Write-Host ("[NAV-DUMP] attempt={0} listitems={1}" -f $attempt, $items.Count)
+    $dumpIdx = 0
+    foreach ($el in $items) {
+      if ($dumpIdx -ge 25) { break }
+      $dumpIdx++
+      $dName = ''; $dAid = ''; $dText = ''
+      try { $dName = $el.Current.Name } catch { }
+      try { $dAid = $el.Current.AutomationId } catch { }
+      try {
+        foreach ($t in $el.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+              [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctText)))) {
+          try { $dText = $dText + "'" + $t.Current.Name + "' " } catch { }
+        }
+      } catch { }
+      Write-Host ("[NAV-DUMP]   item[{0}] name='{1}' aid='{2}' texts={3}" -f $dumpIdx, $dName, $dAid, $dText)
+    }
     foreach ($el in $items) {
       try { if ($el.Current.IsOffscreen) { continue } } catch { }
       # NavItem's outer element has no Name; inner TextBlock carries the title.
@@ -254,7 +278,12 @@ if ($p.HasExited) { Write-Effect $false "app-alive" "app exited during launch"; 
 # ---------- drive: nav to disk page, scan ----------
 $navOk = Invoke-NavByTitle '磁盘清理'
 Write-Effect $navOk "nav-disk" "landed 磁盘清理 (content verified)"
-if (-not $navOk) { Save-Shot "99-nav-fail.png"; $script:effectLines | Out-File (Join-Path $OutDir "effect-evidence.txt") -Encoding utf8; exit 1 }
+if (-not $navOk) {
+  Save-Shot "99-nav-fail.png"
+  $navLog = Join-Path ([System.IO.Path]::GetTempPath()) 'taokeeper-nav.log'
+  if (Test-Path $navLog) { Write-Host "[NAVLOG] --- app nav trace ---"; Get-Content $navLog | ForEach-Object { Write-Host ("[NAVLOG] " + $_) } }
+  else { Write-Host "[NAVLOG] no nav trace file written" }
+  $script:effectLines | Out-File (Join-Path $OutDir "effect-evidence.txt") -Encoding utf8; exit 1 }
 Start-Sleep -Seconds 2
 Save-Shot "e1-disk-page.png"
 
