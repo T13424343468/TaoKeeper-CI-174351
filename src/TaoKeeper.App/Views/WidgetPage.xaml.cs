@@ -1,21 +1,30 @@
 using System;
+using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 using TaoKeeper.AppKernel.ViewModels;
+using TaoKeeper.Core.Modules;
 
 namespace TaoKeeper.App.Views;
 
 /// <summary>
-/// 桌面挂件页 code-behind：Bind(vm) 注入挂件一帧数据。
+/// 桌面挂件页 code-behind：Bind(vm) 注入挂件一帧数据（宿主接线真实内存快照/垃圾概览/进程概览）。
 /// 道系边界：未就绪/过期一律灰显如实（不假内存百分比、不假垃圾体积）；
-/// 环图弧长=内存占用百分比（无数据不出弧）；「一键清理」只打开确认浮层并置待确认态，
-/// 「清理（进回收站）」执行通道随运行期接线启用，未接前如实禁用，本页零写动作。
+/// 环图弧长=内存占用百分比（无数据不出弧）；「一键清理」先过明细确认浮层，
+/// 确认后走与主程序同一 CleanupExecutor（回收站语义，P11-3），完成后按真实回执报数。
 /// </summary>
 public sealed partial class WidgetPage : Page
 {
     private WidgetPageViewModel? _vm;
+
+    /// <summary>垃圾候选提供者（宿主接线；来自最近一次真实垃圾扫描，未扫描为空清单）。</summary>
+    public static Func<System.Collections.Generic.IReadOnlyList<CleanupActionItem>>? JunkCandidatesProvider { get; set; }
+
+    /// <summary>清理执行（宿主接线；与主程序同一 CleanupCoordinator，回收站语义）。</summary>
+    public static Func<System.Collections.Generic.IReadOnlyList<CleanupActionItem>,
+        System.Threading.Tasks.Task<CleanupBatchResult>>? CleanupExecutorProvider { get; set; }
 
     public WidgetPage()
     {
@@ -64,17 +73,19 @@ public sealed partial class WidgetPage : Page
         var hint = _vm.PrepareCleanRequest();
         DetailNote.Text = hint;
 
-        // 明细如实：挂件帧只带概览不带逐项明细，扫描数据未就绪就明说，不编明细行
-        if (_vm.LatestFrame is { } f)
+        // 明细如实：候选来自最近一次真实垃圾扫描；未扫描就明说，不编明细行
+        var candidates = JunkCandidatesProvider?.Invoke() ?? Array.Empty<CleanupActionItem>();
+        if (candidates.Count > 0)
         {
-            DetailList.Text = f.JunkCandidateBytes is { } bytes && f.JunkCandidateCount is { } count
-                ? $"垃圾候选约 {bytes / 1024.0 / 1024:F1} MB（{count} 项）——逐项明细以磁盘清理页扫描结果为准。"
-                : "垃圾明细未就绪：先在磁盘清理页完成一次扫描。";
-            OkClean.IsEnabled = false; // 执行通道随运行期接线启用，未接前如实禁用
+            DetailList.Text = $"垃圾候选 {candidates.Count} 项（约 {candidates.Sum(c => c.SizeBytes) / 1024.0 / 1024:F1} MB）——"
+                + "全部进回收站，可还原；受保护目录会被闸门拒收。";
+            OkClean.IsEnabled = CleanupExecutorProvider is not null;
         }
         else
         {
-            DetailList.Text = "垃圾明细未就绪：先在磁盘清理页完成一次扫描。";
+            DetailList.Text = CleanupExecutorProvider is null
+                ? "清理执行通道未接线；未提供任何候选。"
+                : "垃圾明细未就绪：先在磁盘清理页完成一次扫描（或稍后再试）。";
             OkClean.IsEnabled = false;
         }
 
@@ -87,12 +98,35 @@ public sealed partial class WidgetPage : Page
         ConfirmLayer.Visibility = Visibility.Collapsed;
     }
 
-    private void OnOkClean(object sender, RoutedEventArgs e)
+    private async void OnOkClean(object sender, RoutedEventArgs e)
     {
-        // 执行通道随运行期接线启用（CleanupCoordinator）；未接前按钮已禁用，此处理论不可达。
-        // 若可达说明接线层已启用本页执行入口，此处仍不落任何写动作，转由接线层编排。
-        _vm?.CompleteCleanRequest();
-        ConfirmLayer.Visibility = Visibility.Collapsed;
+        // P11-3：一键清理真实可执行——同一执行链、同回收站语义、同清理账（与主程序零语义差）
+        if (OkClean is null) return;
+        OkClean.IsEnabled = false;
+        try
+        {
+            var items = (JunkCandidatesProvider?.Invoke() ?? Array.Empty<CleanupActionItem>())
+                .Select(i => i with { Confirmed = true }) // 确认浮层即确认：候选逐条进确认态，闸门仍会拒受保护路径
+                .ToList();
+            if (items.Count == 0 || CleanupExecutorProvider is null)
+            {
+                DetailNote.Text = "没有可执行项或执行通道未接线；未动任何文件。";
+                return;
+            }
+            var batch = await CleanupExecutorProvider(items);
+            DetailNote.Text = $"清理完成：{batch.SucceededCount} 项（约 {batch.SucceededBytes / 1024.0 / 1024:F1} MB）已进回收站可还原；"
+                + $"未成 {batch.FailedCount} 项、拒绝 {batch.RefusedCount} 项（受保护目录不碰）。";
+        }
+        catch (Exception ex)
+        {
+            DetailNote.Text = $"清理未完成：{ex.Message}（目标文件未动，可重试）";
+        }
+        finally
+        {
+            _vm?.CompleteCleanRequest();
+            OkClean.IsEnabled = true;
+            ConfirmLayer.Visibility = Visibility.Collapsed;
+        }
     }
 
     /// <summary>画环图弧线：frac=内存占用比例（0 或未知时不画）。</summary>
