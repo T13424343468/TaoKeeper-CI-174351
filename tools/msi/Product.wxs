@@ -44,6 +44,7 @@
 
     <Property Id="ARPNOREPAIR" Value="1" />
     <Property Id="DESKTOP_SHORTCUT" Value="1" />
+    <Property Id="EXIT_DESKTOP_SHORTCUT" Value="1" />
     <Property Id="STARTMENU_SHORTCUT" Value="1" />
 
     <!-- R-P2-16 可选功能四勾选（需求稿 21:0x 修订，默认值溯源 V-A10）：
@@ -112,7 +113,8 @@
           <Publish Event="AddLocal" Value="MenuShortcutF" Condition="STARTMENU_SHORTCUT" />
         </Control>
         <Control Id="InstallNow" Type="PushButton" X="340" Y="336" Width="80" Height="24" Default="yes" Text="立即安装">
-          <Publish Event="SpawnDialog" Value="TaoKeeperAcceptWarnDlg" Condition="NOT LICENSE_ACCEPTED" Order="1" />
+          <Publish Property="EXIT_DESKTOP_SHORTCUT" Value="[DESKTOP_SHORTCUT]" Order="1" />
+          <Publish Event="SpawnDialog" Value="TaoKeeperAcceptWarnDlg" Condition="NOT LICENSE_ACCEPTED" Order="2" />
           <Publish Event="NewDialog" Value="TaoKeeperVerifyReadyDlg" Condition="LICENSE_ACCEPTED" Order="2" />
         </Control>
         <Control Id="CancelBtn" Type="PushButton" X="340" Y="360" Width="80" Height="18" Cancel="yes" Text="取消">
@@ -157,8 +159,11 @@
       <!-- R-P2-16 完成页两勾选：创建桌面快捷方式（装后可改，取消即删链）与立即运行（Finish 经 cmd start 异步拉起不挡关窗） -->
       <Dialog Id="TaoKeeperExitDialog" Width="440" Height="150" Title="[ProductName] 安装程序">
         <Control Id="DoneText" Type="Text" X="20" Y="30" Width="400" Height="24" Text="TaoKeeper 安装完成，桌面或开始菜单即可打开。" />
-        <Control Id="ExitDeskCheck" Type="CheckBox" X="20" Y="60" Width="400" Height="16" Property="DESKTOP_SHORTCUT" CheckBoxValue="1" Text="创建桌面快捷方式">
-          <Publish Event="DoAction" Value="DelDeskLnk" Condition="NOT DESKTOP_SHORTCUT" />
+        <Control Id="ExitDeskCheck" Type="CheckBox" X="20" Y="60" Width="400" Height="16" Property="EXIT_DESKTOP_SHORTCUT" CheckBoxValue="1" Text="创建桌面快捷方式">
+          <!-- 独立属性避 WIX0130（CheckBox 表主键=属性，与主界面对话框同属性即重键）；勾选状态经 InstallNow 同步继承主界面 -->
+          <Publish Event="AddLocal" Value="DeskShortcutF" Condition="EXIT_DESKTOP_SHORTCUT" Order="1" />
+          <Publish Event="Remove" Value="DeskShortcutF" Condition="NOT EXIT_DESKTOP_SHORTCUT" Order="2" />
+          <Publish Event="DoAction" Value="DelDeskLnk" Condition="NOT EXIT_DESKTOP_SHORTCUT" Order="3" />
         </Control>
         <Control Id="ExitRunCheck" Type="CheckBox" X="20" Y="80" Width="400" Height="16" Property="RUN_AFTER" CheckBoxValue="1" Text="安装完成后立即运行 TaoKeeper" />
         <Control Id="FinishBtn" Type="PushButton" X="350" Y="112" Width="70" Height="22" Default="yes" Text="完成">
