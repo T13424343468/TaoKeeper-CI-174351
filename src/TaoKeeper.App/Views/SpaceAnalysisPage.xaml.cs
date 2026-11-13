@@ -62,7 +62,11 @@ public sealed partial class SpaceAnalysisPage : Page
         {
             _scanCts = new CancellationTokenSource();
             var engine = new PortableDiskScanner();
-            var scan = await engine.ScanAsync(roots, new ScanOptions(), _scanCts.Token);
+            // ScanAsync 参数表：roots, options, progress, cancellation（进度仅展示，最终结果以返回值为准）
+            var scan = await engine.ScanAsync(roots, new ScanOptions(),
+                new Progress<ScanProgress>(p => ScanStatus.Text =
+                    $"扫描中…已读 {p.FilesSeen} 个文件（{Fmt(p.BytesSeen)}，只读）"),
+                _scanCts.Token);
             (_vm ??= new SpaceAnalysisPageViewModel()).BuildFromPortableScan(scan);
             ShowStatus($"实扫完成：{scan.TotalFiles} 个文件，{Fmt(scan.TotalBytes)}（只读）；处置请回磁盘清理页走确认闸门。", isFailure: false);
         }
