@@ -51,7 +51,8 @@ public sealed partial class SoftwarePage : Page
 
         if (vm.HasBlocked)
         {
-            BlockedHint.Text = $"有 {vm.BlockedByPolicy.Count} 款升级因安装包哈希校验未通过被拦截：不能安装、确认也不放行。";
+            // G7：不出现哈希术语，说人话；拦截=安全校验未过，确认也不放行（与策略硬规则一致）
+            BlockedHint.Text = $"有 {vm.BlockedByPolicy.Count} 款升级没能通过安全校验，已被拦下：不能安装、确认也不放行。";
             BlockedHint.Visibility = Visibility.Visible;
         }
         else
@@ -82,8 +83,9 @@ public sealed partial class SoftwarePage : Page
         };
         var meta = new TextBlock
         {
-            Text = $"{SoftwarePageViewModel.SourceText(entry)} · {SoftwarePageViewModel.VersionText(entry)} · {SoftwarePageViewModel.HashBadgeText(entry)}" +
-                   (silent ? " · 静默可跑" : string.Empty),
+            // G7 来源收后台：行内不出现来源渠道名与哈希术语，只留版本与用户可懂的安全状态
+            Text = $"{SoftwarePageViewModel.SafetyText(entry)} · {SoftwarePageViewModel.VersionText(entry)}" +
+                   (silent ? " · 可自动升级" : string.Empty),
             FontSize = 12.5,
             Foreground = (Brush)Application.Current.Resources["TaoInk2Brush"],
             VerticalAlignment = VerticalAlignment.Center,
@@ -103,7 +105,7 @@ public sealed partial class SoftwarePage : Page
         var dialog = new ContentDialog
         {
             Title = $"升级 {entry.Name}",
-            Content = $"{SoftwarePageViewModel.SourceText(entry)} · {SoftwarePageViewModel.VersionText(entry)}\n{SoftwarePageViewModel.HashBadgeText(entry)}\n\n确认后由官方源执行升级，装后记入安装账。",
+            Content = $"{SoftwarePageViewModel.VersionText(entry)}\n{SoftwarePageViewModel.SafetyText(entry)}\n\n确认后由官方渠道执行升级，装后记入安装账。",
             PrimaryButtonText = "确认升级",
             CloseButtonText = "先不",
             DefaultButton = ContentDialogButton.Close,
@@ -174,7 +176,8 @@ public sealed partial class SoftwarePage : Page
             });
             row.Children.Add(new TextBlock
             {
-                Text = $"{SoftwarePageViewModel.SourceText(e)} · {SoftwarePageViewModel.VersionText(e)}",
+                // G7 来源收后台：已装行只留版本，不外显来源渠道
+                Text = SoftwarePageViewModel.VersionText(e),
                 FontSize = 12.5,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)Application.Current.Resources["TaoInk2Brush"],

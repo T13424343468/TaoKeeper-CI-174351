@@ -50,8 +50,8 @@ public class SoftwarePageWingetWiringTests
         Assert.Equal(2, vm.UpgradeActions.Count);
         Assert.All(vm.UpgradeActions, a => Assert.False(a.AllowSilent));
 
-        // 中文输出解析到的来源与版本徽标文案真实可用
-        Assert.Equal("winget 社区源", SoftwarePageViewModel.SourceText(vm.NeedConfirm[0]));
+        // G7 来源收后台：用户可懂的安全状态文案真实可用，来源渠道名只留内部口径
+        Assert.Equal("装前自动安全校验", SoftwarePageViewModel.SafetyText(vm.NeedConfirm[0]));
         Assert.Contains("3.1.0", SoftwarePageViewModel.VersionText(vm.NeedConfirm[0]));
 
         // 汇总文案按真实桶计数生成

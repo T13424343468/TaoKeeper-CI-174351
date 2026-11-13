@@ -85,7 +85,7 @@ public sealed class SoftwarePageViewModel
     /// <summary>待执行动作（升级=先装后置换由适配层编排；卸载另走系统正规卸载入口）。</summary>
     public readonly record struct UpgradeAction(SoftwareEntry Software, bool AllowSilent);
 
-    /// <summary>来源文案：优先适配器给的说明，缺省按渠道类型回退。</summary>
+    /// <summary>来源文案（内部/调试口径；G7 用户界面零外显，呈现层一律走 <see cref="SafetyText"/>）。</summary>
     public static string SourceText(SoftwareEntry entry) => entry.SourceDisplay ?? entry.Source switch
     {
         SoftwareSourceKind.WingetCommunity => "winget 社区源",
@@ -93,18 +93,21 @@ public sealed class SoftwarePageViewModel
         _ => "官网直下（手动确认）",
     };
 
+    /// <summary>
+    /// 用户可懂的安全状态（G7：来源渠道名与哈希术语不外显，安全校验后台完成、说人话呈现）。
+    /// 失配=已拦截（不可装，与策略硬规则一致）；已校验=安全校验已过；未核验=装前自动校验。
+    /// </summary>
+    public static string SafetyText(SoftwareEntry entry) => entry.HashVerified switch
+    {
+        false => "安全校验未过 · 已拦截",
+        true => "安全校验已通过",
+        null => "装前自动安全校验",
+    };
+
     /// <summary>版本展示文案：可升级显「现版 → 新版」，否则现版（缺省兜底）。</summary>
     public static string VersionText(SoftwareEntry entry) => entry.HasUpgrade
         ? $"{entry.InstalledVersion} → {entry.AvailableVersion}"
         : entry.InstalledVersion ?? "未知版本";
-
-    /// <summary>哈希校验徽标文案（透明之道：校验状态如实展示，不静默略过）。</summary>
-    public static string HashBadgeText(SoftwareEntry entry) => entry.HashVerified switch
-    {
-        true => "哈希已校验",
-        false => "哈希未过 · 已拦截",
-        null => "哈希未核验",
-    };
 
     /// <summary>条目状态色（拦截=朱砂、静默可跑=竹青、需确认=金），随主题即时取值。</summary>
     public string StatusColorOf(SoftwareEntry entry, ThemeTokens tokens) =>
