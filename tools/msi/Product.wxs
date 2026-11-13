@@ -32,6 +32,12 @@
     <InstallExecuteSequence>
       <Custom Action="SetKillCmd" After="InstallValidate" />
       <Custom Action="KillRunningTaoKeeper" After="SetKillCmd" />
+      <!-- R-P2-16 善后链：组件登记值 MSI 原子移除；reg delete 兜底覆盖「装后在设置页改过自启」的应用侧写入（同一值名）。
+           同 HKCU 口径：per-machine 安装/卸载按同一用户语义，与既有 DesktopShortcut 组件一致；Return=ignore 防键已删时报错中断。 -->
+      <Custom Action="SetCleanRun" After="RemoveFiles" Condition="REMOVING" />
+      <Custom Action="CleanRunValue" After="SetCleanRun" Condition="REMOVING" />
+      <Custom Action="CleanContextMenuKey" After="CleanRunValue" Condition="REMOVING" />
+      <Custom Action="CleanOptInStamp" After="CleanContextMenuKey" Condition="REMOVING" />
     </InstallExecuteSequence>
 
     <MediaTemplate EmbedCab="yes" />
@@ -57,6 +63,19 @@
     <CustomAction Id="SetDelDeskCmd" Property="DELDESKCMD" Value="[SystemFolder]cmd.exe" />
     <CustomAction Id="DelDeskLnk" Property="DELDESKCMD"
                   ExeCommand='/c del /q "[DesktopFolder]TaoKeeper.lnk"'
+                  Execute="immediate" Return="ignore" />
+
+    <!-- R-P2-16 卸载善后链（REMOVING 时执行）：①Run 键 TaoKeeper 值（兜底应用侧改写）②右键菜单整键 ③安装戳整键。
+         属性转发定位 reg.exe（同 taskkill 写法避 WIX1077）；卸载组件已原子删的值 reg delete /f 静默无效，不中断。 -->
+    <CustomAction Id="SetCleanRun" Property="CLEANRUNCMD" Value="[SystemFolder]reg.exe" />
+    <CustomAction Id="CleanRunValue" Property="CLEANRUNCMD"
+                  ExeCommand='delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v TaoKeeper /f'
+                  Execute="immediate" Return="ignore" />
+    <CustomAction Id="CleanContextMenuKey" Property="CLEANRUNCMD"
+                  ExeCommand='delete "HKCU\Software\Classes\*\shell\TaoKeeper" /f'
+                  Execute="immediate" Return="ignore" />
+    <CustomAction Id="CleanOptInStamp" Property="CLEANRUNCMD"
+                  ExeCommand='delete "HKCU\Software\Tao\TaoKeeper\InstallOptIns" /f'
                   Execute="immediate" Return="ignore" />
 
     <UI Id="TaoKeeperInstallUI">
