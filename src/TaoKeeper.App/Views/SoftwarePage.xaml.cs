@@ -186,7 +186,63 @@ public sealed partial class SoftwarePage : Page
         }).ToList();
     }
 
-    private void OnStoreSearch(object sender, RoutedEventArgs e) => BindStore();
+    private async void OnStoreSearch(object sender, RoutedEventArgs e)
+    {
+        var keyword = StoreSearchBox.Text?.Trim();
+        if (string.IsNullOrEmpty(keyword))
+        {
+            BindStore(); // 空关键词回已装清单视图
+            return;
+        }
+
+        // R-P2-10 检索真实通道：经宿主接线的 SearchExecutor（winget search）；转后台跑，按钮即回显检索中
+        if (StoreSearchExecutor is null)
+        {
+            StoreHint.Text = "软件库检索通道尚未接线；已装软件可用下方清单，或稍后再试。";
+            StoreList.ItemsSource = null;
+            return;
+        }
+
+        StoreHint.Text = $"正在检索「{keyword}」…可先看其他页签，检索完自动展示。";
+        StoreList.ItemsSource = null;
+        try
+        {
+            var results = await StoreSearchExecutor(keyword);
+            StoreHint.Text = results.Count > 0
+                ? $"「{keyword}」找到 {results.Count} 款可安装软件："
+                : $"「{keyword}」没有找到结果——换个说法再试试，或看看已装软件清单。";
+            StoreList.ItemsSource = results.Count > 0
+                ? results.Select(e =>
+                {
+                    var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Padding = new Thickness(0, 5, 0, 5) };
+                    row.Children.Add(new TextBlock
+                    {
+                        Text = e.Name,
+                        FontSize = 14,
+                        MinWidth = 140,
+                        Foreground = (Brush)Application.Current.Resources["TaoInkBrush"],
+                    });
+                    row.Children.Add(new TextBlock
+                    {
+                        // G7：来源不外显；检索候选只留版本（未标版本如实显「待装时定」）
+                        Text = e.AvailableVersion ?? "版本以安装时为准",
+                        FontSize = 12.5,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Foreground = (Brush)Application.Current.Resources["TaoInk2Brush"],
+                    });
+                    return row;
+                }).ToList()
+                : null;
+        }
+        catch (Exception)
+        {
+            // 失败降级如实报（不假空、不吞错）：检索通道暂不可用，留引导不装死
+            StoreHint.Text = "检索通道这会儿不通（可能网络或服务暂不可用）；已装软件清单仍可正常用。";
+        }
+    }
+
+    /// <summary>软件库检索执行器（宿主接线 winget search；返回可安装候选清单）。</summary>
+    public static Func<string, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<SoftwareEntry>>>? StoreSearchExecutor { get; set; }
 
     private void BindUninstall()
     {
