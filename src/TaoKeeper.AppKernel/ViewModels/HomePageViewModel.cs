@@ -125,9 +125,15 @@ public sealed class HomePageViewModel
 
     private string BuildSubtitle(JunkScanResult? junk, SoftwarePageViewModel? software, DateTimeOffset at)
     {
+        // R-P1-3 定向回归修红：未体检时 LastCheckupAt 为空，强拆空值即「Nullable object must have a value」崩溃
+        // （需求文档合并稿红灯②）；未测态副标题按 R-P1-3① 显示「时间未记」类未测文案，任何路径不抛异常。
+        if (LastCheckupAt is null)
+        {
+            return "时间未记 · 跑一次体检见健康分";
+        }
         var parts = new List<string>
         {
-            $"上次体检 {FormatDay(LastCheckupAt!.Value, at)} · 评分 {Score}",
+            $"上次体检 {FormatDay(LastCheckupAt.Value, at)} · 评分 {Score}",
         };
         if (junk is not null && junk.TotalBytes > 0) parts.Add($"{FormatBytes(junk.TotalBytes)} 垃圾待清");
         if (software is { HasUpgrades: true }) parts.Add($"{UpgradeCount} 款软件可升级");
