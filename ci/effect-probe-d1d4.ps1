@@ -424,10 +424,25 @@ try {
   Write-Effect $binOk "d1-in-recycle-bin" $binDetail
 
   if ($binOk) {
-    # restore one: pick first matching item, invoke context verb 还原(&U)
+    # restore one: pick the FIRST matching item whose original location is inside
+    # the CURRENT run's seed folder. Name-only matching can grab a leftover item
+    # from an earlier run (r42: bin had 9 matching / 8 seeds) — its verb fires
+    # (done=True) but restores to a dead path, so the current seeds never return.
+    $seedDir = Split-Path -Parent $seeds[0]
     $target = $null
     foreach ($it in $items) {
-      try { if ($it.Name -match $marker) { $target = $it; break } } catch { }
+      try {
+        if ($it.Name -notmatch $marker) { continue }
+        $origFrom = ''
+        try { $origFrom = [string]$it.ExtendedProperty('System.RecycleBin.DeletedFrom') } catch { }
+        if ($origFrom -and $origFrom.StartsWith($seedDir, [System.StringComparison]::OrdinalIgnoreCase)) { $target = $it; break }
+      } catch { }
+    }
+    if (-not $target) {
+      # fall back to first name match (original behavior) if DeletedFrom unavailable
+      foreach ($it in $items) {
+        try { if ($it.Name -match $marker) { $target = $it; break } } catch { }
+      }
     }
     if ($target) {
       $verbs = @($target.Verbs())
@@ -439,8 +454,13 @@ try {
         # the & breaks '[Rr]estore'; allow the mnemonic & between characters.
         if ($vn -match '还原|[Rr]&?e&?s&?t&?o&?r&?e') { $v.DoIt(); $done = $true; break }
       }
-      Start-Sleep -Seconds 3
-      $restored = $seeds | Where-Object { [System.IO.File]::Exists($_) } | Select-Object -First 1
+      # r42 root cause: restore is async — 3s fixed sleep raced the shell;
+      # poll up to 15s for the file to reappear before judging.
+      $restored = $null
+      for ($i = 0; ($i -lt 15) -and (-not $restored); $i++) {
+        Start-Sleep -Seconds 1
+        $restored = $seeds | Where-Object { [System.IO.File]::Exists($_) } | Select-Object -First 1
+      }
       if ($done -and $restored) {
         $sizeRestored = (Get-Item $restored).Length
         $wantSize = $seedSizes[$restored]
