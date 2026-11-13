@@ -68,6 +68,9 @@ internal static class CompositionRoot
 
     internal static void Wire(MainWindow shell)
     {
+        // R-P2-16：安装器勾选写入初始设置——首启（无设置文件）按安装戳落一次盘，之后以设置文件为准（设置页可改）
+        TrySeedInstallerSettings();
+
         var startupAdapter = new WindowsStartupControlAdapter(Path.Combine(DataDir, "startup-snapshot.json"));
         _startupAdapter = startupAdapter; // R-3：重扫执行器共用同一适配器实例与快照路径
         var popupStore = new PopupConfigStore(DataDir);
@@ -189,6 +192,48 @@ internal static class CompositionRoot
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
             return null; // 无存储渠道时设置层自行如实降级（改动仅本会话生效），不假落盘
+        }
+    }
+
+    /// <summary>
+    /// R-P2-16 安装器勾选写入初始设置：仅首启（设置文件不存在）且安装戳存在时套用并落盘一次；
+    /// 截键不存在（非安装器运行/旧版升级）保持代码默认值；落不了盘不挡启动（下次首启再补），不假成功。
+    /// </summary>
+    private static void TrySeedInstallerSettings()
+    {
+        try
+        {
+            var settingsPath = Path.Combine(DataDir, "settings.json");
+            if (File.Exists(settingsPath)) return;
+
+            var stamps = ReadInstallOptInStamps();
+            if (stamps is null) return;
+
+            var store = new AppSettingsStore(settingsPath);
+            store.Save(InstallOptInDefaults.Apply(store.Load(), stamps));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            // 初始设置落不了盘不挡启动：保持代码默认值，与 ResolveSettingsStore 同降级口径
+        }
+    }
+
+    /// <summary>读安装戳（MSI 恒写四值 0/1；截键不存在=null）。仅 Windows 有注册表语义，其余平台如实返回无戳。</summary>
+    private static InstallOptInDefaults.InstallerOptIns? ReadInstallOptInStamps()
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Tao\TaoKeeper\InstallOptIns");
+            if (key is null) return null;
+
+            bool? ReadStamp(string name) => key.GetValue(name) is int v ? v == 1 : null;
+            return new InstallOptInDefaults.InstallerOptIns(
+                ReadStamp("Autostart"), ReadStamp("ContextMenu"), ReadStamp("Widget"), ReadStamp("WeeklyCleanup"));
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or IOException or ArgumentException)
+        {
+            return null; // 注册表读不到按无戳如实处理，保持代码默认值
         }
     }
 

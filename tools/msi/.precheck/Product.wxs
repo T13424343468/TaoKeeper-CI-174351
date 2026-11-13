@@ -32,6 +32,12 @@
     <InstallExecuteSequence>
       <Custom Action="SetKillCmd" After="InstallValidate" />
       <Custom Action="KillRunningTaoKeeper" After="SetKillCmd" />
+      <!-- R-P2-16 善后链：组件登记值 MSI 原子移除；reg delete 兜底覆盖「装后在设置页改过自启」的应用侧写入（同一值名）。
+           同 HKCU 口径：per-machine 安装/卸载按同一用户语义，与既有 DesktopShortcut 组件一致；Return=ignore 防键已删时报错中断。 -->
+      <Custom Action="SetCleanRun" After="RemoveFiles" Condition="REMOVING" />
+      <Custom Action="CleanRunValue" After="SetCleanRun" Condition="REMOVING" />
+      <Custom Action="CleanContextMenuKey" After="CleanRunValue" Condition="REMOVING" />
+      <Custom Action="CleanOptInStamp" After="CleanContextMenuKey" Condition="REMOVING" />
     </InstallExecuteSequence>
 
     <MediaTemplate EmbedCab="yes" />
@@ -43,34 +49,76 @@
     <!-- R-1 图标资产包：青瓷玄盾多尺寸 ico（相对 tools/msi 回仓根 assets；
          build-msi.bat 以本目录为工作目录，路径随脚本成立；正斜杠 Win/Linux 双通） -->
     <Icon Id="TaoKeeperShield.ico" SourceFile="../../../assets/icons/taokepper-shield.ico" />
+    <!-- R-P2-16 可选功能四勾选（需求稿 21:0x 修订，默认值溯源 V-A10）：
+         自启/右键/挂件默认不勾（R-P12-9/R-P10-14/R-P11-4 口径），每周清理默认勾（R-P9-3 每周口径）。
+         属性恒为 0/1（勾选区与安装戳同源，避免空属性整数值写不进）；装后设置页可改（善后链见卸载清理）。 -->
+    <Property Id="OPTIN_AUTOSTART" Value="0" />
+    <Property Id="OPTIN_CONTEXTMENU" Value="0" />
+    <Property Id="OPTIN_WIDGET" Value="0" />
+    <Property Id="OPTIN_WEEKLYCLEANUP" Value="1" />
+    <Property Id="RUN_AFTER" Value="1" />
+
+    <!-- 完成页动作：cmd start 异步拉起（Return=ignore 不挡关窗）；取消桌面链只删文件不回滚特性（特性在装前已定，重装可再勾） -->
+    <CustomAction Id="SetRunAfterCmd" Property="RUNAFTERCMD" Value="[SystemFolder]cmd.exe" />
+    <CustomAction Id="RunAfterInstall" Property="RUNAFTERCMD"
+                  ExeCommand='/c start "" "[INSTALLFOLDER]TaoKeeper.App.exe"'
+                  Execute="immediate" Return="ignore" />
+    <CustomAction Id="SetDelDeskCmd" Property="DELDESKCMD" Value="[SystemFolder]cmd.exe" />
+    <CustomAction Id="DelDeskLnk" Property="DELDESKCMD"
+                  ExeCommand='/c del /q "[DesktopFolder]TaoKeeper.lnk"'
+                  Execute="immediate" Return="ignore" />
+
+    <!-- R-P2-16 卸载善后链（REMOVING 时执行）：①Run 键 TaoKeeper 值（兜底应用侧改写）②右键菜单整键 ③安装戳整键。
+         属性转发定位 reg.exe（同 taskkill 写法避 WIX1077）；卸载组件已原子删的值 reg delete /f 静默无效，不中断。 -->
+    <CustomAction Id="SetCleanRun" Property="CLEANRUNCMD" Value="[SystemFolder]reg.exe" />
+    <CustomAction Id="CleanRunValue" Property="CLEANRUNCMD"
+                  ExeCommand='delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v TaoKeeper /f'
+                  Execute="immediate" Return="ignore" />
+    <CustomAction Id="CleanContextMenuKey" Property="CLEANRUNCMD"
+                  ExeCommand='delete "HKCU\Software\Classes\*\shell\TaoKeeper" /f'
+                  Execute="immediate" Return="ignore" />
+    <CustomAction Id="CleanOptInStamp" Property="CLEANRUNCMD"
+                  ExeCommand='delete "HKCU\Software\Tao\TaoKeeper\InstallOptIns" /f'
+                  Execute="immediate" Return="ignore" />
 
     <UI Id="TaoKeeperInstallUI">
       <TextStyle Id="DlgFont" FaceName="微软雅黑" Size="9" />
       <TextStyle Id="TitleFont" FaceName="微软雅黑" Size="13" Bold="yes" />
       <Property Id="DefaultUIFont" Value="DlgFont" />
 
-      <!-- 微信风格单页：欢迎/许可 + 选目录 + 选项 + 立即安装 -->
-      <Dialog Id="TaoKeeperMainDlg" Width="440" Height="300" Title="[ProductName] 安装程序">
+      <!-- 微信风格单页：欢迎/许可 + 选目录 + 可选功能四勾选 + 立即安装 -->
+      <Dialog Id="TaoKeeperMainDlg" Width="440" Height="380" Title="[ProductName] 安装程序">
         <Control Id="Title" Type="Text" X="20" Y="12" Width="400" Height="22" Text="{\TitleFont}安装 TaoKeeper" />
-        <Control Id="LicenseText" Type="Text" X="20" Y="42" Width="400" Height="92"
+        <Control Id="LicenseText" Type="Text" X="20" Y="42" Width="400" Height="80"
                  Text="TaoKeeper 1.0，Tao 系列全能电脑管家，免费使用。本软件按“现状”提供：请仅将它用于合法合规的本机维护用途，作者不对使用本软件产生的任何损失承担责任。" />
-        <Control Id="AcceptCheck" Type="CheckBox" X="20" Y="140" Width="400" Height="16" Property="LICENSE_ACCEPTED" CheckBoxValue="1" Text="我已阅读并同意以上说明" />
-        <Control Id="SepLine" Type="Line" X="20" Y="164" Width="400" Height="1" />
-        <Control Id="DirLabel" Type="Text" X="20" Y="174" Width="400" Height="14" Text="安装目录（可直接输入，不存在的文件夹会自动创建）：" />
-        <Control Id="DirEdit" Type="PathEdit" X="20" Y="192" Width="310" Height="17" Property="INSTALLFOLDER" />
-        <Control Id="DeskCheck" Type="CheckBox" X="20" Y="218" Width="310" Height="16" Property="DESKTOP_SHORTCUT" CheckBoxValue="1" Text="创建桌面快捷方式">
+        <Control Id="AcceptCheck" Type="CheckBox" X="20" Y="126" Width="400" Height="16" Property="LICENSE_ACCEPTED" CheckBoxValue="1" Text="我已阅读并同意以上说明" />
+        <Control Id="SepLine" Type="Line" X="20" Y="150" Width="400" Height="1" />
+        <Control Id="DirLabel" Type="Text" X="20" Y="158" Width="400" Height="14" Text="安装目录（可直接输入，不存在的文件夹会自动创建）：" />
+        <Control Id="DirEdit" Type="PathEdit" X="20" Y="176" Width="310" Height="17" Property="INSTALLFOLDER" />
+        <Control Id="OptInLabel" Type="Text" X="20" Y="204" Width="400" Height="14" Text="可选功能（装后可在设置页修改）：" />
+        <Control Id="OptCheckAutostart" Type="CheckBox" X="20" Y="222" Width="400" Height="16" Property="OPTIN_AUTOSTART" CheckBoxValue="1" Text="开机自动启动">
+          <Publish Event="Remove" Value="AutostartOptF" Condition="OPTIN_AUTOSTART&lt;&gt;&quot;1&quot;" />
+          <Publish Event="AddLocal" Value="AutostartOptF" Condition="OPTIN_AUTOSTART=&quot;1&quot;" />
+        </Control>
+        <Control Id="OptCheckContextMenu" Type="CheckBox" X="20" Y="242" Width="400" Height="16" Property="OPTIN_CONTEXTMENU" CheckBoxValue="1" Text="集成右键菜单（粉碎 / 查重复 / 数据找回 / 空间分析）">
+          <Publish Event="Remove" Value="ContextMenuOptF" Condition="OPTIN_CONTEXTMENU&lt;&gt;&quot;1&quot;" />
+          <Publish Event="AddLocal" Value="ContextMenuOptF" Condition="OPTIN_CONTEXTMENU=&quot;1&quot;" />
+        </Control>
+        <Control Id="OptCheckWidget" Type="CheckBox" X="20" Y="262" Width="400" Height="16" Property="OPTIN_WIDGET" CheckBoxValue="1" Text="显示桌面挂件（不常驻后台）" />
+        <Control Id="OptCheckWeekly" Type="CheckBox" X="20" Y="282" Width="400" Height="16" Property="OPTIN_WEEKLYCLEANUP" CheckBoxValue="1" Text="每周定时自动清理（到点只出确认预览）" />
+        <Control Id="DeskCheck" Type="CheckBox" X="20" Y="306" Width="200" Height="16" Property="DESKTOP_SHORTCUT" CheckBoxValue="1" Text="创建桌面快捷方式">
           <Publish Event="Remove" Value="DeskShortcutF" Condition="NOT DESKTOP_SHORTCUT" />
           <Publish Event="AddLocal" Value="DeskShortcutF" Condition="DESKTOP_SHORTCUT" />
         </Control>
-        <Control Id="MenuCheck" Type="CheckBox" X="20" Y="238" Width="310" Height="16" Property="STARTMENU_SHORTCUT" CheckBoxValue="1" Text="创建开始菜单快捷方式">
+        <Control Id="MenuCheck" Type="CheckBox" X="230" Y="306" Width="190" Height="16" Property="STARTMENU_SHORTCUT" CheckBoxValue="1" Text="创建开始菜单快捷方式">
           <Publish Event="Remove" Value="MenuShortcutF" Condition="NOT STARTMENU_SHORTCUT" />
           <Publish Event="AddLocal" Value="MenuShortcutF" Condition="STARTMENU_SHORTCUT" />
         </Control>
-        <Control Id="InstallNow" Type="PushButton" X="340" Y="240" Width="80" Height="24" Default="yes" Text="立即安装">
+        <Control Id="InstallNow" Type="PushButton" X="340" Y="336" Width="80" Height="24" Default="yes" Text="立即安装">
           <Publish Event="SpawnDialog" Value="TaoKeeperAcceptWarnDlg" Condition="NOT LICENSE_ACCEPTED" Order="1" />
           <Publish Event="NewDialog" Value="TaoKeeperVerifyReadyDlg" Condition="LICENSE_ACCEPTED" Order="2" />
         </Control>
-        <Control Id="CancelBtn" Type="PushButton" X="340" Y="268" Width="80" Height="18" Cancel="yes" Text="取消">
+        <Control Id="CancelBtn" Type="PushButton" X="340" Y="360" Width="80" Height="18" Cancel="yes" Text="取消">
           <Publish Event="EndDialog" Value="Exit" />
         </Control>
       </Dialog>
@@ -109,9 +157,15 @@
         </Control>
       </Dialog>
 
-      <Dialog Id="TaoKeeperExitDialog" Width="440" Height="130" Title="[ProductName] 安装程序">
+      <!-- R-P2-16 完成页两勾选：创建桌面快捷方式（装后可改，取消即删链）与立即运行（Finish 经 cmd start 异步拉起不挡关窗） -->
+      <Dialog Id="TaoKeeperExitDialog" Width="440" Height="150" Title="[ProductName] 安装程序">
         <Control Id="DoneText" Type="Text" X="20" Y="30" Width="400" Height="24" Text="TaoKeeper 安装完成，桌面或开始菜单即可打开。" />
-        <Control Id="FinishBtn" Type="PushButton" X="350" Y="95" Width="70" Height="22" Default="yes" Text="完成">
+        <Control Id="ExitDeskCheck" Type="CheckBox" X="20" Y="60" Width="400" Height="16" Property="DESKTOP_SHORTCUT" CheckBoxValue="1" Text="创建桌面快捷方式">
+          <Publish Event="DoAction" Value="DelDeskLnk" Condition="NOT DESKTOP_SHORTCUT" />
+        </Control>
+        <Control Id="ExitRunCheck" Type="CheckBox" X="20" Y="80" Width="400" Height="16" Property="RUN_AFTER" CheckBoxValue="1" Text="安装完成后立即运行 TaoKeeper" />
+        <Control Id="FinishBtn" Type="PushButton" X="350" Y="112" Width="70" Height="22" Default="yes" Text="完成">
+          <Publish Event="DoAction" Value="RunAfterInstall" Condition="RUN_AFTER" />
           <Publish Event="EndDialog" Value="Return" />
         </Control>
       </Dialog>
@@ -156,6 +210,37 @@
         <!-- 卸载时移除安装目录（空目录不留残迹，配合零注册表残留口径） -->
         <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
         <RegistryValue Root="HKCU" Key="Software\Tao\TaoKeeper" Name="InstallFolderCleanup" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLFOLDER">
+        <!-- R-P2-16 安装戳：四项勾选逐值 0/1 恒写（未勾=0），应用首启读取写入初始设置，装后设置页可改（AppSettingsStore 接管后以设置文件为准）。
+             ContextMenu 值暂无设置页字段（R-P10-14 批落位），先存戳不丢用户决定。卸载随善后链清除。 -->
+        <RegistryValue Root="HKCU" Key="Software\Tao\TaoKeeper\InstallOptIns" Name="Autostart" Type="integer" Value="[OPTIN_AUTOSTART]" KeyPath="yes" />
+        <RegistryValue Root="HKCU" Key="Software\Tao\TaoKeeper\InstallOptIns" Name="ContextMenu" Type="integer" Value="[OPTIN_CONTEXTMENU]" />
+        <RegistryValue Root="HKCU" Key="Software\Tao\TaoKeeper\InstallOptIns" Name="Widget" Type="integer" Value="[OPTIN_WIDGET]" />
+        <RegistryValue Root="HKCU" Key="Software\Tao\TaoKeeper\InstallOptIns" Name="WeeklyCleanup" Type="integer" Value="[OPTIN_WEEKLYCLEANUP]" />
+      </Component>
+    </Feature>
+
+    <!-- R-P2-16 可选功能特性：Level=0 起步（不装），勾选经 Publish AddLocal 授权、取消经 Remove 退回；
+         挂件/每周清理为应用内设置（无 MSI 动作），仅经安装戳落初始值，不设特性。 -->
+    <Feature Id="AutostartOptF" Title="开机自动启动" Level="0">
+      <Component Directory="INSTALLFOLDER">
+        <!-- 与 RegistryRunKeyAutostartRegistrar.ValueName / RunCommandFor 同口径（改名三处同步：适配器、本文件、卸载善后链） -->
+        <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="TaoKeeper"
+                       Type="string" Value="&quot;[INSTALLFOLDER]TaoKeeper.App.exe&quot;" KeyPath="yes" />
+      </Component>
+    </Feature>
+
+    <Feature Id="ContextMenuOptF" Title="集成右键菜单" Level="0">
+      <Component Directory="INSTALLFOLDER">
+        <!-- R-P10-14 文件右键四子项（HKCU\Software\Classes\*\shell）：命令行走「动词参数加文件路径」；
+             应用侧动词路由归 R-P10-14 批接线（未接线时启动主程序，不假报完成）。卸载整键移除（组件 KeyPath 原子删）加善后链兜底。 -->
+        <RegistryValue Root="HKCU" Key="Software\Classes\*\shell\TaoKeeper" Name="MUIVerb" Type="string" Value="TaoKeeper" KeyPath="yes" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\*\shell\TaoKeeper" Name="SubCommands" Type="string" Value="TaoKeeper.Shred;TaoKeeper.DupCheck;TaoKeeper.Recover;TaoKeeper.Space" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\*\shell\TaoKeeper\Shred\command" Type="string" Value="&quot;[INSTALLFOLDER]TaoKeeper.App.exe&quot; --shred &quot;%1&quot;" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\*\shell\TaoKeeper\DupCheck\command" Type="string" Value="&quot;[INSTALLFOLDER]TaoKeeper.App.exe&quot; --dupcheck &quot;%1&quot;" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\*\shell\TaoKeeper\Recover\command" Type="string" Value="&quot;[INSTALLFOLDER]TaoKeeper.App.exe&quot; --recover &quot;%1&quot;" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\*\shell\TaoKeeper\Space\command" Type="string" Value="&quot;[INSTALLFOLDER]TaoKeeper.App.exe&quot; --space &quot;%1&quot;" />
       </Component>
     </Feature>
 
