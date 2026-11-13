@@ -33,6 +33,9 @@ internal static class CompositionRoot
     private static SpaceAnalysisPageViewModel? _space;
     private static DuplicateFilesPageViewModel? _duplicates;
 
+    /// <summary>启动项适配器（P4/P5 与 R-3 重扫共用同一实例与快照路径）。</summary>
+    private static WindowsStartupControlAdapter? _startupAdapter;
+
     /// <summary>已装清单缓存（后台 winget 扫描回填；完成前 null=界面如实「尚未扫描」）。</summary>
     private static IReadOnlyList<SoftwareEntry>? _installedCache;
 
@@ -65,6 +68,7 @@ internal static class CompositionRoot
     internal static void Wire(MainWindow shell)
     {
         var startupAdapter = new WindowsStartupControlAdapter(Path.Combine(DataDir, "startup-snapshot.json"));
+        _startupAdapter = startupAdapter; // R-3：重扫执行器共用同一适配器实例与快照路径
         var popupStore = new PopupConfigStore(DataDir);
         var storageStore = new StorageSenseStore(DataDir);
 
@@ -115,6 +119,15 @@ internal static class CompositionRoot
 
         // P10 工具箱：大文件扫描根（用户目录，只读）+ 真实系统读数
         ToolsPage.LargeScanRootsProvider = DefaultLargeScanRoots;
+
+        // R-3 不可点页接线（均只读零写动作）：体检「开始体检」全链、空间分析页内即扫、启动项页内重扫
+        CheckupPage.CheckupExecutor = RunCheckupAsync;
+        SpaceAnalysisPage.ScanRootsProvider = DefaultLargeScanRoots;
+        StartupPage.RescanProvider = RescanStartupAsync;
+
+        // R-P10-4a~4b 文件粉碎：快照根落在数据目录（粉碎=显式确认后快照先落盘再覆写删除，
+        // 红线 N1 由引擎收口；到期物理清除走 PurgeExpired，页面二次确认后调用）
+        ToolsPage.ShredEngineProvider = () => new FileShredder(Path.Combine(DataDir, "shred-snapshots"));
 
         // P11 挂件：一键清理走与主程序同一执行链（同确认、同回收站语义、同清理账）
         WidgetPage.CleanupExecutorProvider = items => CleanupExecutor!(items);
@@ -290,8 +303,7 @@ internal static class CompositionRoot
         {
             try
             {
-                _startupItemsCache = await adapter.ListStartupItemsAsync();
-                _startup = await new StartupPageViewModel().LoadAsync(adapter);
+                _startup = await RunStartupScanAsync(CancellationToken.None);
                 RebuildCheckupContext();
             }
             catch (Exception)
@@ -301,6 +313,22 @@ internal static class CompositionRoot
         });
     }
 
+    /// <summary>R-3：启动项只读扫描（供后台首扫与页内「重新扫描」共用；未接线适配器返回 null）。</summary>
+    private static async Task<StartupPageViewModel?> RunStartupScanAsync(CancellationToken cancellation)
+    {
+        if (_startupAdapter is null) return null;
+        _startupItemsCache = await _startupAdapter.ListStartupItemsAsync(cancellation);
+        return await new StartupPageViewModel().LoadAsync(_startupAdapter, cancellation);
+    }
+
+    /// <summary>R-3：启动项页「重新扫描」执行器：只读重扫并同步体检上下文。</summary>
+    private static async Task<StartupPageViewModel?> RescanStartupAsync(CancellationToken cancellation)
+    {
+        var vm = await RunStartupScanAsync(cancellation);
+        if (vm is not null) RebuildCheckupContext();
+        return vm;
+    }
+
     /// <summary>P4：后台真实垃圾扫描（与磁盘清理页同一规则引擎与 %TEMP% 等真实目录），完成后重建体检上下文。</summary>
     private static void KickOffJunkScan()
     {
@@ -308,8 +336,7 @@ internal static class CompositionRoot
         {
             try
             {
-                var engine = new JunkRuleEngine();
-                _junkScanCache = await engine.ScanAsync(Environment.ExpandEnvironmentVariables, new HashSet<string>());
+                _junkScanCache = await RunJunkScanAsync();
                 RebuildCheckupContext();
                 RefreshWidgetFrame(); // P11：垃圾概览就绪后补全挂件帧（真实字节数与项数）
             }
@@ -318,6 +345,49 @@ internal static class CompositionRoot
                 // 扫描失败保持未测态：体检垃圾维度如实缺席
             }
         });
+    }
+
+    /// <summary>R-3：垃圾只读扫描（供后台首扫与体检「开始体检」共用；失败向上抛，调用方如实缺席）。</summary>
+    private static async Task<JunkScanResult> RunJunkScanAsync()
+    {
+        var engine = new JunkRuleEngine();
+        return await engine.ScanAsync(Environment.ExpandEnvironmentVariables, new HashSet<string>());
+    }
+
+    /// <summary>
+    /// R-3：体检「开始体检」执行器（R-P4-1 全链数据侧）：真实各维只读扫描→汇总上下文。
+    /// 任一维度失败如实缺席（该维保持 null=未测）；全部维度都未取得数据时报红不假完成。
+    /// </summary>
+    private static async Task<HealthContext> RunCheckupAsync(CancellationToken cancellation)
+    {
+        var gotAny = false;
+
+        try
+        {
+            _junkScanCache = await RunJunkScanAsync();
+            gotAny = true;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception)
+        {
+            // 垃圾维度本轮未测，如实缺席（不假零）
+        }
+
+        try
+        {
+            var startup = await RunStartupScanAsync(cancellation);
+            if (startup is not null) { _startup = startup; gotAny = true; }
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception)
+        {
+            // 启动项维度本轮未测，如实缺席
+        }
+
+        RebuildCheckupContext();
+        if (!gotAny && _checkupContext == HealthContext.Empty)
+            throw new InvalidOperationException("所有体检维度均未取得数据（扫描均失败），请稍后重试");
+        return _checkupContext;
     }
 
     /// <summary>P5-2：开机耗时读数（事件日志口径，3 次取中位数；不可读=空清单未测态）。</summary>

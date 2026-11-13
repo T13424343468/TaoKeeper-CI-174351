@@ -6,6 +6,14 @@ using TaoKeeper.Core.Modules;
 
 namespace TaoKeeper.AppKernel.ViewModels;
 
+/// <summary>
+/// 体检运行状态机（R-P4-1 全链，G4 初始态基准）：Idle=未测态基线（V-A10 口径：本页无用户默认值，
+/// 初始态即「尚未体检」，出自 G4 初始态基准）；Running=扫描进行中（唯一禁止重入态）；
+/// Completed=本轮已有真实结果；Failed=本轮未取得结果（原因如实展示，可重跑）。
+/// 状态只能经 BeginRun/CompleteRun/FailRun 改变（封装：内外有别）。
+/// </summary>
+public enum CheckupRunPhase { Idle, Running, Completed, Failed }
+
 /// <summary>体检页视图模型：把 HealthCheckEngine 结果整理成可直接绑定的展示态（UI 框架零依赖）。</summary>
 public sealed class CheckupPageViewModel
 {
@@ -19,6 +27,73 @@ public sealed class CheckupPageViewModel
 
     /// <summary>本轮是否为「未测」态（上下文全空 = 首跑兜底，界面显示「尚未体检」而非 100 分）。</summary>
     public bool IsUntested { get; private set; }
+
+    /// <summary>运行状态机当前相位（初始 Idle=未测态基线，G4）。</summary>
+    public CheckupRunPhase RunPhase { get; private set; } = CheckupRunPhase.Idle;
+
+    /// <summary>最近一次失败原因（Failed 相位展示；成功/未跑为 null）。</summary>
+    public string? FailureMessage { get; private set; }
+
+    /// <summary>相位变化回调（壳接线到界面刷新；VM 层不依赖 UI 框架）。</summary>
+    public Action<CheckupRunPhase>? PhaseChanged { get; set; }
+
+    /// <summary>
+    /// R-P4-1 全链：点「开始体检」→ Running（进度态）→ 执行器产出上下文 → Completed（结果态）；
+    /// 执行器抛错/取消 → Failed（原因如实）。executor=null 如实 Failed（未接线不假跑）。
+    /// Running 相位拒绝重入；本方法零写动作（执行器也必须是只读扫描）。
+    /// </summary>
+    public async Task RunAsync(Func<CancellationToken, Task<HealthContext>>? executor, CancellationToken cancellation = default)
+    {
+        if (RunPhase == CheckupRunPhase.Running)
+            throw new InvalidOperationException("体检进行中，不能重复启动");
+        if (executor is null)
+        {
+            FailRun("体检通道尚未接线，本次未执行任何扫描");
+            PhaseChanged?.Invoke(RunPhase);
+            return;
+        }
+
+        BeginRun();
+        try
+        {
+            var context = await executor(cancellation).ConfigureAwait(false);
+            CompleteRun(context);
+        }
+        catch (OperationCanceledException)
+        {
+            FailRun("体检已取消，未做任何改动");
+        }
+        catch (Exception ex)
+        {
+            FailRun($"体检未完成：{ex.Message}（只读扫描，未动任何文件）");
+        }
+        PhaseChanged?.Invoke(RunPhase);
+    }
+
+    /// <summary>进入 Running 相位（仅 Idle/Completed/Failed 可入；失败原因随新跑清空）。</summary>
+    public void BeginRun()
+    {
+        if (RunPhase == CheckupRunPhase.Running)
+            throw new InvalidOperationException("体检进行中，不能重复启动");
+        RunPhase = CheckupRunPhase.Running;
+        FailureMessage = null;
+        PhaseChanged?.Invoke(RunPhase);
+    }
+
+    /// <summary>执行器成功返回后落结果（空上下文按未测态如实呈现，RunCheckup 自判）。</summary>
+    public void CompleteRun(HealthContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        RunCheckup(context);
+        RunPhase = CheckupRunPhase.Completed;
+    }
+
+    /// <summary>本轮未取得结果：原因如实记录，可再次 BeginRun 重跑。</summary>
+    public void FailRun(string reason)
+    {
+        FailureMessage = reason;
+        RunPhase = CheckupRunPhase.Failed;
+    }
 
     /// <summary>发现清单（按严重度降序，与引擎输出同序）。</summary>
     public IReadOnlyList<CheckupFindingItem> Findings { get; private set; } = Array.Empty<CheckupFindingItem>();

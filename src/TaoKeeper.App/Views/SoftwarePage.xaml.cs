@@ -162,6 +162,23 @@ public sealed partial class SoftwarePage : Page
                 || (e.Publisher?.Contains(keyword, StringComparison.OrdinalIgnoreCase) ?? false))
             .ToList();
         StoreHint.Text = $"已装 {installed.Count} 款" + (keyword is { Length: > 0 } ? $"，匹配「{keyword}」{entries.Count} 款" : string.Empty);
+
+        // R-3 收口：检索零命中给明确空态行（R-P10-8 空态口径），不留白板
+        if (keyword is { Length: > 0 } && entries.Count == 0)
+        {
+            StoreList.ItemsSource = new object[]
+            {
+                new TextBlock
+                {
+                    Text = "没有匹配的软件：换个关键词，或清空检索看全部已装清单。",
+                    FontSize = 12.5,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = (Brush)Application.Current.Resources["TaoInk3Brush"],
+                },
+            };
+            return;
+        }
+
         StoreList.ItemsSource = entries.Select(e =>
         {
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Padding = new Thickness(0, 5, 0, 5) };

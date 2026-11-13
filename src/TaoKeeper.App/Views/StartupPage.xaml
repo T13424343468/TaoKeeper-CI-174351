@@ -17,6 +17,16 @@
             <TextBlock Text="只看不动：清单如实列出，启用与禁用走性能加速页的确认闸门" FontSize="13.5"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
+            <!-- R-3 接线：页内可重扫（只读清单，零写动作）；进度态如实 -->
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="RescanButton" Content="重新扫描" Click="OnRescan"
+                        CornerRadius="10" Padding="22,9"
+                        Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                <ProgressRing x:Name="ScanRing" Width="22" Height="22" Visibility="Collapsed" />
+            </StackPanel>
+            <TextBlock x:Name="ScanStatus" FontSize="12.5" TextWrapping="Wrap" Visibility="Collapsed"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
             <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
                     BorderBrush="{ThemeResource TaoLineSoftBrush}"
                     Background="{ThemeResource TaoCardBrush}">

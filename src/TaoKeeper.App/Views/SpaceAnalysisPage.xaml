@@ -16,6 +16,18 @@
             <TextBlock Text="目录树式空间地图——大目录一目了然，只看不删" FontSize="13.5"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
+            <!-- R-3 接线：页内即扫（不再依赖工具箱注入）；进度+可取消，只读零写动作 -->
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="StartScanButton" Content="开始扫描" Click="OnStartScan"
+                        CornerRadius="10" Padding="22,9"
+                        Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                <ProgressRing x:Name="ScanRing" Width="22" Height="22" Visibility="Collapsed" />
+                <Button x:Name="CancelScanButton" Content="取消" Click="OnCancelScan"
+                        CornerRadius="10" Padding="14,9" Visibility="Collapsed" />
+            </StackPanel>
+            <TextBlock x:Name="ScanStatus" FontSize="12.5" TextWrapping="Wrap" Visibility="Collapsed"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
             <!-- 汇总卡 -->
             <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
                     BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">

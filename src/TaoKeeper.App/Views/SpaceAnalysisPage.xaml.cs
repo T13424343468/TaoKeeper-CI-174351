@@ -1,9 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using TaoKeeper.AppKernel.ViewModels;
+using TaoKeeper.Core.Models;
+using TaoKeeper.Core.Modules;
 
 namespace TaoKeeper.App.Views;
 
@@ -11,10 +16,17 @@ namespace TaoKeeper.App.Views;
 /// 空间分析页 code-behind：目录 Top-N 经 SpaceAnalysisPageViewModel 绑定；
 /// 体积分层色与 VM.TierColorOf 同口径（≥1 GB 朱砂、≥100 MB 金、其余竹青，画刷随主题即时取值）；
 /// 路径重建失败显示裸名并如实标注；便携降级模式如实说明。本页零写动作。
+/// R-3 接线：页内「开始扫描」→ 只读实扫（PortableDiskScanner 目录遍历，与工具箱大文件同通道）→
+/// BuildFromPortableScan 落展示态；进度+可取消，失败/空态如实呈现。
 /// </summary>
 public sealed partial class SpaceAnalysisPage : Page
 {
     private SpaceAnalysisPageViewModel? _vm;
+    private CancellationTokenSource? _scanCts;
+    private bool _scanRunning;
+
+    /// <summary>扫描根提供者（组合根接线：用户常用目录；未接线=null → 如实提示未配置）。</summary>
+    public static Func<IReadOnlyList<string>>? ScanRootsProvider { get; set; }
 
     public SpaceAnalysisPage()
     {
@@ -32,6 +44,64 @@ public sealed partial class SpaceAnalysisPage : Page
     {
         _vm = vm ?? throw new ArgumentNullException(nameof(vm));
         Refresh();
+    }
+
+    /// <summary>R-3 接线：页内只读实扫（进度+可取消；扫描中防重入）。</summary>
+    private async void OnStartScan(object sender, RoutedEventArgs e)
+    {
+        if (_scanRunning) return;
+        var roots = ScanRootsProvider?.Invoke() ?? Array.Empty<string>();
+        if (roots.Count == 0)
+        {
+            ShowStatus("未配置可扫描目录（目录不存在）；未做任何扫描。", isFailure: true);
+            return;
+        }
+
+        _scanRunning = true;
+        SetRunning(running: true);
+        try
+        {
+            _scanCts = new CancellationTokenSource();
+            var engine = new PortableDiskScanner();
+            // ScanAsync 参数表：roots, options, progress, cancellation（进度仅展示，最终结果以返回值为准）
+            var scan = await engine.ScanAsync(roots, new ScanOptions(),
+                new Progress<ScanProgress>(p => ScanStatus.Text =
+                    $"扫描中…已读 {p.FilesSeen} 个文件（{Fmt(p.BytesSeen)}，只读）"),
+                _scanCts.Token);
+            (_vm ??= new SpaceAnalysisPageViewModel()).BuildFromPortableScan(scan);
+            ShowStatus($"实扫完成：{scan.TotalFiles} 个文件，{Fmt(scan.TotalBytes)}（只读）；处置请回磁盘清理页走确认闸门。", isFailure: false);
+        }
+        catch (OperationCanceledException)
+        {
+            ShowStatus("扫描已取消：已读部分不进清单，未动任何文件。", isFailure: true);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"扫描未完成：{ex.Message}（只读扫描，未动任何文件）", isFailure: true);
+        }
+        finally
+        {
+            _scanRunning = false;
+            SetRunning(running: false);
+            Refresh();
+        }
+    }
+
+    /// <summary>取消扫描：令牌入扫描器，取消零残留（不进半截清单）。</summary>
+    private void OnCancelScan(object sender, RoutedEventArgs e) => _scanCts?.Cancel();
+
+    private void SetRunning(bool running)
+    {
+        StartScanButton.IsEnabled = !running;
+        ScanRing.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
+        CancelScanButton.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ShowStatus(string message, bool isFailure)
+    {
+        ScanStatus.Text = message;
+        ScanStatus.Foreground = (Brush)Application.Current.Resources[isFailure ? "TaoCinnabarBrush" : "TaoInk2Brush"];
+        ScanStatus.Visibility = Visibility.Visible;
     }
 
     private void Refresh()

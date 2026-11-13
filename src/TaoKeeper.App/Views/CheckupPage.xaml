@@ -16,6 +16,18 @@
             <TextBlock Text="六维体检，缺项不误扣分" FontSize="13.5"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
+            <!-- R-P4-1 开始体检全链：点击→进度态→结果态；取消与失败如实呈现，只读扫描零写动作 -->
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="StartCheckupButton" Content="开始体检" Click="OnStartCheckup"
+                        CornerRadius="10" Padding="22,9"
+                        Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                <ProgressRing x:Name="RunRing" Width="22" Height="22" Visibility="Collapsed" />
+                <Button x:Name="CancelRunButton" Content="取消" Click="OnCancelRun"
+                        CornerRadius="10" Padding="14,9" Visibility="Collapsed" />
+            </StackPanel>
+            <TextBlock x:Name="RunStatus" FontSize="12.5" TextWrapping="Wrap" Visibility="Collapsed"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
             <Grid ColumnSpacing="14">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

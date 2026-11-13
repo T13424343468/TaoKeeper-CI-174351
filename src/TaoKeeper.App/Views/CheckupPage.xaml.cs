@@ -12,11 +12,16 @@ namespace TaoKeeper.App.Views;
 /// <summary>
 /// 体检中心页 code-behind：评分与发现清单经 CheckupPageViewModel 绑定（未测态如实「尚未体检」，不假 100 分）；
 /// 环图弧长=得分/100（未测不出弧）；「去处理」按发现的 JumpRoute 路由跳转（无对应页面时如实提示不跳）。
-/// 体检本身零写动作：只读评估，处理动作由用户逐项确认后路由到对应模块。
+/// R-P4-1 开始体检全链：「开始体检」→ Running 进度态（可取消）→ Completed 结果态 / Failed 原因态，
+/// 状态流转经 VM.RunAsync 状态机（本页只呈现，不另起状态）。体检本身零写动作：只读评估。
 /// </summary>
 public sealed partial class CheckupPage : Page
 {
     private CheckupPageViewModel? _vm;
+    private CancellationTokenSource? _runCts;
+
+    /// <summary>体检执行器（组合根接线：真实各维只读扫描→汇上下文；未接线=null → VM 如实 Failed）。</summary>
+    public static Func<CancellationToken, Task<HealthContext>>? CheckupExecutor { get; set; }
 
     public CheckupPage()
     {
@@ -27,14 +32,45 @@ public sealed partial class CheckupPage : Page
     protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        if (e.Parameter is CheckupPageViewModel vm) Bind(vm);
+        if (e.Parameter is CheckupPageViewModel vm)
+        {
+            vm.PhaseChanged = _ => RefreshRunState();
+            Bind(vm);
+            RefreshRunState();
+        }
     }
 
     /// <summary>注入体检展示态（未传时按未测态如实展示）。</summary>
     public void Bind(CheckupPageViewModel vm)
     {
         _vm = vm ?? throw new ArgumentNullException(nameof(vm));
+        vm.PhaseChanged = _ => RefreshRunState();
         Refresh();
+        RefreshRunState();
+    }
+
+    /// <summary>R-P4-1：开始体检（Running 相位由 VM 状态机拒绝重入，本页只呈现相位）。</summary>
+    private async void OnStartCheckup(object sender, RoutedEventArgs e)
+    {
+        if (_vm is null || _vm.RunPhase == CheckupRunPhase.Running) return;
+        _runCts = new CancellationTokenSource();
+        await _vm.RunAsync(CheckupExecutor, _runCts.Token);
+        Refresh(); // 结果/失败态回到发现清单（VM.CompleteRun/FailRun 后相位回调已触发进度条收起）
+    }
+
+    /// <summary>取消体检：令牌入执行器，未取到的维度如实缺席（零写动作，无半截改动）。</summary>
+    private void OnCancelRun(object sender, RoutedEventArgs e) => _runCts?.Cancel();
+
+    /// <summary>按 VM 相位呈现进度态（Running=环动+取消可见；Failed=原因如实；其余收起）。</summary>
+    private void RefreshRunState()
+    {
+        if (_vm is null) return;
+        var running = _vm.RunPhase == CheckupRunPhase.Running;
+        StartCheckupButton.IsEnabled = !running;
+        RunRing.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
+        CancelRunButton.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
+        RunStatus.Visibility = _vm.RunPhase == CheckupRunPhase.Failed ? Visibility.Visible : Visibility.Collapsed;
+        RunStatus.Text = _vm.FailureMessage ?? string.Empty;
     }
 
     private void Refresh()
