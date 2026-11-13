@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    软件管家页（严格按原型 v19 data-page="swstore"）：
-    页头三行 + 三来源条 + 四功能页签（软件库/升级中心/卸载中心/安全承诺）。
+    软件管家页（按需求稿 R-P2-14 落位）：
+    页头三行 + 安全承诺条 + 四功能页签（软件库/升级中心/卸载中心/安全承诺）。
+    G7（老板 2026-11-13 14:15 拍板）：来源统一收后台——三来源条已撤下，
+    页头只留一句安全承诺语，不列渠道名；来源/哈希等安全校验细节全部后台完成，用户零感知。
     数据经 SoftwarePageViewModel（升级三分桶）；已装清单经 InstalledListProvider 钩子注入
-    （未接线时如实显示「尚未扫描」，不假数据）。安装/升级/卸载动作全部经确认闸门，
-    哈希失配标死不可执行。
+    （未接线时如实显示「尚未扫描」，不假数据）。安装/升级/卸载动作全部经确认闸门。
 -->
 <Page
     x:Class="TaoKeeper.App.Views.SoftwarePage"
@@ -15,62 +16,16 @@
         <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
             <TextBlock Text="软件管家 · 装机升级行家" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
             <TextBlock Text="软件管家" FontSize="26" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
-            <TextBlock Text="一个顶所有：装、升、卸、管，全部官方渠道，装前校验、装后可溯" FontSize="13.5"
+            <TextBlock Text="装、升、卸，一条龙；官方渠道、装前校验，全程自动择优，不用你挑" FontSize="13.5"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
-            <!-- 三来源条 -->
-            <Grid ColumnSpacing="12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" CornerRadius="12" BorderThickness="1" Padding="12,10"
-                        BorderBrush="{ThemeResource TaoAzureBrush}" Background="{ThemeResource TaoAzureWashBrush}">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Border Width="34" Height="34" CornerRadius="8" Background="{ThemeResource TaoAzureBrush}">
-                            <TextBlock Text="源" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <StackPanel Spacing="1">
-                            <TextBlock Text="winget 官方源" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
-                            <TextBlock Text="微软官方软件仓库，静默安装、版本托管" FontSize="11.5" TextWrapping="Wrap"
-                                       Foreground="{ThemeResource TaoInk2Brush}" />
-                        </StackPanel>
-                        <TextBlock Text="9,000+" FontSize="12" VerticalAlignment="Top" Margin="8,0,0,0"
-                                   Foreground="{ThemeResource TaoInk3Brush}" />
-                    </StackPanel>
-                </Border>
-                <Border Grid.Column="1" CornerRadius="12" BorderThickness="1" Padding="12,10"
-                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Border Width="34" Height="34" CornerRadius="8" Background="{ThemeResource TaoAzureBrush}">
-                            <TextBlock Text="开" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <StackPanel Spacing="1">
-                            <TextBlock Text="GitHub Releases" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
-                            <TextBlock Text="开源软件发行页直取，作者亲签" FontSize="11.5" TextWrapping="Wrap"
-                                       Foreground="{ThemeResource TaoInk2Brush}" />
-                        </StackPanel>
-                        <TextBlock Text="20,000+" FontSize="12" VerticalAlignment="Top" Margin="8,0,0,0"
-                                   Foreground="{ThemeResource TaoInk3Brush}" />
-                    </StackPanel>
-                </Border>
-                <Border Grid.Column="2" CornerRadius="12" BorderThickness="1" Padding="12,10"
-                        BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Border Width="34" Height="34" CornerRadius="8" Background="{ThemeResource TaoAzureBrush}">
-                            <TextBlock Text="网" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <StackPanel Spacing="1">
-                            <TextBlock Text="官网精选源" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
-                            <TextBlock Text="国产头部软件官网直链，覆盖微信、WPS 等全生态" FontSize="11.5" TextWrapping="Wrap"
-                                       Foreground="{ThemeResource TaoInk2Brush}" />
-                        </StackPanel>
-                        <TextBlock Text="3,000+" FontSize="12" VerticalAlignment="Top" Margin="8,0,0,0"
-                                   Foreground="{ThemeResource TaoInk3Brush}" />
-                    </StackPanel>
-                </Border>
-            </Grid>
+            <!-- 安全承诺条（R-P2-14：原三来源条收简，不列渠道名；圆角 10px、衬线 16px、azure-wash 底+azure-deep 字） -->
+            <Border CornerRadius="10" Padding="16,10"
+                    Background="{ThemeResource TaoAzureWashBrush}">
+                <TextBlock Text="只走官方渠道，装前逐包校验；哪条路快走哪条，你只管点，剩下的交给我们。"
+                           FontSize="16" FontFamily="Segoe UI"
+                           Foreground="{ThemeResource TaoAzureDeepBrush}" TextWrapping="Wrap" />
+            </Border>
 
             <!-- 功能页签 -->
             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -130,7 +85,7 @@
                 <TextBlock Text="需你确认的升级（逐项过目，默认不静默）" FontSize="13.5" FontWeight="SemiBold"
                            Foreground="{ThemeResource TaoInkBrush}" />
                 <ItemsControl x:Name="UpgradeList" />
-                <TextBlock Text="哈希失配被拦截的安装包根本不进升级清单；静默桶仅限哈希已校验条目且策略开启后生效。"
+                <TextBlock Text="每条升级装前都会自动过安全校验；校验没过的根本进不了清单，不用你操心。"
                            FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}" />
             </StackPanel>
 

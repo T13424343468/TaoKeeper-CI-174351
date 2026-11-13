@@ -51,7 +51,8 @@ public sealed partial class SoftwarePage : Page
 
         if (vm.HasBlocked)
         {
-            BlockedHint.Text = $"有 {vm.BlockedByPolicy.Count} 款升级因安装包哈希校验未通过被拦截：不能安装、确认也不放行。";
+            // G7：不出现哈希术语，说人话；拦截=安全校验未过，确认也不放行（与策略硬规则一致）
+            BlockedHint.Text = $"有 {vm.BlockedByPolicy.Count} 款升级没能通过安全校验，已被拦下：不能安装、确认也不放行。";
             BlockedHint.Visibility = Visibility.Visible;
         }
         else
@@ -82,8 +83,9 @@ public sealed partial class SoftwarePage : Page
         };
         var meta = new TextBlock
         {
-            Text = $"{SoftwarePageViewModel.SourceText(entry)} · {SoftwarePageViewModel.VersionText(entry)} · {SoftwarePageViewModel.HashBadgeText(entry)}" +
-                   (silent ? " · 静默可跑" : string.Empty),
+            // G7 来源收后台：行内不出现来源渠道名与哈希术语，只留版本与用户可懂的安全状态
+            Text = $"{SoftwarePageViewModel.SafetyText(entry)} · {SoftwarePageViewModel.VersionText(entry)}" +
+                   (silent ? " · 可自动升级" : string.Empty),
             FontSize = 12.5,
             Foreground = (Brush)Application.Current.Resources["TaoInk2Brush"],
             VerticalAlignment = VerticalAlignment.Center,
@@ -103,7 +105,7 @@ public sealed partial class SoftwarePage : Page
         var dialog = new ContentDialog
         {
             Title = $"升级 {entry.Name}",
-            Content = $"{SoftwarePageViewModel.SourceText(entry)} · {SoftwarePageViewModel.VersionText(entry)}\n{SoftwarePageViewModel.HashBadgeText(entry)}\n\n确认后由官方源执行升级，装后记入安装账。",
+            Content = $"{SoftwarePageViewModel.VersionText(entry)}\n{SoftwarePageViewModel.SafetyText(entry)}\n\n确认后由官方渠道执行升级，装后记入安装账。",
             PrimaryButtonText = "确认升级",
             CloseButtonText = "先不",
             DefaultButton = ContentDialogButton.Close,
@@ -191,7 +193,8 @@ public sealed partial class SoftwarePage : Page
             });
             row.Children.Add(new TextBlock
             {
-                Text = $"{SoftwarePageViewModel.SourceText(e)} · {SoftwarePageViewModel.VersionText(e)}",
+                // G7 来源收后台：已装行只留版本，不外显来源渠道
+                Text = SoftwarePageViewModel.VersionText(e),
                 FontSize = 12.5,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)Application.Current.Resources["TaoInk2Brush"],
@@ -200,7 +203,63 @@ public sealed partial class SoftwarePage : Page
         }).ToList();
     }
 
-    private void OnStoreSearch(object sender, RoutedEventArgs e) => BindStore();
+    private async void OnStoreSearch(object sender, RoutedEventArgs e)
+    {
+        var keyword = StoreSearchBox.Text?.Trim();
+        if (string.IsNullOrEmpty(keyword))
+        {
+            BindStore(); // 空关键词回已装清单视图
+            return;
+        }
+
+        // R-P2-10 检索真实通道：经宿主接线的 SearchExecutor（winget search）；转后台跑，按钮即回显检索中
+        if (StoreSearchExecutor is null)
+        {
+            StoreHint.Text = "软件库检索通道尚未接线；已装软件可用下方清单，或稍后再试。";
+            StoreList.ItemsSource = null;
+            return;
+        }
+
+        StoreHint.Text = $"正在检索「{keyword}」…可先看其他页签，检索完自动展示。";
+        StoreList.ItemsSource = null;
+        try
+        {
+            var results = await StoreSearchExecutor(keyword);
+            StoreHint.Text = results.Count > 0
+                ? $"「{keyword}」找到 {results.Count} 款可安装软件："
+                : $"「{keyword}」没有找到结果——换个说法再试试，或看看已装软件清单。";
+            StoreList.ItemsSource = results.Count > 0
+                ? results.Select(e =>
+                {
+                    var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Padding = new Thickness(0, 5, 0, 5) };
+                    row.Children.Add(new TextBlock
+                    {
+                        Text = e.Name,
+                        FontSize = 14,
+                        MinWidth = 140,
+                        Foreground = (Brush)Application.Current.Resources["TaoInkBrush"],
+                    });
+                    row.Children.Add(new TextBlock
+                    {
+                        // G7：来源不外显；检索候选只留版本（未标版本如实显「待装时定」）
+                        Text = e.AvailableVersion ?? "版本以安装时为准",
+                        FontSize = 12.5,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Foreground = (Brush)Application.Current.Resources["TaoInk2Brush"],
+                    });
+                    return row;
+                }).ToList()
+                : null;
+        }
+        catch (Exception)
+        {
+            // 失败降级如实报（不假空、不吞错）：检索通道暂不可用，留引导不装死
+            StoreHint.Text = "检索通道这会儿不通（可能网络或服务暂不可用）；已装软件清单仍可正常用。";
+        }
+    }
+
+    /// <summary>软件库检索执行器（宿主接线 winget search；返回可安装候选清单）。</summary>
+    public static Func<string, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<SoftwareEntry>>>? StoreSearchExecutor { get; set; }
 
     private void BindUninstall()
     {

@@ -92,7 +92,7 @@ public class SoftwarePageViewModelTests
 
         Assert.False(vm.IsSilentAllowed(BlockedEntry));
         Assert.Equal(tokens.Cinnabar, vm.StatusColorOf(BlockedEntry, tokens));
-        Assert.Equal("哈希未过 · 已拦截", SoftwarePageViewModel.HashBadgeText(BlockedEntry));
+        Assert.Equal("安全校验未过 · 已拦截", SoftwarePageViewModel.SafetyText(BlockedEntry));
         // 拦截项绝不出现在任何待执行动作里
         Assert.DoesNotContain(vm.UpgradeActions, a => a.Software.Id == "id.blocked");
     }
@@ -108,8 +108,10 @@ public class SoftwarePageViewModelTests
         Assert.Equal("1.0.0 → 1.1.0", SoftwarePageViewModel.VersionText(WingetEntry));
         Assert.Equal("未知版本", SoftwarePageViewModel.VersionText(manual));
 
-        Assert.Equal("哈希已校验", SoftwarePageViewModel.HashBadgeText(WingetEntry));
-        Assert.Equal("哈希未核验", SoftwarePageViewModel.HashBadgeText(GithubEntry));
+        // G7 用户侧口径：来源渠道名不外显，安全状态说人话
+        Assert.Equal("安全校验已通过", SoftwarePageViewModel.SafetyText(WingetEntry));
+        Assert.Equal("装前自动安全校验", SoftwarePageViewModel.SafetyText(GithubEntry));
+        Assert.Equal("装前自动安全校验", SoftwarePageViewModel.SafetyText(manual));
     }
 
     [Fact]

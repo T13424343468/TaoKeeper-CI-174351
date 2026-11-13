@@ -68,6 +68,28 @@ public static class WingetOutputParser
         return result;
     }
 
+    /// <summary>
+    /// 解析 winget search 输出（R-P2-10 检索通道）：表头含 Name/Id/Version/Source，无可用列；
+    /// Version 缺省=清单未标版本，如实保空；结果不带安装版本语义，供「可安装候选」展示。
+    /// </summary>
+    public static IReadOnlyList<SoftwareEntry> ParseSearch(string output)
+    {
+        var (rows, headerFound) = ParseRows(output);
+        RequireHeader(output, headerFound, "search");
+        var result = new List<SoftwareEntry>(rows.Count);
+        foreach (var r in rows)
+        {
+            result.Add(new SoftwareEntry(
+                r.Id, r.Name, Publisher: null,
+                InstalledVersion: null,
+                AvailableVersion: IsPlaceholder(r.InstalledVersion) ? null : r.InstalledVersion,
+                SoftwareSourceKind.WingetCommunity,
+                HashVerified: null,
+                SourceDisplay: "winget 社区源"));
+        }
+        return result;
+    }
+
     private static void RequireHeader(string output, bool headerFound, string command)
     {
         if (headerFound) return;

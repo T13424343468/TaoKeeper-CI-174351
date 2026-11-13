@@ -104,6 +104,40 @@ public sealed class WingetSoftwareSourceAdapter : ISoftwareSourceAdapter
         }, cancellation);
     }
 
+    /// <summary>
+    /// 检索（R-P2-10 软件库搜索真实通道）：winget search 关键词查询。
+    /// 关键词只允许空白与常见软件名字符（防参数注入，与 Id 白名单同源）；
+    /// 检索失败（winget 不可用/超时）抛 InvalidOperationException——调用方如实提示检索不可用，
+    /// 不静默装成「零结果」（假空比报错更危险，与解析器同一不假空规则）。
+    /// </summary>
+    public Task<IReadOnlyList<SoftwareEntry>> SearchAsync(string keyword, CancellationToken cancellation = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(keyword);
+        cancellation.ThrowIfCancellationRequested();
+        if (!IsSafeSearchKeyword(keyword))
+            return Task.FromResult((IReadOnlyList<SoftwareEntry>)Array.Empty<SoftwareEntry>());
+
+        return Task.Run(() =>
+        {
+            var (code, stdout, stderr) = _run($"search \"{keyword.Replace("\"", string.Empty)}\" --accept-source-agreements");
+            if (code < 0)
+                throw new InvalidOperationException($"winget search 调用失败：{FirstErrorLine(stderr, string.Empty)}");
+            return WingetOutputParser.ParseSearch(stdout);
+        }, cancellation);
+    }
+
+    /// <summary>检索关键词白名单：字母数字与常见软件名分隔符；引号/分号/换行等注入字符一律拒绝。</summary>
+    public static bool IsSafeSearchKeyword(string keyword)
+    {
+        if (string.IsNullOrWhiteSpace(keyword) || keyword.Length > 128) return false;
+        foreach (var c in keyword)
+        {
+            bool ok = char.IsLetterOrDigit(c) || c is '.' or '-' or '_' or '+' or ' ' or '(' or ')' or '#';
+            if (!ok) return false;
+        }
+        return true;
+    }
+
     /// <summary>卸载：走 winget uninstall（系统正规卸载入口），不开静默，过程对用户可见。</summary>
     public Task<SoftwareActionResult> UninstallAsync(SoftwareEntry software, CancellationToken cancellation = default)
     {
