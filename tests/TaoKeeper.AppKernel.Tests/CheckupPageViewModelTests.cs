@@ -90,4 +90,85 @@ public class CheckupPageViewModelTests
         Assert.Equal("状态很好", vm.ScoreBandText);
         Assert.Empty(vm.Findings);
     }
+
+    // ---- R-P4-1 开始体检全链状态机（G4 初始态基准：Idle=未测态基线，本页无用户默认值） ----
+
+    [Fact]
+    public void 初始相位_Idle_未跑不出结果()
+    {
+        var vm = new CheckupPageViewModel();
+        Assert.Equal(CheckupRunPhase.Idle, vm.RunPhase);
+        Assert.Null(vm.FailureMessage);
+    }
+
+    [Fact]
+    public async Task 执行器未接线_如实失败不假跑()
+    {
+        var vm = new CheckupPageViewModel();
+        await vm.RunAsync(null);
+        Assert.Equal(CheckupRunPhase.Failed, vm.RunPhase);
+        Assert.Contains("尚未接线", vm.FailureMessage);
+    }
+
+    [Fact]
+    public async Task 体检全链_Idle到Running到Completed_结果真实()
+    {
+        var vm = new CheckupPageViewModel();
+        var phases = new List<CheckupRunPhase>();
+        vm.PhaseChanged = phases.Add;
+
+        await vm.RunAsync(_ => Task.FromResult(Ctx(junk: 6L * 1024 * 1024 * 1024)));
+        Assert.Equal(new[] { CheckupRunPhase.Running, CheckupRunPhase.Completed }, phases);
+        Assert.Equal(CheckupRunPhase.Completed, vm.RunPhase);
+        Assert.False(vm.IsUntested);
+        Assert.Equal(85, vm.Score); // 垃圾 6GB → Warning 15，100-15
+        Assert.Null(vm.FailureMessage);
+    }
+
+    [Fact]
+    public async Task 执行器抛错_转Failed_原因如实()
+    {
+        var vm = new CheckupPageViewModel();
+        await vm.RunAsync(_ => Task.FromException<HealthContext>(new InvalidOperationException("引擎炸了")));
+        Assert.Equal(CheckupRunPhase.Failed, vm.RunPhase);
+        Assert.Contains("引擎炸了", vm.FailureMessage);
+        Assert.Contains("只读扫描", vm.FailureMessage); // 不动文件的说明随行
+    }
+
+    [Fact]
+    public async Task 执行器取消_转Failed_取消口径()
+    {
+        var vm = new CheckupPageViewModel();
+        await vm.RunAsync(_ => Task.FromException<HealthContext>(new OperationCanceledException()));
+        Assert.Equal(CheckupRunPhase.Failed, vm.RunPhase);
+        Assert.Contains("取消", vm.FailureMessage);
+    }
+
+    [Fact]
+    public async Task Running相位_拒绝重入()
+    {
+        var vm = new CheckupPageViewModel();
+        var gate = new TaskCompletionSource<HealthContext>();
+        var running = vm.RunAsync(_ => gate.Task); // 挂起执行器：相位停在 Running
+        Assert.Equal(CheckupRunPhase.Running, vm.RunPhase);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => vm.RunAsync(_ => Task.FromResult(Ctx())));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => { vm.BeginRun(); return Task.CompletedTask; });
+
+        gate.SetResult(Ctx(junk: 1024)); // 放行 → Completed
+        await running;
+        Assert.Equal(CheckupRunPhase.Completed, vm.RunPhase);
+    }
+
+    [Fact]
+    public async Task Failed与Completed_均可再次体检()
+    {
+        var vm = new CheckupPageViewModel();
+        await vm.RunAsync(_ => Task.FromException<HealthContext>(new InvalidOperationException("x")));
+        Assert.Equal(CheckupRunPhase.Failed, vm.RunPhase);
+
+        await vm.RunAsync(_ => Task.FromResult(Ctx(junk: 1024))); // 重跑成功
+        Assert.Equal(CheckupRunPhase.Completed, vm.RunPhase);
+        Assert.Null(vm.FailureMessage); // 失败原因随新跑清空
+        Assert.Equal(100, vm.Score);    // 垃圾 1KB 不构成发现
+    }
 }
