@@ -47,6 +47,17 @@
     <Property Id="OPTIN_CONTEXTMENU" Value="0" />
     <Property Id="OPTIN_WIDGET" Value="0" />
     <Property Id="OPTIN_WEEKLYCLEANUP" Value="1" />
+    <Property Id="RUN_AFTER" Value="1" />
+
+    <!-- 完成页动作：cmd start 异步拉起（Return=ignore 不挡关窗）；取消桌面链只删文件不回滚特性（特性在装前已定，重装可再勾） -->
+    <CustomAction Id="SetRunAfterCmd" Property="RUNAFTERCMD" Value="[SystemFolder]cmd.exe" />
+    <CustomAction Id="RunAfterInstall" Property="RUNAFTERCMD"
+                  ExeCommand='/c start "" "[INSTALLFOLDER]TaoKeeper.App.exe"'
+                  Execute="immediate" Return="ignore" />
+    <CustomAction Id="SetDelDeskCmd" Property="DELDESKCMD" Value="[SystemFolder]cmd.exe" />
+    <CustomAction Id="DelDeskLnk" Property="DELDESKCMD"
+                  ExeCommand='/c del /q "[DesktopFolder]TaoKeeper.lnk"'
+                  Execute="immediate" Return="ignore" />
 
     <UI Id="TaoKeeperInstallUI">
       <TextStyle Id="DlgFont" FaceName="微软雅黑" Size="9" />
@@ -124,9 +135,15 @@
         </Control>
       </Dialog>
 
-      <Dialog Id="TaoKeeperExitDialog" Width="440" Height="130" Title="[ProductName] 安装程序">
+      <!-- R-P2-16 完成页两勾选：创建桌面快捷方式（装后可改，取消即删链）与立即运行（Finish 经 cmd start 异步拉起不挡关窗） -->
+      <Dialog Id="TaoKeeperExitDialog" Width="440" Height="150" Title="[ProductName] 安装程序">
         <Control Id="DoneText" Type="Text" X="20" Y="30" Width="400" Height="24" Text="TaoKeeper 安装完成，桌面或开始菜单即可打开。" />
-        <Control Id="FinishBtn" Type="PushButton" X="350" Y="95" Width="70" Height="22" Default="yes" Text="完成">
+        <Control Id="ExitDeskCheck" Type="CheckBox" X="20" Y="60" Width="400" Height="16" Property="DESKTOP_SHORTCUT" CheckBoxValue="1" Text="创建桌面快捷方式">
+          <Publish Event="DoAction" Value="DelDeskLnk" Condition="NOT DESKTOP_SHORTCUT" />
+        </Control>
+        <Control Id="ExitRunCheck" Type="CheckBox" X="20" Y="80" Width="400" Height="16" Property="RUN_AFTER" CheckBoxValue="1" Text="安装完成后立即运行 TaoKeeper" />
+        <Control Id="FinishBtn" Type="PushButton" X="350" Y="112" Width="70" Height="22" Default="yes" Text="完成">
+          <Publish Event="DoAction" Value="RunAfterInstall" Condition="RUN_AFTER" />
           <Publish Event="EndDialog" Value="Return" />
         </Control>
       </Dialog>
