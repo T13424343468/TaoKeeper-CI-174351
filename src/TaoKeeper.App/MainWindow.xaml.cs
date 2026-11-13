@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using TaoKeeper.App.Theming;
 using TaoKeeper.AppKernel.Navigation;
+using WinRT.Interop;
 
 namespace TaoKeeper.App;
 

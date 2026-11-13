@@ -68,7 +68,7 @@ internal static class TrayIconController
     internal static void RemoveIcon()
     {
         if (!_created || _msgWindow == IntPtr.Zero) return;
-        var data = CreateNotifyData(NIF.MESSAGE | NIF.ICON);
+        var data = CreateNotifyData(); // NIM.DELETE 只读 hWnd/uID，其余字段按默认构造即可
         Shell_NotifyIcon(NIM.DELETE, ref data);
         _created = false;
     }
