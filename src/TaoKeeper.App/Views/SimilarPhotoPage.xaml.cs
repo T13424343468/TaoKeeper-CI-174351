@@ -233,7 +233,7 @@ internal sealed class WinuiImageGridSource : IImageGridSource
         try
         {
             var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(fullPath);
-            await using var stream = await file.OpenReadAsync();
+            using var stream = await file.OpenReadAsync();
 
             var decoder = await Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(stream);
             var transform = new Windows.Graphics.Imaging.BitmapTransform { ScaledWidth = 8, ScaledHeight = 8 };
