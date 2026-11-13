@@ -36,6 +36,7 @@ public sealed partial class ToolsPage : Page
     private ToolboxPageViewModel _toolbox = new();
     private SpaceAnalysisPageViewModel _space = new();
     private DuplicateFilesPageViewModel _dup = new();
+    private SimilarPhotoPageViewModel _similar = new();
     private FileShredPageViewModel _shred = new();
 
     /// <summary>大文件扫描根（宿主接线；用户常用目录，只读）。</summary>
@@ -71,18 +72,20 @@ public sealed partial class ToolsPage : Page
         base.OnNavigatedTo(e);
         if (e.Parameter is ToolsPageBundle bundle)
         {
-            Bind(bundle.Toolbox, bundle.Space, bundle.Duplicate);
+            Bind(bundle.Toolbox, bundle.Space, bundle.Duplicate, bundle.Similar);
         }
     }
 
-    /// <summary>注入三个既有 VM（未注入的保持 new() 未扫描空态，如实显示）。</summary>
+    /// <summary>注入既有 VM（未注入的保持 new() 未扫描空态，如实显示）。</summary>
     public void Bind(ToolboxPageViewModel? toolbox = null,
                      SpaceAnalysisPageViewModel? space = null,
-                     DuplicateFilesPageViewModel? duplicate = null)
+                     DuplicateFilesPageViewModel? duplicate = null,
+                     SimilarPhotoPageViewModel? similar = null)
     {
         _toolbox = toolbox ?? _toolbox;
         _space = space ?? _space;
         _dup = duplicate ?? _dup;
+        _similar = similar ?? _similar;
     }
 
     private void OnToolClick(object sender, RoutedEventArgs e)
@@ -111,6 +114,11 @@ public sealed partial class ToolsPage : Page
                 Frame.Navigate(typeof(DuplicateFilesPage), _dup);
                 break;
 
+            case "similar":
+                // R-P10-2b~2c：相似图片整页进入（页内即扫：只读枚举图片目录→感知哈希分组）
+                Frame.Navigate(typeof(SimilarPhotoPage), _similar);
+                break;
+
             case "shred":
                 // R-P10-4a~4b：文件粉碎面板（选择→确认→粉碎→回执→快照还原/到期清除）
                 EnterShredPanel();
@@ -125,7 +133,7 @@ public sealed partial class ToolsPage : Page
                 break;
 
             default:
-                // 相似图片/右键菜单：引擎能力本版未接，如实说明，不假进度
+                // 右键菜单：引擎能力本版未接，如实说明，不假进度
                 ToolStatus.Text = "「" + TagTitleOf(tag) + "」本版未接入该扫描通道，如实显示，不预演结果。";
                 break;
         }
@@ -509,4 +517,5 @@ public sealed class ToolsPageBundle
     public ToolboxPageViewModel? Toolbox { get; init; }
     public SpaceAnalysisPageViewModel? Space { get; init; }
     public DuplicateFilesPageViewModel? Duplicate { get; init; }
+    public SimilarPhotoPageViewModel? Similar { get; init; }
 }

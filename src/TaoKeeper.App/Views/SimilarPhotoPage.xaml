@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    相似照片页（原型 v19 工具箱项「相似图片」的整页落地，沿用 v19 卡片设计语言）。
+    数据经 SimilarPhotoPageViewModel 注入：感知哈希分组（海明距离≤阈值才判相似），
+    每组建议保留分辨率最高一份（可改选），其余默认列为拟处理；逐张勾选可增减。
+    「转入确认队列」只产出经 CleanupSafetyGate 闸门的清单（受保护路径从源头标死），
+    实际执行由统一清理链编排，本页零写动作。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.SimilarPhotoPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="工具箱 · 相似图片" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="相似图片" FontSize="26" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="感知哈希识别连拍与缩略副本——每组建议保留一份，其余先进回收站" FontSize="13.5"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <!-- 概览卡 -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Border Width="10" Height="10" CornerRadius="5" VerticalAlignment="Center"
+                                Background="{ThemeResource TaoGoldBrush}" />
+                        <TextBlock x:Name="SummaryText" FontSize="13.5" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInkBrush}" />
+                    </StackPanel>
+                    <TextBlock x:Name="StatusText" FontSize="12.5" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="尚未扫描。" />
+                    <TextBlock x:Name="EmptyHint" FontSize="12.5" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="没找到相似照片。识别只比像素指纹，不动任何文件；不可识别的图会如实跳过。" />
+                </StackPanel>
+            </Border>
+
+            <!-- 分组明细 -->
+            <ItemsControl x:Name="GroupList" />
+
+            <!-- 汇总与转入 -->
+            <Border x:Name="TotalCard" CornerRadius="14" BorderThickness="1" Padding="18,14" Visibility="Collapsed"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+                        <TextBlock x:Name="TotalText" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TaoInk3Brush}"
+                                   Text="拟处理张默认排除组内保留份；受保护路径/盘符根由安全闸门在源头标死，勾不上也执行不了。" />
+                    </StackPanel>
+                    <Button x:Name="QueueButton" Grid.Column="1" Content="转入确认队列（先进回收站）"
+                            Click="OnQueueClick" CornerRadius="10" Padding="16,7" VerticalAlignment="Center"
+                            Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                </Grid>
+            </Border>
+
+            <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}"
+                       Text="本页只做选择与确认：真正的清理动作先进回收站，可在回收站还原；改选保留份不会动任何文件。" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -32,6 +32,7 @@ internal static class CompositionRoot
     private static ToolboxPageViewModel? _toolbox;
     private static SpaceAnalysisPageViewModel? _space;
     private static DuplicateFilesPageViewModel? _duplicates;
+    private static SimilarPhotoPageViewModel? _similar;
 
     /// <summary>启动项适配器（P4/P5 与 R-3 重扫共用同一实例与快照路径）。</summary>
     private static WindowsStartupControlAdapter? _startupAdapter;
@@ -105,7 +106,14 @@ internal static class CompositionRoot
         shell.PopupViewModelProvider = () => _popup;
         shell.StorageViewModelProvider = () => _storage;
         shell.WidgetViewModelProvider = () => _widget;
-        shell.ToolsBundleProvider = () => new ToolsPageBundle { Toolbox = _toolbox, Space = _space, Duplicate = _duplicates };
+        shell.ToolsBundleProvider = () => new ToolsPageBundle { Toolbox = _toolbox, Space = _space, Duplicate = _duplicates, Similar = _similar };
+
+        // P10 相似图片：只读枚举用户图片目录（不存在则如实空清单，不假数据）
+        SimilarPhotoPage.ScanRootsProvider = () =>
+        {
+            var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+            return Directory.Exists(pictures) ? new[] { pictures } : Array.Empty<string>();
+        };
 
         // P4/P5 启动项页：后台扫描完成后回填缓存 VM（未完成时如实「尚未扫描」）
         StartupPage.ViewModelProvider = () => _startup;
