@@ -71,6 +71,18 @@ public sealed partial class MainWindow : Window
         // 改走 AppWindow.Closing（可取消），关闭分流语义不变。
         AppWindow.Closing += OnAppWindowClosing;
 
+        // R-1 图标资产包：窗图标对齐青瓷玄盾（任务栏/标题栏同源）；
+        // 随包 assets 相对路径缺文件时不挡启动，落导航日志如实记因。
+        try
+        {
+            AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory,
+                "assets", "icons", "taokepper-shield.ico"));
+        }
+        catch (Exception iconEx)
+        {
+            TraceNav($"app icon set FAIL {iconEx.GetType().Name}: {iconEx.Message}");
+        }
+
         Activate();
     }
 

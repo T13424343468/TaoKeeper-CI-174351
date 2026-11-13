@@ -296,7 +296,8 @@ internal static class TrayIconController
 
     private static NOTIFYICONDATA CreateNotifyData()
     {
-        // 图标：优先取程序资源 #1（真机出包换自绘盾形资源，见交接清单），缺省回退系统应用图标
+        // 图标：取程序资源 #1（R-1 起 csproj ApplicationIcon 内嵌青瓷玄盾 ico），
+        // 缺省回退系统应用图标
         _icon = LoadIconW(GetModuleHandleW(null), new IntPtr(1));
         if (_icon == IntPtr.Zero) _icon = LoadIconW(IntPtr.Zero, new IntPtr(32512)); // IDI_APPLICATION
         return new NOTIFYICONDATA
