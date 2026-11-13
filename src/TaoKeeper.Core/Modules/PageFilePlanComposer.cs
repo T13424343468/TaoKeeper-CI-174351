@@ -34,8 +34,10 @@ public static class PageFilePlanComposer
         var (initialMb, maximumMb) = settings.SuggestedValues(physicalMemoryBytes / (1024L * 1024L))
             ?? throw new ArgumentException("该档位没有可计算的页面文件参数，拒绝写系统设置。");
         var drive = string.IsNullOrWhiteSpace(settings.DriveLetter)
-            ? (systemDrive ?? "C").TrimEnd(':').ToUpperInvariant()
-            : settings.DriveLetter.TrimEnd(':').ToUpperInvariant();
+            ? (systemDrive ?? "C")
+            : settings.DriveLetter;
+        // "C:"/"C:\"/"c" 一律归一为裸盘符（r39 实锤：TrimEnd(':') 剥不掉反斜杠，曾写出 C:\:\pagefile.sys）
+        drive = drive.TrimEnd(':', '\\').ToUpperInvariant();
         return new[] { $"{drive}:\\pagefile.sys {initialMb} {maximumMb}" };
     }
 

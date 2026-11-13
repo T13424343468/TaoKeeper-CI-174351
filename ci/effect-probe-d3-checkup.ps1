@@ -153,7 +153,7 @@ function Invoke-NavTitle([string]$Title) {
     } catch { continue }
     $cur = $t
     for ($hops = 0; $hops -lt 5; $hops++) {
-      $cur = $cur.FindFirst([System.Windows.Automation.TreeScope]::Parent, $trueCond)
+      $cur = [System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($cur)
       if ($null -eq $cur) { break }
       try {
         $cur.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()

@@ -216,10 +216,13 @@ if ($confirmSeen) {
   # rollback: no UI rollback entry is known — restore the captured pre-state and verify
   $rbOk = $false
   try {
-    Set-ItemProperty $mmKey -Name PagingFiles -Value ([string[]]$pagingBefore) -ErrorAction Stop
-    if ($autoBefore -is [bool]) {
-      Set-CimInstance -Query "SELECT * FROM Win32_ComputerSystem" -Property @{ AutomaticManagedPagefile = $autoBefore } -ErrorAction Stop
+    # r39 实锤：AutomaticManagedPagefile=False 的 CIM 写入本身会重写页面文件配置
+    # （Windows 落一个默认 C:\pagefile.sys 0 0），把探针刚恢复的 PagingFiles 又盖掉了。
+    # 顺回顺序：仅当改前是自动管理（True）才需要重开自动管理；显式恢复 PagingFiles 放最后。
+    if ($autoBefore -is [bool] -and $autoBefore -eq $true) {
+      Set-CimInstance -Query "SELECT * FROM Win32_ComputerSystem" -Property @{ AutomaticManagedPagefile = $true } -ErrorAction Stop
     }
+    Set-ItemProperty $mmKey -Name PagingFiles -Value ([string[]]$pagingBefore) -Type MultiString -ErrorAction Stop
     Start-Sleep -Seconds 2
     $stateRestored = Get-PageFileState
     $rbOk = ($stateRestored -eq $stateBefore)

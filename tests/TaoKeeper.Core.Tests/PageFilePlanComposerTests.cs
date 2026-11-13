@@ -53,6 +53,15 @@ public class PageFilePlanComposerTests
     }
 
     [Fact]
+    public void ComposeTargetEntries_RootWithBackslash_NormalizedToBareDrive()
+    {
+        // r39 实锤回归：Path.GetPathRoot 返回 "C:\"，盘符必须归一为裸字母，不能写出 C:\:\pagefile.sys
+        var entries = PageFilePlanComposer.ComposeTargetEntries(
+            PageFilePlanComposer.FromPlanKey("perf")!, SixteenGb, @"C:\");
+        Assert.Equal(@"C:\pagefile.sys 32768 65536", entries[0]);
+    }
+
+    [Fact]
     public void ComposeTargetEntries_NoSuggestedValues_ThrowsInsteadOfFakeNumbers()
     {
         var settings = new PageFileSettings(PageFilePreset.Custom, null, null, null);
