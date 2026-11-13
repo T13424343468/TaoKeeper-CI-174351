@@ -25,6 +25,9 @@ s = open(p, encoding='utf-8').read()
 s = s.replace('<Directory Id="INSTALLFOLDER" Name="TaoKeeper" />',
               '<Directory Id="INSTALLFOLDER" Name="." />')
 s = s.replace('Include="$(PublishDir)\\**"', 'Include="$(PublishDir)/**"')
+# R-1：Icon SourceFile 相对真机工作目录（tools/msi）；预检工作目录是 .precheck，多退一层到仓根
+s = s.replace('SourceFile="../../assets/icons/taokepper-shield.ico"',
+              'SourceFile="../../../assets/icons/taokepper-shield.ico"')
 open(p, 'w', encoding='utf-8').write(s)
 print('[precheck] patch applied to copy (Name=. / forward-slash glob)')
 EOF

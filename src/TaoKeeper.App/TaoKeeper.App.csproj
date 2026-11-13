@@ -23,7 +23,15 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- R-1 图标资产包：青瓷玄盾多尺寸 ico（16~256 七档），exe 内嵌为 Win32 资源 #1，
+         主窗/任务栏/托盘（TrayIconController 按 LoadIconW(资源#1) 取图）三处同源 -->
+    <ApplicationIcon>..\..\assets\icons\taokepper-shield.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- AppWindow.SetIcon 需要文件路径：随包发布同相对路径（publish 的 Files Include 通配收全） -->
+    <Content Include="..\..\assets\icons\taokepper-shield.ico" Link="assets\icons\taokepper-shield.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TaoKeeper.Core\TaoKeeper.Core.csproj" />
