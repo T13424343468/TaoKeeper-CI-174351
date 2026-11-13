@@ -125,6 +125,10 @@ internal static class CompositionRoot
         SpaceAnalysisPage.ScanRootsProvider = DefaultLargeScanRoots;
         StartupPage.RescanProvider = RescanStartupAsync;
 
+        // R-P10-4a~4b 文件粉碎：快照根落在数据目录（粉碎=显式确认后快照先落盘再覆写删除，
+        // 红线 N1 由引擎收口；到期物理清除走 PurgeExpired，页面二次确认后调用）
+        ToolsPage.ShredEngineProvider = () => new FileShredder(Path.Combine(DataDir, "shred-snapshots"));
+
         // P11 挂件：一键清理走与主程序同一执行链（同确认、同回收站语义、同清理账）
         WidgetPage.CleanupExecutorProvider = items => CleanupExecutor!(items);
         WidgetPage.JunkCandidatesProvider = JunkCandidatesForWidget;
