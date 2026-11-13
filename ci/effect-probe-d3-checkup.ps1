@@ -141,26 +141,31 @@ function Invoke-ContentMatch([string]$Pattern, [int]$WaitSec) {
 }
 
 function Invoke-NavTitle([string]$Title) {
-  # r37 收口：体检页在导航时一次性绑定上下文，后台扫描完成不会自动刷新已绑定页；
-  # 靠导航栏「总览↔系统体检」来回点击触发新的 Provider 调用重新绑定。
-  $textCond = New-Object System.Windows.Automation.PropertyCondition(
-    [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $script:ctText)
-  $trueCond = [System.Windows.Automation.Condition]::TrueCondition
-  foreach ($t in $script:root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $textCond)) {
+  # r40 收口（run 43336053291）：导航是 ListView（MainWindow.xaml NavList），ListViewItem
+  # 只有 SelectionItemPattern、没有 InvokePattern；旧实现从标题文本向上找可 Invoke 祖先，
+  # 每一层 Invoke 都抛异常，五跳落空后静默返回——导航从未发生，页面从未重绑定，发现永远
+  # 「未测」。改为 live-fire-walk 同款：按 ListItem 条件枚举导航项、核对内嵌文本标题，
+  # SelectionItemPattern.Select() 真选导航（Invoke 兜底）。
+  $listItemCond = New-Object System.Windows.Automation.PropertyCondition(
+    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+    [System.Windows.Automation.ControlType]::ListItem)
+  foreach ($el in $script:root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $listItemCond)) {
     try {
-      $n = $t.Current.Name
-      if ($t.Current.BoundingRectangle.X -gt $script:navRight -or $n -ne $Title) { continue }
-    } catch { continue }
-    $cur = $t
-    for ($hops = 0; $hops -lt 5; $hops++) {
-      $cur = [System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($cur)
-      if ($null -eq $cur) { break }
+      $hit = $false
+      foreach ($t in $el.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+          (New-Object System.Windows.Automation.PropertyCondition(
+            [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $script:ctText)))) {
+        try { if ($t.Current.Name -eq $Title) { $hit = $true; break } } catch { }
+      }
+      if (-not $hit) { continue }
       try {
-        $cur.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-        Start-Sleep -Seconds 2
-        return $true
-      } catch { }
-    }
+        $el.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+      } catch {
+        $el.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+      }
+      Start-Sleep -Seconds 3
+      return $true
+    } catch { continue }
   }
   return $false
 }
@@ -210,8 +215,8 @@ if (-not (Launch-App 'checkup')) {
 $landed = Wait-ContentText '六维体检' 45
 Write-Effect ($null -ne $landed) "nav-checkup" ("direct-launch --page checkup; marker '{0}'" -f ($(if ($landed) { '六维体检 (content verified)' } else { 'NOT seen in 45s' })))
 if (-not $landed) { Save-Shot "99-nav-fail.png"; Save-EvidenceAndExit 1 }
-for ($cycle = 1; $cycle -le 6 -and -not $phaseAOk; $cycle++) {
-  $deadline = (Get-Date).AddSeconds(20)
+for ($cycle = 1; $cycle -le 10 -and -not $phaseAOk; $cycle++) {
+  $deadline = (Get-Date).AddSeconds(12)
   while ((Get-Date) -lt $deadline) {
     if ($null -ne $script:p -and $script:p.HasExited) { break }
     if (Find-ContentText '垃圾堆积' -Like) { $phaseAOk = $true; break }
@@ -219,17 +224,12 @@ for ($cycle = 1; $cycle -le 6 -and -not $phaseAOk; $cycle++) {
   }
   if ($phaseAOk) { break }
   if ($cycle -eq 3) { Save-Shot "99-checkup-nofinding-a3.png" }
-  Write-Host ("[D3] rebind cycle {0}: no finding yet (background junk scan still running) — navigating away and back" -f $cycle)
-  Invoke-NavTitle '总览' | Out-Null
-  Start-Sleep -Seconds 45   # 后台扫描在离开体检页期间推进
-  Invoke-NavTitle '系统体检' | Out-Null
+  Write-Host ("[D3] rebind cycle {0}: no finding yet — selecting 总览 then 系统体检 via SelectionItemPattern" -f $cycle)
+  $awayOk = Invoke-NavTitle '总览'
+  Start-Sleep -Seconds 6   # 后台扫描在离开体检页期间推进
+  $backOk = Invoke-NavTitle '系统体检'
+  Write-Host ("[D3] nav away={0} back={1}" -f $awayOk, $backOk)
   Start-Sleep -Seconds 5
-  $deadline = (Get-Date).AddSeconds(25)
-  while ((Get-Date) -lt $deadline) {
-    if ($null -ne $script:p -and $script:p.HasExited) { break }
-    if (Find-ContentText '垃圾堆积' -Like) { $phaseAOk = $true; break }
-    Start-Sleep -Seconds 3
-  }
 }
 if (-not $phaseAOk) { Save-Shot "99-checkup-nofinding-final.png" }
 Start-Sleep -Seconds 2
