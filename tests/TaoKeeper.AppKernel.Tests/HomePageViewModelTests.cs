@@ -57,6 +57,53 @@ public class HomePageViewModelTests
         Assert.Equal("尚未扫描软件清单", vm.QuickCards[0].Subtitle);
     }
 
+    // ---- R-P1-3 定向回归：红灯②「Nullable object must have a value」崩溃三路径 ----
+
+    [Fact]
+    public void R1P3_未体检打开总览_不崩溃_副文未测文案()
+    {
+        // ①未体检状态打开总览：副标题「时间未记」类未测文案，不出现强拆空值崩溃
+        var vm = HomePageViewModel.Build(
+            new CheckupPageViewModel().RunCheckup(HealthContext.Empty, Now), // 未测体检
+            null, null, null, null, Array.Empty<LedgerEntry>(), Now);
+
+        Assert.Equal("尚无体检记录，先做一次体检看看整体状况", vm.HeroSubtitle);
+        Assert.True(vm.Score is null);
+    }
+
+    [Fact]
+    public void R1P3_体检后返回总览_副文含时间与评分()
+    {
+        // ②跑完体检返回总览：副标题显示最近一次体检时间与结论摘要
+        var checkupAt = Now.AddDays(-1);
+        var checkup = new CheckupPageViewModel().RunCheckup(new HealthContext(
+            JunkReclaimableBytes: 1_000_000, DuplicateReclaimableBytes: null,
+            StartupItemCount: 2, SystemDiskFreePercent: null), checkupAt);
+
+        var vm = HomePageViewModel.Build(
+            checkup, checkupAt, null, null, null, Array.Empty<LedgerEntry>(), Now);
+
+        Assert.Contains("上次体检", vm.HeroSubtitle);
+        Assert.Contains("评分", vm.HeroSubtitle);
+        Assert.False(vm.Score is null);
+    }
+
+    [Fact]
+    public void R1P3_持久化时间缺失_重启后再进总览_不崩溃_时间未记()
+    {
+        // ③重启应用后再进总览：持久化时间为空（存档丢失/未写入）但体检记录在——
+        // 任何路径不出现「Nullable object must have a value」
+        var checkup = new CheckupPageViewModel().RunCheckup(new HealthContext(
+            JunkReclaimableBytes: 1_000_000, DuplicateReclaimableBytes: null,
+            StartupItemCount: 2, SystemDiskFreePercent: null), Now);
+
+        var vm = HomePageViewModel.Build(
+            checkup, lastCheckupAtUtc: null, null, null, null, Array.Empty<LedgerEntry>(), Now);
+
+        Assert.Contains("时间未记", vm.HeroSubtitle);
+        Assert.Contains("跑一次体检", vm.HeroSubtitle);
+    }
+
     [Fact]
     public void 垃圾与升级实测_文案与拦截数如实()
     {
