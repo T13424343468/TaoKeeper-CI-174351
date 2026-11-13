@@ -17,6 +17,10 @@ public class RegistryRunKeyAutostartRegistrarTests
     [Fact]
     public void 沙箱非Windows_注册动作如实失败_不假成功()
     {
+        // CI 在 Windows 上跑：注册表可用，真实注册/反注册归真机验收单（R-P12-9 待真机项），
+        // 单测不污染真注册表，非 Windows 才走到沙箱降级断言。
+        if (OperatingSystem.IsWindows()) return;
+
         // 沙箱跑在 Linux：注册表不可用——按道系边界必须如实失败并给可读原因，不静默假成功
         var registrar = new RegistryRunKeyAutostartRegistrar();
 

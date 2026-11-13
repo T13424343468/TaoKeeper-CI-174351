@@ -66,13 +66,15 @@ public sealed partial class MainWindow : Window
 
         // R-P12-9 托盘常驻：关窗分流——常驻开=取消关闭、整窗隐藏（托盘图标仍在，左键唤回）；
         // 常驻关 或 托盘菜单已请求退出=照常关闭并移除托盘图标。取消是唯一不动数据的路径，零半截态。
-        Closed += OnShellClosed;
+        // Window.Closed 不可取消，WindowClosedEventArgs 在 WinAppSDK 1.5 不存在（CS0234 实证）；
+        // 改走 AppWindow.Closing（可取消），关闭分流语义不变。
+        AppWindow.Closing += OnAppWindowClosing;
 
         Activate();
     }
 
     /// <summary>关窗分流（R-P12-9）：详见构造处注释；隐藏走 Win32 ShowWindow（WinUI Window 无独立 Hide API）。</summary>
-    private void OnShellClosed(Microsoft.UI.Xaml.Window sender, Microsoft.UI.Xaml.WindowClosedEventArgs args)
+    private void OnAppWindowClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
     {
         if (!TrayIconController.QuitRequested && TrayIconController.Resident)
         {
