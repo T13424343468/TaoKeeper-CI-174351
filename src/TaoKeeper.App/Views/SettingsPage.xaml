@@ -72,6 +72,44 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- 托盘（R-P12-9）：开机自启+托盘常驻，保存后经 TrayIconController 即时生效 -->
+                    <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                            BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                            Background="{ThemeResource TaoCardBrush}">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="托盘" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TaoInkBrush}" />
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock Text="开机自启" FontSize="14" FontWeight="SemiBold"
+                                               Foreground="{ThemeResource TaoInkBrush}" />
+                                    <TextBlock Text="与托盘菜单「开机自启」同源" FontSize="12"
+                                               Foreground="{ThemeResource TaoInk3Brush}" />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="TrayAutostartSwitch" Grid.Column="1" VerticalAlignment="Center"
+                                              OnContent="" OffContent="" Toggled="OnTrayAutostartToggled" />
+                            </Grid>
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock Text="托盘常驻" FontSize="14" FontWeight="SemiBold"
+                                               Foreground="{ThemeResource TaoInkBrush}" />
+                                    <TextBlock Text="关闭主窗口后仍保留托盘图标，不勾则随窗口退出" FontSize="12" TextWrapping="Wrap"
+                                               Foreground="{ThemeResource TaoInk3Brush}" />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="TrayResidentSwitch" Grid.Column="1" VerticalAlignment="Center"
+                                              OnContent="" OffContent="" Toggled="OnTrayResidentToggled" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
                     <!-- 软件管家 -->
                     <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
                             BorderBrush="{ThemeResource TaoLineSoftBrush}"

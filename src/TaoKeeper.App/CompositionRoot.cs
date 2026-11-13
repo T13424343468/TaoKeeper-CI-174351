@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TaoKeeper.Adapters;
+using TaoKeeper.AppKernel.Settings;
 using TaoKeeper.AppKernel.ViewModels;
 using TaoKeeper.App.Views;
 using TaoKeeper.Core.Models;
@@ -91,7 +92,9 @@ internal static class CompositionRoot
         shell.BoostViewModelProvider = () => _boost;
         shell.MemViewModelProvider = () => _mem;
         shell.SwStoreViewModelProvider = () => _software;
-        shell.SettingsViewModelProvider = () => new SettingsPageViewModel();
+        // R-P12-9 托盘设置需跨会话生效（自启/常驻），接线既有 AppSettingsStore（路径与 CompositionRoot 数据目录同口径；
+        // AppTheme 主题读取仍走 LocalState 旧口径，双口径待统一，见交接清单）
+        shell.SettingsViewModelProvider = () => new SettingsPageViewModel(ResolveSettingsStore());
         shell.DiskViewModelProvider = () => _disk;
         shell.DriverViewModelProvider = () => _driver;
         shell.CheckupViewModelProvider = () => new CheckupPageViewModel().RunCheckup(_checkupContext); // P4：真实上下文
@@ -116,6 +119,13 @@ internal static class CompositionRoot
         // P11 挂件：一键清理走与主程序同一执行链（同确认、同回收站语义、同清理账）
         WidgetPage.CleanupExecutorProvider = items => CleanupExecutor!(items);
         WidgetPage.JunkCandidatesProvider = JunkCandidatesForWidget;
+
+        // R-P12-9 托盘：立即清理走同一执行链与候选缓存；自启注册器仅 Windows 接线（HKCU Run，非 MSIX 打包形态）
+        TrayIconController.JunkCandidatesProvider = JunkCandidatesForWidget;
+        TrayIconController.CleanupExecutorProvider = items => CleanupExecutor!(items);
+        TrayIconController.AutostartRegistrar = OperatingSystem.IsWindows()
+            ? new RegistryRunKeyAutostartRegistrar()
+            : null;
 
         // 性能加速：真实进程快照（System.Diagnostics 枚举）；内存读数供加速计划判定
         _boost.ProcessSnapshotProvider = CaptureProcessSnapshot;
@@ -147,6 +157,19 @@ internal static class CompositionRoot
     }
 
     private static int? MemUsedPercent() => _memPercent;
+
+    /// <summary>R-P12-9：设置存储渠道（托盘自启/常驻需跨会话生效）。目录不可写时返回 null，页面如实标「仅本会话生效」。</summary>
+    private static AppSettingsStore? ResolveSettingsStore()
+    {
+        try
+        {
+            return new AppSettingsStore(Path.Combine(DataDir, "settings.json"));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return null; // 无存储渠道时设置层自行如实降级（改动仅本会话生效），不假落盘
+        }
+    }
 
     /// <summary>
     /// P-D2：页面文件方案真执行（MemPage 三步确认后调用）。改前自动备份原 PagingFiles，写目标条目；

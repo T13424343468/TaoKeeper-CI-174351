@@ -16,6 +16,9 @@ public partial class App : Application
     /// <summary>主窗引用（页面经此跳转/换肤；未启动完成前为 null）。</summary>
     internal MainWindow? Shell => _mainWindow as MainWindow;
 
+    /// <summary>托盘「打开道管家」/左键唤回：整窗显示并前置（与 MainWindow.ShowFromTray 同一入口）。</summary>
+    private void ShowShell() => Shell?.ShowFromTray();
+
     public App()
     {
         InitializeComponent();
@@ -28,6 +31,12 @@ public partial class App : Application
         _mainWindow = new MainWindow();
         // 组合根接线（各页数据提供者接真实引擎/适配器；接线唯一入口，见 CompositionRoot）
         CompositionRoot.Wire((MainWindow)_mainWindow);
+
+        // R-P12-9 托盘：图标常驻（左键开窗 / 右键五项目菜单）；唤回与挂件路由在此接线，清理与自启在组合根接
+        TrayIconController.OpenMainWindowHandler = ShowShell;
+        TrayIconController.ShowWidgetHandler = () => Shell?.SelectRoute(AppRoute.Widget);
+        TrayIconController.Initialize();
+
         _mainWindow.Activate();
 
         // 直达路由（实效探针/排障用）：--page <pageId|标题>；未识别保持首页，现行默认行为不变

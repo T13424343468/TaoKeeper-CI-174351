@@ -42,6 +42,10 @@ public sealed class AppSettings
     public bool StorageSenseEnabled { get; set; } = false;     // 存储感知定时清理：默认关，到点只出确认预览
     public bool QuickScanByDefault { get; set; } = true;       // 快扫默认开启：打开磁盘清理即快扫
 
+    // ── 托盘（R-P12-9）──
+    public bool TrayAutostart { get; set; } = false;           // 托盘开机自启：与托盘菜单「开机自启」同源（R-P12-9），落 HKCU Run 键
+    public bool TrayResident { get; set; } = true;             // 托盘常驻：关闭主窗口后仍保留托盘图标，不勾则随窗口退出
+
     // ── 桌面挂件 ──
     public HashSet<WidgetContent> WidgetContents { get; set; } = new() { WidgetContent.Memory, WidgetContent.JunkPending };
     public WidgetSize WidgetSize { get; set; } = WidgetSize.Standard;

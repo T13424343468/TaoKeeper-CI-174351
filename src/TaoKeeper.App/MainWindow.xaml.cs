@@ -64,6 +64,29 @@ public sealed partial class MainWindow : Window
         NavList.ItemsSource = _navItems;
         NavList.SelectedIndex = 0; // 首启=总览（原型首页）
 
+        // R-P12-9 托盘常驻：关窗分流——常驻开=取消关闭、整窗隐藏（托盘图标仍在，左键唤回）；
+        // 常驻关 或 托盘菜单已请求退出=照常关闭并移除托盘图标。取消是唯一不动数据的路径，零半截态。
+        Closed += OnShellClosed;
+
+        Activate();
+    }
+
+    /// <summary>关窗分流（R-P12-9）：详见构造处注释；隐藏走 Win32 ShowWindow（WinUI Window 无独立 Hide API）。</summary>
+    private void OnShellClosed(Microsoft.UI.Xaml.Window sender, Microsoft.UI.Xaml.WindowClosedEventArgs args)
+    {
+        if (!TrayIconController.QuitRequested && TrayIconController.Resident)
+        {
+            args.Cancel = true;
+            NativeMethods.ShowWindow(WindowNative.GetWindowHandle(this), NativeMethods.SW_HIDE);
+            return;
+        }
+        TrayIconController.RemoveIcon(); // 退出路径兜底移除（托盘菜单退出已先移除，此处幂等）
+    }
+
+    /// <summary>托盘「打开道管家」/左键唤回：整窗显示并前置（与 App.ShowShell 同一实现入口）。</summary>
+    internal void ShowFromTray()
+    {
+        NativeMethods.ShowWindow(WindowNative.GetWindowHandle(this), NativeMethods.SW_SHOW);
         Activate();
     }
 
@@ -239,4 +262,14 @@ public sealed partial class MainWindow : Window
     /// <summary>运行期换主题（设置页调用）；全局即时生效，与 AppTheme 同一实现。</summary>
     public void ApplyTheme(TaoKeeper.AppKernel.Theming.ThemeName theme) =>
         AppTheme.Apply(Application.Current, theme);
+}
+
+/// <summary>主窗关窗分流所用最小 Win32 面（R-P12-9；WinUI Window 无独立 Hide/Show API）。</summary>
+internal static class NativeMethods
+{
+    internal const int SW_HIDE = 0;
+    internal const int SW_SHOW = 5;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    internal static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 }

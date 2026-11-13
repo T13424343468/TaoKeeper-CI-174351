@@ -145,6 +145,10 @@ public sealed class SettingsPageViewModel
 
     public void SetPendingQuickScanByDefault(bool on) => Pending.QuickScanByDefault = on;
 
+    public void SetPendingTrayAutostart(bool on) => Pending.TrayAutostart = on;
+
+    public void SetPendingTrayResident(bool on) => Pending.TrayResident = on;
+
     public void SetPendingWidgetSize(WidgetSize size) => Pending.WidgetSize = size;
 
     /// <summary>挂件显示内容勾选：原型「想看哪样勾哪样」，空集允许（挂件可只留壳）。</summary>
@@ -242,6 +246,10 @@ public sealed class SettingsPageViewModel
             list.Add($"存储感知定时清理：{OnOff(before.StorageSenseEnabled)} → {OnOff(after.StorageSenseEnabled)}");
         if (before.QuickScanByDefault != after.QuickScanByDefault)
             list.Add($"快扫默认开启：{OnOff(before.QuickScanByDefault)} → {OnOff(after.QuickScanByDefault)}");
+        if (before.TrayAutostart != after.TrayAutostart)
+            list.Add($"托盘开机自启：{OnOff(before.TrayAutostart)} → {OnOff(after.TrayAutostart)}");
+        if (before.TrayResident != after.TrayResident)
+            list.Add($"托盘常驻：{OnOff(before.TrayResident)} → {OnOff(after.TrayResident)}");
         if (before.WidgetSize != after.WidgetSize)
             list.Add($"挂件大小：{SizeText(before.WidgetSize)} → {SizeText(after.WidgetSize)}");
 
