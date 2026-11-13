@@ -208,7 +208,7 @@ Write-Host ("[UIA] nav items: {0} (expect 12), nav right bound: {1}" -f $script:
 # (overview quick cards repeat nav titles, so nav-title markers are unusable).
 $contentMarkers = @{
   '总览' = '可清理垃圾（进回收站）'
-  '软件管家' = '一个顶所有'
+  '软件管家' = '装、升、卸，一条龙'
   '磁盘清理' = '扫得全，清得稳'
   '系统体检' = '六维体检，缺项不误扣分'
   '性能加速' = '开机快人一步'
