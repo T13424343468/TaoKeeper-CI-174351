@@ -168,30 +168,36 @@ function Wait-ContentText([string]$Pattern, [int]$MaxSec) {
 
 # Toggle the checkbox of the suggestion row whose text contains Marker.
 function Toggle-ItemCheckbox([string]$Marker) {
-  # r37 收口（run 43310153590）：页面里种子项与勾选框都真实存在（见 99-toggle-fail.png），
-  # 旧实现从标题文本向上只走 4 层且只搜 Children 找不到勾选框。改为直接枚举内容区
-  # 全部 CheckBox，沿祖先链（8 层）核对行文本含种子名；TogglePattern 失败则退化为
-  # 真实鼠标点击（SetCursorPos+mouse_event），仍失败则把探因写入证据行，不静默吞错。
+  # r40 收口（run 43336053291）：建议行结构是 StackPanel{ CheckBox, StackPanel{名称文本, 依据文本} }
+  # （BoostPage.BuildSuggestionRow）——勾选框与名称文本是兄弟节点，勾选框祖先链里永远不
+  # 含种子名，旧「祖先链匹配」一个候选都匹配不上（r40 日志零诊断输出即此故）。改为：勾选
+  # 框取父行，核对行内后代文本含种子名；Toggle 后回读 ToggleState 验真，未变则退化真实
+  # 鼠标点击（SetCursorPos+mouse_event）再验；仍失败把探因写入证据行，不静默吞错。
   $cbCond = New-Object System.Windows.Automation.PropertyCondition(
     [System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::CheckBox)
-  $trueCond = [System.Windows.Automation.Condition]::TrueCondition
+  $textCond = New-Object System.Windows.Automation.PropertyCondition(
+    [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $script:ctText)
   $diag = ''
+  $matchedAny = 0
   foreach ($cb in $script:root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cbCond)) {
     try { if ($cb.Current.BoundingRectangle.X -le $script:navRight) { continue } } catch { }
-    $chain = ''
-    $cur = $cb
-    for ($hops = 0; $hops -lt 8; $hops++) {
-      $cur = [System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($cur)
-      if ($null -eq $cur) { break }
-      try { $chain += ' ' + $cur.Current.Name } catch { }
-      if ($chain -match $Marker) { break }
+    $row = [System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($cb)
+    if ($null -eq $row) { continue }
+    $rowText = ''
+    foreach ($t in $row.FindAll([System.Windows.Automation.TreeScope]::Descendants, $textCond)) {
+      try { $rowText += ' ' + $t.Current.Name } catch { }
     }
-    if ($chain -notmatch $Marker) { continue }
+    if ($rowText -notmatch [regex]::Escape($Marker)) { continue }
+    $matchedAny++
     try {
-      $cb.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()
+      $tp = $cb.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+      $tp.Toggle()
       Start-Sleep -Seconds 2
-      Write-Host "[D5] toggled via TogglePattern (row chain matched)"
-      return $true
+      if ($tp.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) {
+        Write-Host "[D5] toggled via TogglePattern (row sibling-text matched; ToggleState=On verified)"
+        return $true
+      }
+      $diag = "TogglePattern invoked but ToggleState still $($tp.Current.ToggleState)"
     } catch {
       $diag = "TogglePattern failed: " + $_.Exception.Message
     }
@@ -204,12 +210,19 @@ function Toggle-ItemCheckbox([string]$Marker) {
       Start-Sleep -Milliseconds 80
       [W32C]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero)  # LEFTUP
       Start-Sleep -Seconds 2
-      Write-Host ("[D5] toggled via real mouse click at ({0},{1}) after: {2}" -f $pt.X, $pt.Y, $diag)
-      return $true
+      try {
+        $tp2 = $cb.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+        $diag += " | click at ($($pt.X),$($pt.Y)) -> ToggleState=$($tp2.Current.ToggleState)"
+        if ($tp2.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) {
+          Write-Host ("[D5] toggled via real mouse click at ({0},{1}); ToggleState=On verified" -f $pt.X, $pt.Y)
+          return $true
+        }
+      } catch { $diag += " | post-click state read failed: " + $_.Exception.Message }
     } catch {
       $diag += " | click fallback failed: " + $_.Exception.Message
     }
   }
+  if ($matchedAny -eq 0) { $diag = "no CheckBox row whose sibling text contains the marker (rows seen: " + (($script:root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cbCond)).Count) + ")" }
   if ($diag) { Write-Host ("[D5] toggle diagnosis: {0}" -f $diag) }
   return $false
 }
