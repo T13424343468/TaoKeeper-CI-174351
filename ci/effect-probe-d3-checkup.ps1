@@ -274,7 +274,11 @@ if (-not $confirmClicked) { Save-Shot "99-confirm-fail.png"; Save-EvidenceAndExi
 $resultText = Wait-ContentText '已移入回收站' 120
 if ($resultText) {
   Save-Shot "e4-clean-result.png"
-  $m2 = [regex]::Match($resultText, '成功\s*(\d+)')
+  # r41 收口（run 43346514263）：产品回执真实文案是「已移入回收站 N 条（合计 X）…M 条未动：」
+  # （CleanupCoordinator 回执口径），没有「成功 N」字样；旧正则注定解析失败。改为按产品
+  # 实际回执口径解析移动条数，并回读未动清单条数留痕。
+  $m2 = [regex]::Match($resultText, '已移入回收站\s*(\d+)\s*条')
+  $mSkip = [regex]::Match($resultText, '(\d+)\s*条未动')
   $movedOk = $false
   if ($m2.Success) {
     $moved = [int]$m2.Groups[1].Value
