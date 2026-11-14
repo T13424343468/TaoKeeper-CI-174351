@@ -31,6 +31,7 @@ public sealed class DiskHardcorePageViewModel
     private IHardcoreDiskAdapter? _adapter;
     private IMemoryPageTester? _memoryTester;
     private MirrorRecord? _mirror;
+    private IReadOnlyList<RecoveredFileEntry> _lastScanFiles = [];
 
     /// <summary>建恢复前镜像并扫描（R-P10-5a）；随后做只读分区判读与坏页/坏道只读扫描。</summary>
     public void MirrorAndScan(IHardcoreDiskAdapter adapter, IMemoryPageTester? memoryTester = null)
@@ -81,8 +82,22 @@ public sealed class DiskHardcorePageViewModel
                 : $"发现 {sectors.BadLbas.Count} 个坏道（标记写盘须确认）", null));
 
         Rows = rows;
+        _lastScanFiles = scan.Files;
         RecoverableFiles = scan.Files.Select(FormatFile).ToList();
         IsScanned = true;
+    }
+
+    /// <summary>
+    /// 恢复到用户选定目录（R-P10-5b：恢复=写出到目标目录≠源盘，不动原盘）。
+    /// 只导出完好可救条目；返回（成功数，失败说明）。
+    /// </summary>
+    public (int Restored, string Message) RestoreTo(string targetDirectory)
+    {
+        if (_adapter is null || !IsScanned) return (0, EmptyText);
+        var intact = _lastScanFiles.Where(f => f.Recoverability == Recoverability.Intact).ToList();
+        if (intact.Count == 0) return (0, NoResultText);
+        var (restored, _) = DiskHardcoreEngine.RestoreRecoverable(_adapter, intact, targetDirectory);
+        return (restored, $"已恢复 {restored}/{intact.Count} 条到选定目录（源盘零改动）。");
     }
 
     /// <summary>执行重建（镜像上；二次确认后引擎强制镜像先行+失败回滚）。返回 true=已执行。</summary>

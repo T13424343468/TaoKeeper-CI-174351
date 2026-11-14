@@ -133,10 +133,122 @@ public sealed class WindowsHardcoreDiskAdapter : IHardcoreDiskAdapter
 
     public RecoveryScanReport ScanMirrorForFiles(RecoverabilityFilter filter)
     {
-        // 诚实口径：文件级深扫依赖 MFT 直读（真机 C++ 核心路径），本版如实返回空并注明。
-        return new RecoveryScanReport(
-            MirrorPresent: false,
-            Files: []);
+        // 真实可恢复面=各盘回收站（真删留快照口径外的第二道找回通道）：逐盘解析 $I 元数据（原路径/删除时间/大小），
+        // 数据体 $R 仍在=完好可救；缺失=已覆盖不可救。零外发、全只读。
+        var files = new List<RecoveredFileEntry>();
+        foreach (var drive in DriveInfo.GetDrives())
+        {
+            if (drive.DriveType != DriveType.Fixed || !drive.IsReady) continue;
+            var binRoot = Path.Combine(drive.Name, "$Recycle.Bin");
+            if (!Directory.Exists(binRoot)) continue;
+            foreach (var sidDir in Directory.EnumerateDirectories(binRoot))
+            {
+                foreach (var infoPath in Directory.EnumerateFiles(sidDir, "$I*"))
+                {
+                    try
+                    {
+                        var meta = ParseRecycleInfo(infoPath);
+                        if (meta is null) continue;
+                        var dataPath = Path.Combine(sidDir, "$R" + Path.GetFileName(infoPath)[2..]);
+                        var intact = File.Exists(dataPath);
+                        if (filter == RecoverabilityFilter.IntactOnly && !intact) continue;
+                        files.Add(new RecoveredFileEntry(
+                            Name: Path.GetFileName(meta.Value.OriginalPath),
+                            SizeBytes: meta.Value.SizeBytes,
+                            ModifiedUtc: meta.Value.DeletedUtc,
+                            Path: meta.Value.OriginalPath,
+                            Recoverability: intact ? Recoverability.Intact : Recoverability.Overwritten));
+                    }
+                    catch (Exception) { /* 单条元数据损坏跳过，不影响整单（诚实：该条不报） */ }
+                }
+            }
+        }
+        return new RecoveryScanReport(MirrorPresent: true, Files: files);
+    }
+
+    public int RestoreRecoverableTo(string targetDirectory, IReadOnlyList<RecoveredFileEntry> files)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetDirectory);
+        ArgumentNullException.ThrowIfNull(files);
+        if (!OperatingSystem.IsWindows()) return 0;
+        Directory.CreateDirectory(targetDirectory); // 目标=用户选定目录，只写这里
+        int restored = 0;
+        foreach (var f in files)
+        {
+            if (f.Recoverability != Recoverability.Intact || string.IsNullOrEmpty(f.Path)) continue;
+            // 由原路径反查回收站数据体（$R 与 $I 同名同目录）
+            var original = f.Path;
+            var root = Path.GetPathRoot(original) ?? string.Empty;
+            if (root.Length == 0) continue;
+            var sidBins = Path.Combine(root, "$Recycle.Bin");
+            if (!Directory.Exists(sidBins)) continue;
+            foreach (var sidDir in Directory.EnumerateDirectories(sidBins))
+            {
+                var dataPath = Path.Combine(sidDir, "$R" + Path.GetFileName(original));
+                if (!File.Exists(dataPath)) continue;
+                try
+                {
+                    var dest = UniqueTarget(Path.Combine(targetDirectory, Path.GetFileName(original)));
+                    File.Copy(dataPath, dest, overwrite: false); // 只写目标目录
+                    restored++;
+                }
+                catch (Exception) { /* 单条失败如实计入，不中断整体 */ }
+                break;
+            }
+        }
+        return restored;
+    }
+
+    private static (string OriginalPath, long SizeBytes, DateTimeOffset DeletedUtc)? ParseRecycleInfo(string infoPath)
+    {
+        var bytes = File.ReadAllBytes(infoPath);
+        if (bytes.Length < 24) return null;
+        // $I 格式：头 8 字节=版本号；Win10+（版本 2）：大小=偏移 8（Int64），删除时间=偏移 16（Int64 FILETIME），原路径=偏移 24 起的 UTF-16
+        long size;
+        long fileTime;
+        int pathOffset;
+        var header = BitConverter.ToInt64(bytes, 0);
+        if (header is 2 or 3)
+        {
+            size = BitConverter.ToInt64(bytes, 8);
+            fileTime = BitConverter.ToInt64(bytes, 16);
+            pathOffset = 24;
+        }
+        else if (header == 1)
+        {
+            // Win Vista/7/8：大小=偏移 8（Int32），时间=偏移 12（Int64），路径=偏移 24（260 字符 UTF-16）
+            size = BitConverter.ToInt32(bytes, 8);
+            fileTime = BitConverter.ToInt64(bytes, 12);
+            pathOffset = 24;
+        }
+        else
+        {
+            return null; // 未知版本不猜（不假数据）
+        }
+
+        var chars = new List<char>();
+        for (var i = pathOffset; i + 1 < bytes.Length; i += 2)
+        {
+            var c = BitConverter.ToChar(bytes, i);
+            if (c == '\0') break;
+            chars.Add(c);
+        }
+        var originalPath = new string(chars.ToArray());
+        if (originalPath.Length == 0) return null;
+        return (originalPath, size, DateTimeOffset.FromFileTime(fileTime));
+    }
+
+    private static string UniqueTarget(string path)
+    {
+        if (!File.Exists(path)) return path;
+        var dir = Path.GetDirectoryName(path) ?? ".";
+        var name = Path.GetFileNameWithoutExtension(path);
+        var ext = Path.GetExtension(path);
+        for (var i = 1; ; i++)
+        {
+            var candidate = Path.Combine(dir, $"{name}({i}){ext}");
+            if (!File.Exists(candidate)) return candidate;
+        }
     }
 
     private static bool TryReadVolumeLabel(DriveInfo drive, out string? label)

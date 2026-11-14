@@ -180,6 +180,17 @@
                 </StackPanel>
             </Border>
 
+            <Border x:Name="CtxResult" CornerRadius="14" BorderThickness="1" Padding="18,14" Visibility="Collapsed"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="右键菜单管理" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock Text="禁用=可逆（键改名不删除），点「启用」随时还原；列出的都是本机真实条目。" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    <ScrollViewer MaxHeight="280">
+                        <ItemsControl x:Name="CtxList" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
             <Border x:Name="ShredResult" CornerRadius="14" BorderThickness="1" Padding="18,14" Visibility="Collapsed"
                     BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                 <StackPanel Spacing="8">

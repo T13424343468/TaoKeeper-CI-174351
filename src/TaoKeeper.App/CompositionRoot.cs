@@ -274,7 +274,13 @@ internal static class CompositionRoot
                 OperatingSystem.IsWindows()
                     ? new TaoKeeper.Adapters.WindowsHardcoreDiskAdapter(Path.Combine(DataDir, "mirror"))
                     : null;
-            // 内存坏页测试器：真机内存页测试需内核口径，本版不接线（页面如实不预填该栏，不假数据）
+            // 内存坏页探针接线：本进程写读校验（真实探针，D3 口径；启动级全检标待真机）
+            DiskHardcorePage.MemoryTesterProvider = () =>
+                OperatingSystem.IsWindows() ? new TaoKeeper.Adapters.Win32MemoryPageTester() : null;
+
+            // R-P10-6 右键菜单管理接线（Windows 注册表适配器；非 Windows 不提供，页面如实显示）
+            ToolsPage.ContextMenuManagerProvider = () =>
+                OperatingSystem.IsWindows() ? new TaoKeeper.Adapters.WindowsContextMenuAdapter() : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {

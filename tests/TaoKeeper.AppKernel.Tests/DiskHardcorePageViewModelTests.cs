@@ -32,6 +32,14 @@ public class DiskHardcorePageViewModelTests
 
         public RecoveryScanReport ScanMirrorForFiles(RecoverabilityFilter filter) =>
             new(MirrorPresent: true, Files);
+
+        public int RestoreRecoverableTo(string targetDirectory, IReadOnlyList<RecoveredFileEntry> files)
+        {
+            RestoredCount = files.Count;
+            return files.Count;
+        }
+
+        public int? RestoredCount { get; private set; }
     }
 
     [Fact]
@@ -99,5 +107,44 @@ public class DiskHardcorePageViewModelTests
     {
         var vm = new DiskHardcorePageViewModel();
         Assert.False(vm.MarkBadSectors());
+    }
+
+    [Fact]
+    public void RestoreTo_RequiresPriorScan()
+    {
+        var vm = new DiskHardcorePageViewModel();
+        var (restored, message) = vm.RestoreTo(@"D:\out");
+        Assert.Equal(0, restored);
+        Assert.Equal(vm.EmptyText, message);
+    }
+
+    [Fact]
+    public void RestoreTo_NoIntact_FailsHonestly()
+    {
+        var vm = new DiskHardcorePageViewModel();
+        vm.MirrorAndScan(new FakeAdapter()); // 无文件
+        var (restored, message) = vm.RestoreTo(@"D:\out");
+        Assert.Equal(0, restored);
+        Assert.Equal(vm.NoResultText, message);
+    }
+
+    [Fact]
+    public void RestoreTo_IntactOnly_ExportsToChosenDir()
+    {
+        var vm = new DiskHardcorePageViewModel();
+        var adapter = new FakeAdapter
+        {
+            Files =
+            [
+                new("a.txt", 10, null, @"C:\a.txt", Recoverability.Intact),
+                new("b.bin", 20, null, @"C:\b.bin", Recoverability.Overwritten),
+            ],
+        };
+        vm.MirrorAndScan(adapter);
+        var (restored, message) = vm.RestoreTo(@"D:\out");
+        Assert.Equal(1, restored); // 只导出完好可救
+        Assert.Equal(1, adapter.RestoredCount);
+        Assert.Contains("1/1", message);
+        Assert.Contains("源盘零改动", message);
     }
 }

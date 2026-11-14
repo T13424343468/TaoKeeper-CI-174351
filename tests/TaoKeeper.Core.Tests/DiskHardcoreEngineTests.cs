@@ -63,6 +63,12 @@ public class DiskHardcoreEngineTests
             CallLog.Add("mirror-scan");
             return new RecoveryScanReport(MirrorPresent: true, Files);
         }
+
+        public int RestoreRecoverableTo(string targetDirectory, IReadOnlyList<RecoveredFileEntry> files)
+        {
+            CallLog.Add($"restore:{targetDirectory}:{files.Count}");
+            return files.Count;
+        }
     }
 
     private sealed class FakeMemoryTester : IMemoryPageTester
@@ -164,5 +170,34 @@ public class DiskHardcoreEngineTests
         var a = new FakeAdapter { Files = [] };
         var (_, scan) = DiskHardcoreEngine.MirrorAndScan(a);
         Assert.Empty(scan.Files); // 扫不出=空报告（N9 不编数据）
+    }
+
+    [Fact]
+    public void RestoreRecoverable_EmptyList_NoWrite()
+    {
+        var a = new FakeAdapter();
+        var (restored, failed) = DiskHardcoreEngine.RestoreRecoverable(a, [], @"D:\recovered");
+        Assert.Equal(0, restored);
+        Assert.Empty(failed);
+        Assert.DoesNotContain("restore", a.CallLog); // 无条目不摸盘
+    }
+
+    [Fact]
+    public void RestoreRecoverable_WritesOnlyToTargetDir()
+    {
+        var a = new FakeAdapter();
+        var files = new List<RecoveredFileEntry> { new("a.txt", 10, null, @"C:\a.txt", Recoverability.Intact) };
+        var (restored, _) = DiskHardcoreEngine.RestoreRecoverable(a, files, @"D:\recovered");
+        Assert.Equal(1, restored);
+        Assert.Contains("restore:D:\\recovered:1", a.CallLog); // 目标=用户选定目录（≠源盘）
+    }
+
+    [Fact]
+    public void RestoreRecoverable_NullOrEmptyTarget_Throws()
+    {
+        var a = new FakeAdapter();
+        var files = new List<RecoveredFileEntry>();
+        Assert.Throws<ArgumentException>(() => DiskHardcoreEngine.RestoreRecoverable(a, files, " "));
+        Assert.Throws<ArgumentNullException>(() => DiskHardcoreEngine.RestoreRecoverable(a, null!, @"D:\x"));
     }
 }

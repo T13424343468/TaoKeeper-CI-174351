@@ -24,6 +24,8 @@
                         CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonGhost}" />
                 <Button x:Name="MarkButton" Content="标记坏道" Click="OnMark"
                         CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonGhost}" />
+                <Button x:Name="RestoreButton" Content="恢复到选定目录…" Click="OnRestore"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonGhost}" />
             </StackPanel>
 
             <TextBlock x:Name="EmptyLine" FontSize="12" TextWrapping="Wrap"

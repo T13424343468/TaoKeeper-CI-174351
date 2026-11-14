@@ -83,6 +83,37 @@ public sealed partial class DiskHardcorePage : Page
         if (_vm.MarkBadSectors()) Render();
     }
 
+    /// <summary>恢复到用户选定目录（R-P10-5b：只写目标目录，源盘零改动）。</summary>
+    private async void OnRestore(object sender, RoutedEventArgs e)
+    {
+        if (!_vm.IsScanned)
+        {
+            EmptyLine.Text = _vm.EmptyText;
+            EmptyLine.Visibility = Visibility.Visible;
+            return;
+        }
+
+        // WinUI 桌面：FolderPicker 需要窗口句柄初始化（与文件粉碎选择器同口径）
+        var shell = (Application.Current as App)?.Shell;
+        if (shell is null)
+        {
+            EmptyLine.Text = "窗口尚未就绪，无法打开目录选择器。";
+            EmptyLine.Visibility = Visibility.Visible;
+            return;
+        }
+        var picker = new Windows.Storage.Pickers.FolderPicker
+        {
+            SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.Desktop,
+        };
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(shell));
+        var folder = await picker.PickSingleFolderAsync();
+        if (folder is null) return;
+
+        var (restored, message) = _vm.RestoreTo(folder.Path);
+        EmptyLine.Text = message;
+        EmptyLine.Visibility = Visibility.Visible;
+    }
+
     private void Render()
     {
         EmptyLine.Visibility = Visibility.Collapsed;

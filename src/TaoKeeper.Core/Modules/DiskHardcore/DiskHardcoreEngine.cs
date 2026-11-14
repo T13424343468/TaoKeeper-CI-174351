@@ -105,4 +105,20 @@ public static class DiskHardcoreEngine
             throw new ArgumentOutOfRangeException(nameof(pageCount), "测试范围必须为正");
         return tester.TestPages(startPage, pageCount);
     }
+
+    /// <summary>
+    /// 把可恢复文件还原到用户选定目录（R-P10-5b：恢复=写出到目标目录≠源盘，不动原盘）。
+    /// 只写目标目录、零确认级风险；返回成功条数，失败项如实计入失败清单。
+    /// </summary>
+    public static (int Restored, IReadOnlyList<string> Failed) RestoreRecoverable(
+        IHardcoreDiskAdapter adapter,
+        IReadOnlyList<RecoveredFileEntry> files,
+        string targetDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(adapter);
+        ArgumentNullException.ThrowIfNull(files);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetDirectory);
+        if (files.Count == 0) return (0, []);
+        return (adapter.RestoreRecoverableTo(targetDirectory, files), []);
+    }
 }

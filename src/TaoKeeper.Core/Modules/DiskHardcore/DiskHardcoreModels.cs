@@ -83,6 +83,9 @@ public interface IHardcoreDiskAdapter
 
     /// <summary>在镜像上执行恢复前镜像导出的扇区级深扫（RAW 深扫），产出可恢复文件清单。</summary>
     RecoveryScanReport ScanMirrorForFiles(RecoverabilityFilter filter);
+
+    /// <summary>把可恢复文件还原到用户选定目录（只写目标目录，绝不碰源盘，R-P10-5b）；返回成功条数。</summary>
+    int RestoreRecoverableTo(string targetDirectory, IReadOnlyList<RecoveredFileEntry> files);
 }
 
 /// <summary>可恢复度过滤（缺省=全列）。</summary>
