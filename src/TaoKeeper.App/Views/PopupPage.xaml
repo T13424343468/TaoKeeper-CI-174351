@@ -17,7 +17,7 @@
             <TextBlock Text="合规的安静：规则清单、逐条开关、白名单、拦截可回溯" FontSize="13.5"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
-            <TextBlock x:Name="SummaryText" FontSize="12.5" Foreground="{ThemeResource TaoInk2Brush}" />
+            <TextBlock x:Name="SummaryText" FontSize="12" Foreground="{ThemeResource TaoInk2Brush}" />
 
             <!-- 真实弹窗检测：只读枚举可见顶层窗口，命中规则才给处置按钮（合规形态，不注入不劫持） -->
             <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
@@ -26,7 +26,7 @@
                     <TextBlock Text="真实弹窗检测" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
                     <Button x:Name="DetectButton" Content="检测当前可见窗口（只读，不碰任何窗口）"
                             Click="OnDetectClick" CornerRadius="10" Padding="14,7" HorizontalAlignment="Left" />
-                    <TextBlock x:Name="DetectSummary" FontSize="12.5" TextWrapping="Wrap"
+                    <TextBlock x:Name="DetectSummary" FontSize="12" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk2Brush}"
                                Text="点上面按钮枚举当前可见顶层窗口：命中启用规则的窗口可确认后屏蔽（WM_CLOSE 优雅关闭），白名单命中放行并留痕。" />
                     <ItemsControl x:Name="DetectList" />
@@ -86,7 +86,7 @@
                     <StackPanel Spacing="8">
                         <TextBlock Text="白名单" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
                         <TextBlock x:Name="WhitelistEmpty" Text="白名单为空；把不想拦的应用加进来，命中即放行并留痕。"
-                                   FontSize="12.5" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}"
+                                   FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}"
                                    Visibility="Collapsed" />
                         <ItemsControl x:Name="WhitelistList" />
                     </StackPanel>
@@ -96,13 +96,13 @@
                     <StackPanel Spacing="8">
                         <TextBlock Text="拦截记录 · 可回溯" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
                         <TextBlock x:Name="RecordsEmpty" Text="还没有拦截或放行记录。"
-                                   FontSize="12.5" Foreground="{ThemeResource TaoInk3Brush}" Visibility="Collapsed" />
+                                   FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" Visibility="Collapsed" />
                         <ItemsControl x:Name="RecordList" />
                     </StackPanel>
                 </Border>
             </Grid>
 
-            <TextBlock FontSize="12.5" TextWrapping="Wrap"
+            <TextBlock FontSize="12" TextWrapping="Wrap"
                        Foreground="{ThemeResource TaoInk3Brush}"
                        Text="只做规则识别与提醒，不做窗口劫持、不改系统钩子——这是合规红线。" />
         </StackPanel>

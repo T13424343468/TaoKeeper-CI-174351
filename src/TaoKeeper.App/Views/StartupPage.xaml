@@ -21,10 +21,10 @@
             <StackPanel Orientation="Horizontal" Spacing="10">
                 <Button x:Name="RescanButton" Content="重新扫描" Click="OnRescan"
                         CornerRadius="10" Padding="22,9"
-                        Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                        Style="{StaticResource TaoButtonPrimary}" />
                 <ProgressRing x:Name="ScanRing" Width="22" Height="22" Visibility="Collapsed" />
             </StackPanel>
-            <TextBlock x:Name="ScanStatus" FontSize="12.5" TextWrapping="Wrap" Visibility="Collapsed"
+            <TextBlock x:Name="ScanStatus" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
             <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
@@ -33,7 +33,7 @@
                 <StackPanel Spacing="10">
                     <TextBlock x:Name="SummaryLine" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="EmptyLine" FontSize="12.5" TextWrapping="Wrap"
+                    <TextBlock x:Name="EmptyLine" FontSize="12" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk3Brush}"
                                Text="尚未扫描启动项（等待运行期接线；不假数据）。" />
                     <ItemsControl x:Name="ItemList" />

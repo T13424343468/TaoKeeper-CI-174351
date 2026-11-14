@@ -11,7 +11,7 @@
     xmlns:local="using:TaoKeeper.App.Views">
 
     <ScrollViewer>
-        <StackPanel MaxWidth="980" Padding="28,22,28,30" Spacing="14">
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
             <TextBlock Text="工具箱" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
             <TextBlock Text="工具箱" FontSize="26" FontWeight="SemiBold"
                        Foreground="{ThemeResource TaoInkBrush}" />
@@ -107,7 +107,7 @@
             </Grid>
 
             <!-- 状态与结果区（点击卡片后展开；未扫描如实显示） -->
-            <TextBlock x:Name="ToolStatus" FontSize="12.5" TextWrapping="Wrap"
+            <TextBlock x:Name="ToolStatus" FontSize="12" TextWrapping="Wrap"
                        Foreground="{ThemeResource TaoInk3Brush}"
                        Text="点上面的卡片开始；扫描与处理通道随运行期接线启用。" />
 
@@ -115,7 +115,7 @@
                     BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                 <StackPanel Spacing="8">
                     <TextBlock Text="大文件与空文件夹" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="LargeSummary" FontSize="12.5" Foreground="{ThemeResource TaoInk2Brush}" />
+                    <TextBlock x:Name="LargeSummary" FontSize="12" Foreground="{ThemeResource TaoInk2Brush}" />
                     <ListView x:Name="LargeItems" MaxHeight="260" SelectionMode="None">
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="local:ToolItemRow">
@@ -124,9 +124,9 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{x:Bind PathText}" FontSize="12.5" TextWrapping="NoWrap"
+                                    <TextBlock Grid.Column="0" Text="{x:Bind PathText}" FontSize="12" TextWrapping="NoWrap"
                                                TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TaoInkBrush}" />
-                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" FontSize="12.5" FontWeight="Bold"
+                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" FontSize="12" FontWeight="Bold"
                                                Foreground="{ThemeResource TaoAzureDeepBrush}" />
                                 </Grid>
                             </DataTemplate>
@@ -141,7 +141,7 @@
                     BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                 <StackPanel Spacing="8">
                     <TextBlock Text="磁盘空间地图（目录 Top-N）" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="SpaceSummary" FontSize="12.5" Foreground="{ThemeResource TaoInk2Brush}" />
+                    <TextBlock x:Name="SpaceSummary" FontSize="12" Foreground="{ThemeResource TaoInk2Brush}" />
                     <ListView x:Name="SpaceItems" MaxHeight="260" SelectionMode="None">
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="local:ToolItemRow">
@@ -150,9 +150,9 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{x:Bind PathText}" FontSize="12.5" TextWrapping="NoWrap"
+                                    <TextBlock Grid.Column="0" Text="{x:Bind PathText}" FontSize="12" TextWrapping="NoWrap"
                                                TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TaoInkBrush}" />
-                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" FontSize="12.5" FontWeight="Bold"
+                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" FontSize="12" FontWeight="Bold"
                                                Foreground="{ThemeResource TaoAzureDeepBrush}" />
                                 </Grid>
                             </DataTemplate>
@@ -165,7 +165,7 @@
                     BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                 <StackPanel Spacing="8">
                     <TextBlock Text="重复文件" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="DupSummary" FontSize="12.5" Foreground="{ThemeResource TaoInk2Brush}" />
+                    <TextBlock x:Name="DupSummary" FontSize="12" Foreground="{ThemeResource TaoInk2Brush}" />
                     <TextBlock FontSize="12" Foreground="{ThemeResource TaoInk3Brush}"
                                Text="同名同尺寸同哈希才判重；清理前逐组确认，保留份不动。" />
                 </StackPanel>
@@ -175,7 +175,7 @@
                     BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                 <StackPanel Spacing="8">
                     <TextBlock Text="文件粉碎" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="ShredSummary" FontSize="12.5" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    <TextBlock x:Name="ShredSummary" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button x:Name="ShredPickButton" Content="选择文件…" Click="OnShredPick" />
                         <Button x:Name="ShredRunButton" Content="开始粉碎" Click="OnShredRun" IsEnabled="False" />
@@ -192,9 +192,9 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{x:Bind PathText}" FontSize="12.5" TextWrapping="NoWrap"
+                                    <TextBlock Grid.Column="0" Text="{x:Bind PathText}" FontSize="12" TextWrapping="NoWrap"
                                                TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TaoInkBrush}" />
-                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" FontSize="12.5" FontWeight="Bold"
+                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" FontSize="12" FontWeight="Bold"
                                                Foreground="{ThemeResource TaoAzureDeepBrush}" />
                                 </Grid>
                             </DataTemplate>

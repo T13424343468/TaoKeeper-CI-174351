@@ -49,7 +49,7 @@
                     <TextBox x:Name="StoreSearchBox" Grid.Column="0" PlaceholderText="搜软件名，如：微信、VS Code、7-Zip…"
                              CornerRadius="10" />
                     <Button Grid.Column="1" Content="搜一下" Click="OnStoreSearch" CornerRadius="10" Padding="16,7"
-                            Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                            Style="{StaticResource TaoButtonPrimary}" />
                 </Grid>
 
                 <Border CornerRadius="12" BorderThickness="1" Padding="14,10"
@@ -72,15 +72,15 @@
                     <Button Content="系统工具" CornerRadius="14" Padding="12,4" />
                 </StackPanel>
 
-                <TextBlock x:Name="StoreHint" FontSize="12.5" Foreground="{ThemeResource TaoInk3Brush}"
+                <TextBlock x:Name="StoreHint" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}"
                            Text="软件库检索随官方源适配层接入后可用；已装清单见下方。" />
                 <ItemsControl x:Name="StoreList" />
             </StackPanel>
 
             <!-- 升级中心 -->
             <StackPanel x:Name="PaneUpgrade" Spacing="12" Visibility="Collapsed">
-                <TextBlock x:Name="UpgradeSummary" FontSize="13" Foreground="{ThemeResource TaoInk2Brush}" />
-                <TextBlock x:Name="BlockedHint" FontSize="12.5" TextWrapping="Wrap"
+                <TextBlock x:Name="UpgradeSummary" FontSize="13.5" Foreground="{ThemeResource TaoInk2Brush}" />
+                <TextBlock x:Name="BlockedHint" FontSize="12" TextWrapping="Wrap"
                            Foreground="{ThemeResource TaoCinnabarBrush}" Visibility="Collapsed" />
                 <TextBlock Text="需你确认的升级（逐项过目，默认不静默）" FontSize="13.5" FontWeight="SemiBold"
                            Foreground="{ThemeResource TaoInkBrush}" />
@@ -91,8 +91,12 @@
 
             <!-- 卸载中心 -->
             <StackPanel x:Name="PaneUninstall" Spacing="12" Visibility="Collapsed">
-                <TextBlock Text="卸载走系统正规入口，不做进程强杀；每一步都先经你确认。" FontSize="12.5"
+                <TextBlock Text="卸载走系统正规入口，不做进程强杀；每一步都先经你确认。" FontSize="12"
                            TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                <!-- R-4/C3：空态全覆盖——未扫描/无已装软件有明确反馈，不装死 -->
+                <TextBlock x:Name="UninstallEmpty" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
+                           Foreground="{ThemeResource TaoInk3Brush}"
+                           Text="还没扫到已装软件。扫描接线后这里逐行列出，卸载前先经你确认。" />
                 <ItemsControl x:Name="UninstallList" />
             </StackPanel>
 
@@ -102,7 +106,7 @@
                     Visibility="Collapsed">
                 <StackPanel Spacing="8">
                     <TextBlock Text="安全承诺" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock FontSize="12.5" LineHeight="22" TextWrapping="Wrap"
+                    <TextBlock FontSize="12" LineHeight="22" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk2Brush}"
                                Text="只装官方源软件，装前哈希校验、装后可回溯；不捆绑、不装全家桶、不静默装软件；每笔安装记入安装账，随时可查可卸。默认安装位置 D:\TaoKeeper\Soft，不往 C 盘塞。" />
                 </StackPanel>

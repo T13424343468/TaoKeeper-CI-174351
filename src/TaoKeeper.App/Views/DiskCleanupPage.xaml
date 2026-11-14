@@ -19,8 +19,8 @@
 
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <Button x:Name="ScanButton" Content="开始扫描" Click="OnScanClick" CornerRadius="10"
-                        Padding="16,7" Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
-                <TextBlock x:Name="ScanStatus" VerticalAlignment="Center" FontSize="12.5" TextWrapping="Wrap"
+                        Padding="16,7" Style="{StaticResource TaoButtonPrimary}" />
+                <TextBlock x:Name="ScanStatus" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap"
                            Foreground="{ThemeResource TaoInk3Brush}" />
             </StackPanel>
 
@@ -68,11 +68,11 @@
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="2">
                                 <TextBlock x:Name="RingTotal" FontSize="24" FontWeight="SemiBold"
                                            HorizontalAlignment="Center" Foreground="{ThemeResource TaoInkBrush}" />
-                                <TextBlock Text="可清理 · 先进回收站" FontSize="11.5" HorizontalAlignment="Center"
+                                <TextBlock Text="可清理 · 先进回收站" FontSize="12" HorizontalAlignment="Center"
                                            Foreground="{ThemeResource TaoInk3Brush}" />
                             </StackPanel>
                         </Grid>
-                        <TextBlock x:Name="VolumeText" FontSize="13" HorizontalAlignment="Center" TextWrapping="Wrap"
+                        <TextBlock x:Name="VolumeText" FontSize="13.5" HorizontalAlignment="Center" TextWrapping="Wrap"
                                    Foreground="{ThemeResource TaoInk2Brush}" />
                     </StackPanel>
                 </Border>
@@ -83,7 +83,7 @@
                     <StackPanel Spacing="8">
                         <TextBlock Text="可清项目" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{ThemeResource TaoInkBrush}" />
-                        <TextBlock x:Name="JunkEmpty" FontSize="12.5" TextWrapping="Wrap"
+                        <TextBlock x:Name="JunkEmpty" FontSize="12" TextWrapping="Wrap"
                                    Foreground="{ThemeResource TaoInk3Brush}"
                                    Text="尚未扫描。扫描接线后，各类垃圾按规则聚合在这里（高风险项默认不勾）。" />
                         <ItemsControl x:Name="JunkRows" />
@@ -92,13 +92,13 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="SelectedSummary" Grid.Column="0" FontSize="13" VerticalAlignment="Center"
+                            <TextBlock x:Name="SelectedSummary" Grid.Column="0" FontSize="13.5" VerticalAlignment="Center"
                                        Foreground="{ThemeResource TaoInk2Brush}" />
                             <Button x:Name="CleanButton" Grid.Column="1" Content="清理（先进回收站）" Click="OnCleanClick"
                                     CornerRadius="10" Padding="16,7" Margin="8,0,0,0"
-                                    Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                                    Style="{StaticResource TaoButtonPrimary}" />
                         </Grid>
-                        <TextBlock FontSize="12.5" TextWrapping="Wrap" Margin="0,4,0,0"
+                        <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
                                    Foreground="{ThemeResource TaoInk3Brush}"
                                    Text="大文件、重复文件、相似图片请在工具箱中使用；清理动作全部先进回收站，可随时还原。" />
                     </StackPanel>

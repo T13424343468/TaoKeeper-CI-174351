@@ -28,10 +28,10 @@
                         <TextBlock x:Name="SummaryText" FontSize="13.5" TextWrapping="Wrap"
                                    Foreground="{ThemeResource TaoInkBrush}" />
                     </StackPanel>
-                    <TextBlock x:Name="StatusText" FontSize="12.5" TextWrapping="Wrap"
+                    <TextBlock x:Name="StatusText" FontSize="12" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk3Brush}"
                                Text="尚未扫描。" />
-                    <TextBlock x:Name="EmptyHint" FontSize="12.5" TextWrapping="Wrap"
+                    <TextBlock x:Name="EmptyHint" FontSize="12" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk3Brush}"
                                Text="没找到相似照片。识别只比像素指纹，不动任何文件；不可识别的图会如实跳过。" />
                 </StackPanel>
@@ -57,7 +57,7 @@
                     </StackPanel>
                     <Button x:Name="QueueButton" Grid.Column="1" Content="转入确认队列（先进回收站）"
                             Click="OnQueueClick" CornerRadius="10" Padding="16,7" VerticalAlignment="Center"
-                            Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                            Style="{StaticResource TaoButtonPrimary}" />
                 </Grid>
             </Border>
 

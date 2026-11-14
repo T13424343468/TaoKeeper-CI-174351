@@ -53,7 +53,7 @@
                         <TextBlock x:Name="PhysTitle" Text="物理内存" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{ThemeResource TaoInkBrush}" />
                         <ProgressBar x:Name="PhysBar" Height="8" CornerRadius="4" />
-                        <TextBlock x:Name="PhysDetail" FontSize="12.5" TextWrapping="Wrap"
+                        <TextBlock x:Name="PhysDetail" FontSize="12" TextWrapping="Wrap"
                                    Foreground="{ThemeResource TaoInk2Brush}" />
                     </StackPanel>
                 </Border>
@@ -63,7 +63,7 @@
                         <TextBlock x:Name="PageFileTitle" Text="虚拟内存（页面文件）" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{ThemeResource TaoInkBrush}" />
                         <ProgressBar x:Name="PageFileBar" Height="8" CornerRadius="4" />
-                        <TextBlock x:Name="PageFileDetail" FontSize="12.5" TextWrapping="Wrap"
+                        <TextBlock x:Name="PageFileDetail" FontSize="12" TextWrapping="Wrap"
                                    Foreground="{ThemeResource TaoInk2Brush}" />
                     </StackPanel>
                 </Border>
@@ -85,7 +85,7 @@
                     BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                 <StackPanel Spacing="8">
                     <TextBlock Text="占用排行" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="TopEmpty" Text="尚未采集占用排行。" FontSize="12.5"
+                    <TextBlock x:Name="TopEmpty" Text="尚未采集占用排行。" FontSize="12"
                                Foreground="{ThemeResource TaoInk3Brush}" Visibility="Collapsed" />
                     <ItemsControl x:Name="TopList" />
                 </StackPanel>
@@ -104,7 +104,7 @@
                         <Button x:Name="PlanSystem" Content="系统托管" Click="OnPlanClick" Tag="system" CornerRadius="10" Padding="14,6" />
                         <Button x:Name="PlanCustom" Content="自定义…" Click="OnPlanClick" Tag="custom" CornerRadius="10" Padding="14,6" />
                     </StackPanel>
-                    <TextBlock x:Name="PlanNote" FontSize="13" LineHeight="22" TextWrapping="Wrap"
+                    <TextBlock x:Name="PlanNote" FontSize="13.5" LineHeight="22" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk2Brush}"
                                Text="改动需三步确认，改前自动备份原设置，随时一键回滚；完全关闭页面文件需二次确认并明确警告。" />
                 </StackPanel>

@@ -24,16 +24,16 @@
                 <StackPanel Spacing="10">
                     <TextBlock x:Name="SuggestHeader" FontSize="14" FontWeight="SemiBold"
                                Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="SuggestEmpty" FontSize="12.5" TextWrapping="Wrap"
+                    <TextBlock x:Name="SuggestEmpty" FontSize="12" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk3Brush}"
                                Text="尚未体检加速，暂无建议（等待运行期接线；不假数据）。" />
                     <ItemsControl x:Name="SuggestList" />
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <Button x:Name="ApplyButton" Content="执行勾选项（逐条确认后才会动手）" Click="OnApplyClick"
                                 CornerRadius="10" Padding="16,7"
-                                Background="{ThemeResource TaoAzureBrush}" Foreground="White"
+                                Style="{StaticResource TaoButtonPrimary}"
                                 Visibility="Collapsed" />
-                        <TextBlock x:Name="ReceiptText" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center"
+                        <TextBlock x:Name="ReceiptText" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center"
                                    Foreground="{ThemeResource TaoInk2Brush}" />
                     </StackPanel>
                     <!-- 启动项只读清单入口：不占独立路由，直达只读页（数据未接线时如实未测态） -->
@@ -49,9 +49,9 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="内存瘦身" FontSize="14" FontWeight="SemiBold"
                                Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="MemTrimLine" FontSize="12.5" TextWrapping="Wrap" LineHeight="21"
+                    <TextBlock x:Name="MemTrimLine" FontSize="12" TextWrapping="Wrap" LineHeight="21"
                                Foreground="{ThemeResource TaoInk2Brush}" />
-                    <TextBlock x:Name="BootTimeText" FontSize="12.5" TextWrapping="Wrap" LineHeight="21"
+                    <TextBlock x:Name="BootTimeText" FontSize="12" TextWrapping="Wrap" LineHeight="21"
                                Foreground="{ThemeResource TaoInk3Brush}"
                                Text="开机耗时：未测" />
                 </StackPanel>
@@ -64,7 +64,7 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="进程占用排行" FontSize="14" FontWeight="SemiBold"
                                Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="ProcessEmpty" FontSize="12.5" TextWrapping="Wrap"
+                    <TextBlock x:Name="ProcessEmpty" FontSize="12" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk3Brush}"
                                Text="进程枚举不可得时如实空置（不假数据）；正常情况下这里显示真实进程内存占用 Top 10。" />
                     <ItemsControl x:Name="ProcessList" />

@@ -20,12 +20,12 @@
             <StackPanel Orientation="Horizontal" Spacing="10">
                 <Button x:Name="StartCheckupButton" Content="开始体检" Click="OnStartCheckup"
                         CornerRadius="10" Padding="22,9"
-                        Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                        Style="{StaticResource TaoButtonPrimary}" />
                 <ProgressRing x:Name="RunRing" Width="22" Height="22" Visibility="Collapsed" />
                 <Button x:Name="CancelRunButton" Content="取消" Click="OnCancelRun"
                         CornerRadius="10" Padding="14,9" Visibility="Collapsed" />
             </StackPanel>
-            <TextBlock x:Name="RunStatus" FontSize="12.5" TextWrapping="Wrap" Visibility="Collapsed"
+            <TextBlock x:Name="RunStatus" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
             <!-- R-4/W1+W2：两列卡窄窗折叠——窗口逻辑宽 <1140（内容宽 <880）切单列；环图列 min 200 弹性不塌 -->
@@ -72,7 +72,7 @@
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="2">
                                 <TextBlock x:Name="ScoreText" FontSize="32" FontWeight="SemiBold"
                                            HorizontalAlignment="Center" Foreground="{ThemeResource TaoInkBrush}" />
-                                <TextBlock x:Name="ScoreBand" FontSize="11.5" HorizontalAlignment="Center"
+                                <TextBlock x:Name="ScoreBand" FontSize="12" HorizontalAlignment="Center"
                                            TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}" />
                             </StackPanel>
                         </Grid>
@@ -87,7 +87,7 @@
                     <StackPanel Spacing="8">
                         <TextBlock x:Name="FindingHeader" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{ThemeResource TaoInkBrush}" />
-                        <TextBlock x:Name="FindingEmpty" FontSize="12.5" TextWrapping="Wrap"
+                        <TextBlock x:Name="FindingEmpty" FontSize="12" TextWrapping="Wrap"
                                    Foreground="{ThemeResource TaoInk3Brush}"
                                    Text="尚未体检。各模块扫描接线后，这里给出六维发现清单（按严重度降序，未测维度不误扣分）。" />
                         <ItemsControl x:Name="FindingRows" />

@@ -20,12 +20,12 @@
             <StackPanel Orientation="Horizontal" Spacing="10">
                 <Button x:Name="StartScanButton" Content="开始扫描" Click="OnStartScan"
                         CornerRadius="10" Padding="22,9"
-                        Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                        Style="{StaticResource TaoButtonPrimary}" />
                 <ProgressRing x:Name="ScanRing" Width="22" Height="22" Visibility="Collapsed" />
                 <Button x:Name="CancelScanButton" Content="取消" Click="OnCancelScan"
                         CornerRadius="10" Padding="14,9" Visibility="Collapsed" />
             </StackPanel>
-            <TextBlock x:Name="ScanStatus" FontSize="12.5" TextWrapping="Wrap" Visibility="Collapsed"
+            <TextBlock x:Name="ScanStatus" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
             <!-- 汇总卡 -->
@@ -48,11 +48,11 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="占用最大的目录" FontSize="14" FontWeight="SemiBold"
                                Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="EmptyHint" FontSize="12.5" TextWrapping="Wrap"
+                    <TextBlock x:Name="EmptyHint" FontSize="12" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk3Brush}"
                                Text="尚未扫描。空间扫描接线后，目录按体积降序列在这里（体积分层：≥1 GB 朱砂、≥100 MB 金、其余竹青）。" />
                     <ItemsControl x:Name="DirRows" />
-                    <TextBlock x:Name="HiddenNote" FontSize="12.5" Visibility="Collapsed" TextWrapping="Wrap"
+                    <TextBlock x:Name="HiddenNote" FontSize="12" Visibility="Collapsed" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk3Brush}" />
                 </StackPanel>
             </Border>

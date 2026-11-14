@@ -18,10 +18,10 @@
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
             <StackPanel Orientation="Horizontal" Spacing="12">
-                <TextBlock x:Name="SummaryText" FontSize="13" VerticalAlignment="Center"
+                <TextBlock x:Name="SummaryText" FontSize="13.5" VerticalAlignment="Center"
                            Foreground="{ThemeResource TaoInk2Brush}" Text="尚未扫描驱动清单" />
                 <Button x:Name="ScanButton" Content="扫描驱动" Click="OnScanClick" CornerRadius="10"
-                        Padding="16,7" Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                        Padding="16,7" Style="{StaticResource TaoButtonPrimary}" />
             </StackPanel>
 
             <Border CornerRadius="14" BorderThickness="1" Padding="16,12"
@@ -36,18 +36,18 @@
                             <ColumnDefinition Width="0.9*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="设备" FontSize="12.5" FontWeight="SemiBold" Foreground="{ThemeResource TaoInk3Brush}" />
-                        <TextBlock Grid.Column="1" Text="当前版本" FontSize="12.5" FontWeight="SemiBold" Foreground="{ThemeResource TaoInk3Brush}" />
-                        <TextBlock Grid.Column="2" Text="可用版本" FontSize="12.5" FontWeight="SemiBold" Foreground="{ThemeResource TaoInk3Brush}" />
-                        <TextBlock Grid.Column="3" Text="来源" FontSize="12.5" FontWeight="SemiBold" Foreground="{ThemeResource TaoInk3Brush}" />
-                        <TextBlock Grid.Column="4" Text="" FontSize="12.5" />
+                        <TextBlock Grid.Column="0" Text="设备" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TaoInk3Brush}" />
+                        <TextBlock Grid.Column="1" Text="当前版本" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TaoInk3Brush}" />
+                        <TextBlock Grid.Column="2" Text="可用版本" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TaoInk3Brush}" />
+                        <TextBlock Grid.Column="3" Text="来源" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TaoInk3Brush}" />
+                        <TextBlock Grid.Column="4" Text="" FontSize="12" />
                     </Grid>
                     <Rectangle Height="1" Fill="{ThemeResource TaoLineSoftBrush}" HorizontalAlignment="Stretch" />
                     <ItemsControl x:Name="DriverRows" />
                 </StackPanel>
             </Border>
 
-            <TextBlock FontSize="12.5" TextWrapping="Wrap" LineHeight="20"
+            <TextBlock FontSize="12" TextWrapping="Wrap" LineHeight="20"
                        Foreground="{ThemeResource TaoInk3Brush}"
                        Text="不装第三方改版驱动；每次升级前自动备份当前驱动，出问题一键回滚。高危设备（显卡/芯片组/存储/网络）必须逐项确认，哈希失配的驱动包一律拒绝安装。" />
         </StackPanel>

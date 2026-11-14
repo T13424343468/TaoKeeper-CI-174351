@@ -267,7 +267,17 @@ public sealed partial class SoftwarePage : Page
         if (installed is null)
         {
             UninstallList.ItemsSource = null;
+            // R-4/C3：未扫描空态如实呈现，不装死
+            UninstallEmpty.Text = "还没扫到已装软件。扫描接线后这里逐行列出，卸载前先经你确认。";
+            UninstallEmpty.Visibility = Visibility.Visible;
             return;
+        }
+
+        // R-4/C3：扫过但为空同样有明确反馈
+        UninstallEmpty.Visibility = installed.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (installed.Count == 0)
+        {
+            UninstallEmpty.Text = "这台电脑没有列出可卸载的软件。";
         }
 
         UninstallList.ItemsSource = installed.Select(e =>

@@ -59,7 +59,7 @@
                         <StackPanel Spacing="8">
                             <TextBlock Text="通用" FontSize="14" FontWeight="SemiBold"
                                        Foreground="{ThemeResource TaoInkBrush}" />
-                            <TextBlock Text="界面主题 · 全局即时生效" FontSize="12.5"
+                            <TextBlock Text="界面主题 · 全局即时生效" FontSize="12"
                                        Foreground="{ThemeResource TaoInk2Brush}" />
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Button x:Name="ThemeShuimo" Content="水墨" Click="OnThemeClick" CornerRadius="10" Padding="16,5" />
@@ -201,7 +201,7 @@
                                 <ToggleSwitch x:Name="LedgerSwitch" Grid.Column="1" VerticalAlignment="Center"
                                               OnContent="" OffContent="" Toggled="OnLedgerToggled" />
                             </Grid>
-                            <TextBlock FontSize="12.5" TextWrapping="Wrap"
+                            <TextBlock FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource TaoInk3Brush}"
                                        Text="忽略版本管理：不想跟的升级点「忽略此版」，只跳单版（管理入口随运行期接线，本页不代管）。" />
                             <Grid ColumnSpacing="12">
@@ -307,9 +307,9 @@
                         <StackPanel Spacing="8">
                             <TextBlock Text="提醒与阈值" FontSize="14" FontWeight="SemiBold"
                                        Foreground="{ThemeResource TaoInkBrush}" />
-                            <TextBlock x:Name="MemoryAlertText" FontSize="12.5" TextWrapping="Wrap"
+                            <TextBlock x:Name="MemoryAlertText" FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource TaoInk2Brush}" />
-                            <TextBlock x:Name="DiskFreeAlertText" FontSize="12.5" TextWrapping="Wrap"
+                            <TextBlock x:Name="DiskFreeAlertText" FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource TaoInk2Brush}" />
                             <Grid ColumnSpacing="8">
                                 <Grid.ColumnDefinitions>
@@ -329,10 +329,10 @@
                                 <Button x:Name="DiskFreeEdit" Grid.Column="1" Content="改阈值" VerticalAlignment="Center"
                                         Click="OnStageDiskFree" CornerRadius="10" Padding="14,4" />
                             </Grid>
-                            <TextBlock FontSize="12.5" TextWrapping="Wrap"
+                            <TextBlock FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource TaoInk3Brush}"
                                        Text="六维逐项可关，分数只算你在乎的；通知分级：弹气泡 / 只记清理账，逐类勾选，默认安静（勾选入口随运行期接线）。" />
-                            <TextBlock x:Name="ThresholdError" FontSize="12.5" TextWrapping="Wrap" Visibility="Collapsed"
+                            <TextBlock x:Name="ThresholdError" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
                                        Foreground="{ThemeResource TaoCinnabarBrush}" />
                         </StackPanel>
                     </Border>
@@ -358,14 +358,14 @@
                                 <ToggleSwitch x:Name="WidgetSwitch" Grid.Column="1" VerticalAlignment="Center"
                                               OnContent="" OffContent="" Toggled="OnWidgetToggled" />
                             </Grid>
-                            <TextBlock Text="显示内容 · 想看哪样勾哪样" FontSize="12.5"
+                            <TextBlock Text="显示内容 · 想看哪样勾哪样" FontSize="12"
                                        Foreground="{ThemeResource TaoInk2Brush}" />
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Button x:Name="ContentMemory" Content="内存" Click="OnWidgetContentClick" CornerRadius="10" Padding="14,4" />
                                 <Button x:Name="ContentJunkPending" Content="垃圾待清" Click="OnWidgetContentClick" CornerRadius="10" Padding="14,4" />
                                 <Button x:Name="ContentDiskFree" Content="磁盘余量" Click="OnWidgetContentClick" CornerRadius="10" Padding="14,4" />
                             </StackPanel>
-                            <TextBlock Text="挂件大小 · 两档 · 位置随手拖动" FontSize="12.5"
+                            <TextBlock Text="挂件大小 · 两档 · 位置随手拖动" FontSize="12"
                                        Foreground="{ThemeResource TaoInk2Brush}" />
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Button x:Name="SizeStandard" Content="标准" Click="OnWidgetSizeClick" CornerRadius="10" Padding="14,4" />
@@ -381,7 +381,7 @@
                         <StackPanel Spacing="8">
                             <TextBlock Text="其他" FontSize="14" FontWeight="SemiBold"
                                        Foreground="{ThemeResource TaoInkBrush}" />
-                            <TextBlock x:Name="EntryHint" FontSize="12.5" TextWrapping="Wrap"
+                            <TextBlock x:Name="EntryHint" FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource TaoInk3Brush}" />
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Button x:Name="PopupEntry" Content="弹窗管理 · 去管理" Click="OnPopupEntryClick" CornerRadius="10" Padding="14,4" />
@@ -404,11 +404,11 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock x:Name="PendingSummary" Grid.Column="0" FontSize="12.5" TextWrapping="Wrap"
+                    <TextBlock x:Name="PendingSummary" Grid.Column="0" FontSize="12" TextWrapping="Wrap"
                                VerticalAlignment="Center" Foreground="{ThemeResource TaoInk2Brush}" />
                     <Button x:Name="SaveButton" Grid.Column="1" Content="保存改动" Click="OnSaveClick"
                             CornerRadius="10" Padding="16,6"
-                            Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                            Style="{StaticResource TaoButtonPrimary}" />
                     <Button x:Name="DiscardButton" Grid.Column="2" Content="放弃" Click="OnDiscardClick"
                             CornerRadius="10" Padding="14,6" />
                 </Grid>
