@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    P16 时光回溯（快照链）：总占用可见可清（A16-1 双入口之一；另一入口在空间分析页卡片）；
+    还原确认流全状态（A16-2 原型 flowRestore2）；滚动淘汰不触碰未完结事务（A16-3）；
+    粉碎类快照统一清点、独立保留期默认 7 天可配、到期物理清除前二次确认（R-P16-1）。
+    未扫描=未测态零预填（V-A10，原型示例数禁入）；界面时间本地时区（引擎 UTC 100ns）。
+    入口：空间分析页卡片 + 本页还原入口，不入侧栏导航（V-A6）。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.SnapshotChainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="场景入口" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="时光回溯" FontSize="26" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="清理和修复动过的东西都在这里留了快照，30 天内可还原"
+                       FontSize="13.5" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="RefreshButton" Content="刷新清单" Click="OnRefresh"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonPrimary}" />
+                <Button x:Name="RestoreButton" Content="还原最近一次" Click="OnRestoreLatest"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonGhost}" />
+                <ProgressRing x:Name="RunRing" Width="22" Height="22" Visibility="Collapsed" />
+            </StackPanel>
+
+            <TextBlock x:Name="UsageLine" FontSize="13.5" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock x:Name="QuotaLine" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock x:Name="EmptyLine" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{ThemeResource TaoInk3Brush}"
+                       Text="还没有任何快照：做过清理或修复后这里会出现对应快照，可随时还原。" />
+
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock FontSize="13.5" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}"
+                               Text="快照清单（含粉碎类快照统一清点；粉碎类保留期默认 7 天，到期清除前会再问你一次）" />
+                    <ItemsControl x:Name="SnapshotList" />
+                </StackPanel>
+            </Border>
+            <TextBlock x:Name="ResultLine" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

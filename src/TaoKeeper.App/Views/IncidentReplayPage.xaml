@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    P15 事发回放（归因报告）：时间窗 72h 默认/24h/7d 可选（R-P15-2）；空窗显式提示（A15-2）；
+    归因三件套=最可能原因+验证步骤+置信度（A15-1）；零外发（A15-3/N8 零后端红线主展示位）。
+    跨度=快照保留上限，无任意时刻回放（A15-4 防夸大同口径）。未扫描=未测态零预填（V-A10）。
+    入口：总览/体检场景条，不入侧栏导航（V-A6）。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.IncidentReplayPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="场景入口" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="事发回放" FontSize="26" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="出问题了？看看那段时间前后装过什么、改过什么、发生过什么"
+                       FontSize="13.5" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="LoadButton" Content="查看时间线" Click="OnLoad"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonPrimary}" />
+                <Button x:Name="W24Button" Content="24 小时" Click="OnWindow24"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonGhost}" />
+                <Button x:Name="W72Button" Content="72 小时（默认）" Click="OnWindow72"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonGhost}" />
+                <Button x:Name="W168Button" Content="7 天" Click="OnWindow168"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonGhost}" />
+            </StackPanel>
+
+            <TextBlock x:Name="EmptyLine" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{ThemeResource TaoInk3Brush}"
+                       Text="尚未加载：点「查看时间线」后按时间窗聚合四路事件（安装/设置/崩溃/性能）。" />
+
+            <TextBlock x:Name="EmptyWindowText" FontSize="13.5" TextWrapping="Wrap" Visibility="Collapsed"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock FontSize="13.5" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}"
+                               Text="时间线" />
+                    <ItemsControl x:Name="TimelineList" />
+                </StackPanel>
+            </Border>
+
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock FontSize="13.5" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}"
+                               Text="归因（最可能原因 + 验证步骤 + 置信度）" />
+                    <TextBlock x:Name="CauseLine" FontSize="13.5" TextWrapping="Wrap" Foreground="{ThemeResource TaoInkBrush}" />
+                    <ItemsControl x:Name="StepList" />
+                    <TextBlock x:Name="ConfidenceLine" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+                    <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="本页归因全程在本机完成，不上传任何数据（零外发承诺）。" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

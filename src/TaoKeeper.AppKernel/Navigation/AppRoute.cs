@@ -19,6 +19,12 @@ public enum AppRoute
     Widget,       // 桌面挂件
     Settings,     // 设置
     Design,       // 设计说明（开发期保留，交付版隐藏）
+
+    // —— 场景入口路由（P-1 深水四页；不入导航条，经场景入口 SelectRoute 跳转，V-A6 侧栏恒 7 项/12 项导航条不动）——
+    SandboxPreview,   // P13 先试后行（沙箱预演）
+    ResidueDetect,    // P14 残留侦探（引用图）
+    IncidentReplay,   // P15 事发回放（归因报告）
+    SnapshotChain,    // P16 时光回溯（快照链）
 }
 
 public static class AppRouteCatalog
