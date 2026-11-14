@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    桌面挂件独立悬浮窗（派活口径：独立无边框悬浮窗常驻，非页内示意卡）：
+    无边框无标题栏（摘圈口径：悬浮无外圈框线）+ 置顶 + 不进任务栏/Alt+Tab；
+    真实数据帧经 CompositionRoot 接线（与挂件页同一 WidgetPageViewModel 帧，未就绪灰显不编数）；
+    一键清理复用与主程序同一执行链（回收站语义，先过窗内明细确认浮层）；
+    右键菜单：打开道管家 / 刷新读数 / 收起挂件（收起=Hide，设置页重开，零后台残留）；
+    关闭即彻底退出挂件窗：停读帧定时器、解引用，进程退出零残留。
+-->
+<Window
+    x:Class="TaoKeeper.App.Views.DesktopWidgetWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid x:Name="Root" Padding="8">
+
+        <Grid.RenderTransform>
+            <ScaleTransform x:Name="PopScale" ScaleX="1" ScaleY="1" />
+        </Grid.RenderTransform>
+
+        <!-- 挂件本体：无边框贴壁卡（摘圈：无外圈框线，仅留极浅投影面） -->
+        <Border x:Name="WidgetCard" CornerRadius="16" Padding="18,16"
+                Background="{ThemeResource TaoPaperBrush}">
+            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                <TextBlock x:Name="TitleText" Text="道管家 · 内存" FontSize="13.5" FontWeight="SemiBold"
+                           Foreground="{ThemeResource TaoInkBrush}" HorizontalAlignment="Center" />
+
+                <!-- 120 环图：底环 + 数据驱动弧线（未就绪不出弧；无外圈框线） -->
+                <Grid Width="120" Height="120" HorizontalAlignment="Center">
+                    <Ellipse Width="96" Height="96" HorizontalAlignment="Center" VerticalAlignment="Center"
+                             Stroke="{ThemeResource TaoLineSoftBrush}" StrokeThickness="10" />
+                    <Path x:Name="RingArc" Stroke="{ThemeResource TaoAzureBrush}" StrokeThickness="10"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                          Width="120" Height="120" />
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock x:Name="RingPct" Text="内存占用未知" FontSize="16" FontWeight="Bold"
+                                   Foreground="{ThemeResource TaoInkBrush}" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="RingSub" FontSize="9.5" Foreground="{ThemeResource TaoInk3Brush}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock x:Name="JunkLine" FontSize="12" HorizontalAlignment="Center"
+                           Foreground="{ThemeResource TaoInk2Brush}" />
+                <TextBlock x:Name="DiskLine" FontSize="12" HorizontalAlignment="Center"
+                           Foreground="{ThemeResource TaoInk2Brush}" />
+                <Button x:Name="CleanEntry" Content="一键清理" Style="{StaticResource AccentButtonStyle}"
+                        Click="OnCleanEntryClick" HorizontalAlignment="Center" MinWidth="128"
+                        CornerRadius="10" />
+                <TextBlock x:Name="CleanTip" Text="清理前必过明细确认" FontSize="11" HorizontalAlignment="Center"
+                           Foreground="{ThemeResource TaoInk3Brush}" />
+            </StackPanel>
+        </Border>
+
+        <!-- 确认清理明细浮层（窗内切换，默认隐藏） -->
+        <Border x:Name="ConfirmLayer" CornerRadius="14" BorderThickness="1" Padding="14,12" Visibility="Collapsed"
+                BorderBrush="{ThemeResource TaoAzureDeepBrush}" Background="{ThemeResource TaoCardBrush}">
+            <StackPanel Spacing="10">
+                <TextBlock Text="确认清理明细" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{ThemeResource TaoInkBrush}" />
+                <TextBlock x:Name="DetailList" FontSize="11.5" TextWrapping="Wrap"
+                           Foreground="{ThemeResource TaoInk2Brush}" />
+                <TextBlock x:Name="DetailNote" FontSize="11.5" TextWrapping="Wrap"
+                           Foreground="{ThemeResource TaoInk3Brush}"
+                           Text="逐项可勾、全部移入回收站、可还原；确认后才执行。" />
+                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                    <Button x:Name="CancelClean" Content="再想想" Click="OnCancelClean"
+                            CornerRadius="10" />
+                    <Button x:Name="OkClean" Content="清理（进回收站）" Style="{StaticResource AccentButtonStyle}"
+                            Click="OnOkClean" IsEnabled="False" CornerRadius="10" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

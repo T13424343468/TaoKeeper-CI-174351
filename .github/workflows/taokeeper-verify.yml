@@ -56,6 +56,8 @@ jobs:
           # 修红三取证：XamlCompiler 真实错误在 output.json，必须打上 stdout，不许再猜
           pwsh -NoProfile -File ci/xaml-compiler-evidence.ps1 -ProjDir src/TaoKeeper.App -Configuration Release -Platform x64
           ci/restore-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
+          # 修红三二分：pass1 硬崩无输出，逐变体构建定位崩溃片段
+          pwsh -NoProfile -File ci/xaml-bisect.ps1 -ProjDir src/TaoKeeper.App -Configuration Release -Platform x64
           if ($errs -ne 0) { exit 1 }
           if ($warns -gt 0) { Write-Host "[WARN-GATE] $warns warnings present - reporting, not suppressing" }
         shell: pwsh
