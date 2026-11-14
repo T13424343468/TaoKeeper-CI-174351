@@ -308,7 +308,7 @@ if ($resultText) {
   $succeeded = -1
   if ($mPerm.Success) { $succeeded = [int]$mPerm.Groups[1].Value; $permMode = $true }
   elseif ($mRecy.Success) { $succeeded = [int]$mRecy.Groups[1].Value }
-  Write-Effect ($succeeded -ge ($seedCount + 1)) "clean-result" ("dialog='{0}'; succeeded={1}, expected >= {2} (seeds+control); mode={(3)}" -f $resultText, $succeeded, ($seedCount + 1), $(if ($permMode) {'true-delete'} else {'recycle-bin'}))
+  Write-Effect ($succeeded -ge ($seedCount + 1)) "clean-result" ("dialog='{0}'; succeeded={1}, expected >= {2} (seeds+control); mode={3}" -f $resultText, $succeeded, ($seedCount + 1), $(if ($permMode) {'true-delete'} else {'recycle-bin'}))
   # dismiss result dialog ('好' close button)
   Invoke-ContentMatch '好' 3 | Out-Null
 } else {
