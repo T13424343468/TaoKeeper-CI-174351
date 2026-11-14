@@ -76,6 +76,15 @@ jobs:
           ci/restore-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
           if ($exit -ne 0) { exit 1 }
           if ($warns -gt 0) { Write-Host "[WARN-GATE] $warns warnings present - reporting, not suppressing" }
+      - name: Upload xaml evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xaml-evidence
+          path: |
+            bisect-*.log
+            xaml-evidence.log
+            replay-output.json
       - name: build.ps1 real run (pwsh 7.4+)
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./build.ps1 -SkipNative
         shell: pwsh

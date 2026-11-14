@@ -9,13 +9,20 @@ param(
 )
 $ErrorActionPreference = 'Continue'
 $csproj = Join-Path $ProjDir "TaoKeeper.App.csproj"
+Write-Host "[BISECT] v2.1 start $(Get-Date -Format o) PWD=$PWD"
 
 # 确保能取到 origin/main（actions/checkout 默认浅克隆仅当前分支）
-git fetch origin main --depth=1 2>$null
+# v2.1 修：--depth=1 浅取 main 后三点 diff 无 merge-base 静默返回空 → 全组误判；改全量取并显式校验
+git fetch origin main 2>$null
+git rev-parse --verify origin/main 2>$null; if ($LASTEXITCODE -ne 0) { Write-Host "[BISECT][FATAL] origin/main 不可用，二分中止"; exit 0 }
 
 # 修错批相对 origin/main 的全部改动文件
-$batchFiles = git diff --name-only origin/main...HEAD | Where-Object { $_ -notmatch '^ci/|^.github/' }
-Write-Host "[BISECT] batch files: $($batchFiles -join ', ')"
+$batchFiles = git diff --name-only origin/main...HEAD 2>$null | Where-Object { $_ -notmatch '^ci/|^.github/' }
+if (-not $batchFiles -or @($batchFiles).Count -eq 0) {
+    Write-Host "[BISECT][FATAL] batch files 为空（merge-base 解析失败），回退双点 diff"
+    $batchFiles = git log --format= --name-only origin/main..HEAD | Where-Object { $_ -and $_ -notmatch '^ci/|^.github/' } | Sort-Object -Unique
+}
+Write-Host "[BISECT] batch files ($(@($batchFiles).Count)): $($batchFiles -join ', ')"
 
 function Restore-All {
     git checkout origin/main -- @($batchFiles) 2>$null
