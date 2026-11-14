@@ -10,6 +10,8 @@ using TaoKeeper.AppKernel.ViewModels;
 using TaoKeeper.App.Views;
 using TaoKeeper.Core.Models;
 using TaoKeeper.Core.Modules;
+using TaoKeeper.Core.Modules.IncidentReplay;
+using TaoKeeper.Core.Modules.SnapshotChain;
 
 namespace TaoKeeper.App;
 
