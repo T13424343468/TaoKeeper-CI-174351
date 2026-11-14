@@ -13,7 +13,7 @@ namespace TaoKeeper.App.Views;
 /// 设置页 code-behind：Bind(vm) 注入（OnNavigatedTo 取导航参数，未传=默认态兜底）。
 /// 道系边界：默认零写动作——开关/主题/阈值全部只把改动记入 VM 待确认副本，
 /// 点底部「保存改动」才经既有 AppSettingsStore 落盘（未接线时如实标明仅本会话生效）；
-/// 红线锁定项零控件零写。主题与挂件入口的生效动作随运行期接线，本页只呈现待确认选择。
+/// 红线锁定项零控件零写。主题切换保存后即时换肤（AppTheme 全局字典替换，R-P12-1）。
 /// </summary>
 public sealed partial class SettingsPage : Page
 {
@@ -234,10 +234,10 @@ public sealed partial class SettingsPage : Page
         var shell = (App.Current as App)?.Shell;
         if (shell is null)
         {
-            EntryHint.Text = "弹窗管理入口随运行期接线，本页未代跳。";
+            EntryHint.Text = "界面还没准备好跳转，稍后再试。";
             return;
         }
-        shell.SelectRoute(AppRoute.Popup); // 目标页未注册时主窗显示如实占位
+        shell.SelectRoute(AppRoute.Popup); // 弹窗管理页已注册，直达二级收纳页
     }
 
     private void Refresh()

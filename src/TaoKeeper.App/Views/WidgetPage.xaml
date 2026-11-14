@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    桌面挂件页（严格按原型 v19 data-page="widget"：crumb + 标题 + 副题 + 桌面示意卡[挂件 + 确认浮层] + desk-tip）。
+    桌面挂件页（需求稿 R-P11-4：crumb + 标题 + 副题 + 桌面示意卡[挂件 + 确认浮层] + desk-tip）。
     数据经 WidgetPageViewModel 注入：未就绪/过期一律灰显如实（不假 62%、不假 3.2 GB、不假 9.9/16 GB）；
-    「清理（进回收站）」在确认浮层内仅作意图入口（执行通道随运行期接线启用，未接前如实禁用），
-    本页零写动作。
+    独立常驻悬浮窗由 DesktopWidgetWindow 承载（真实数据帧、一键清理、右键菜单、退出零残留），
+    本页为设置页内的挂件示意与说明；「清理（进回收站）」在确认浮层内走同一执行链。
 -->
 <Page
     x:Class="TaoKeeper.App.Views.WidgetPage"

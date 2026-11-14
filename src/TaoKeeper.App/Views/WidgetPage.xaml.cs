@@ -55,7 +55,7 @@ public sealed partial class WidgetPage : Page
 
         // 环图中心：内存占用（数据驱动；未知即如实写「内存占用未知」）
         RingPct.Text = string.IsNullOrEmpty(_vm.MemoryText) ? "内存占用未知" : _vm.MemoryText;
-        RingSub.Text = string.IsNullOrEmpty(_vm.BackgroundText) ? "内存明细随运行期接线" : _vm.BackgroundText;
+        RingSub.Text = string.IsNullOrEmpty(_vm.BackgroundText) ? "内存明细待首次读数" : _vm.BackgroundText;
 
         // 垃圾概览：VM 口径如实（未就绪即「垃圾概览未就绪」）
         JunkLine.Text = _vm.JunkText;

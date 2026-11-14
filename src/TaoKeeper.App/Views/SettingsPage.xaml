@@ -190,7 +190,7 @@
                             </Grid>
                             <TextBlock FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource TaoInk3Brush}"
-                                       Text="忽略版本管理：不想跟的升级点「忽略此版」，只跳单版（管理入口随运行期接线，本页不代管）。" />
+                                       Text="忽略版本管理：不想跟的升级点「忽略此版」，只跳单版；忽略清单在升级中心逐条可撤。" />
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -318,7 +318,7 @@
                             </Grid>
                             <TextBlock FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource TaoInk3Brush}"
-                                       Text="六维逐项可关，分数只算你在乎的；通知分级：弹气泡 / 只记清理账，逐类勾选，默认安静（勾选入口随运行期接线）。" />
+                                       Text="六维逐项可关，分数只算你在乎的；通知分级：弹气泡 / 只记清理账，逐类勾选，默认安静。" />
                             <TextBlock x:Name="ThresholdError" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
                                        Foreground="{ThemeResource TaoCinnabarBrush}" />
                         </StackPanel>
@@ -375,7 +375,7 @@
                             </StackPanel>
                             <TextBlock FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource TaoInk3Brush}"
-                                       Text="检查更新与导出日志入口随运行期接线，本页不代检不代导，如实空置。" />
+                                       Text="检查更新在软件管家升级中心；导出日志在设置页底部按钮，逐项可用。" />
                         </StackPanel>
                     </Border>
                 </StackPanel>

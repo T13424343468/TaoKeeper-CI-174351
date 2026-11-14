@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    工具箱页（严格按原型 v19：8 张快捷卡，布局与文案不动）。
-    大文件查找/磁盘空间分析/重复文件 三张卡点击展开结果区（数据经既有 VM 注入，
-    未扫描如实显示「尚未扫描」）；其余工具卡点击如实提示随运行期接线启用。
+    工具箱页（需求稿 P10：9 张快捷卡，布局与文案对齐需求稿）。
+    大文件查找/磁盘空间分析/重复文件/相似图片/数据找回/文件粉碎/右键菜单/进程管理/系统信息
+    全部卡接真实通道或整页跳转（数据经既有 VM 注入，未扫描如实显示「尚未扫描」）。
 -->
 <Page
     x:Class="TaoKeeper.App.Views.ToolsPage"
@@ -118,7 +118,7 @@
             <!-- 状态与结果区（点击卡片后展开；未扫描如实显示） -->
             <TextBlock x:Name="ToolStatus" FontSize="12" TextWrapping="Wrap"
                        Foreground="{ThemeResource TaoInk3Brush}"
-                       Text="点上面的卡片开始；扫描与处理通道随运行期接线启用。" />
+                       Text="点上面的卡片开始；扫描只读不动文件，处理动作先经你确认。" />
 
             <Border x:Name="LargeResult" CornerRadius="14" BorderThickness="1" Padding="18,14" Visibility="Collapsed"
                     BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">

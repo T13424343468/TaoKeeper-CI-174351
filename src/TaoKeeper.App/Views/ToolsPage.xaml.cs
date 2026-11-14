@@ -141,12 +141,8 @@ public sealed partial class ToolsPage : Page
             case "sysinfo":
                 RunSystemInfo();
                 break;
-
-            default:
-                // 右键菜单：引擎能力本版未接，如实说明，不假进度
-                ToolStatus.Text = "「" + TagTitleOf(tag) + "」本版未接入该扫描通道，如实显示，不预演结果。";
-                break;
         }
+        // 全部工具卡均已接真实通道或整页跳转，无剩余占位分支（V-A2：占位文案清零）。
     }
 
     /// <summary>P10 大文件查找：PortableDiskScanner 只读实扫用户目录（真实路径+字节数，不预演清理）。</summary>
