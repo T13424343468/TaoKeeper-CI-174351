@@ -8,31 +8,29 @@ namespace TaoKeeper.AppKernel.Tests;
 public class NavRouteTests
 {
     [Fact]
-    public void 十三页导航与原型v19顺序一致()
+    public void 一级导航与需求稿G6一致恒7项()
     {
-        var expected = new[]
-        {
-            "home", "swstore", "disk", "checkup", "boost", "mem", "driver",
-            "popup", "storage", "tools", "widget", "settings", "design",
-        };
-        Assert.Equal(expected, AppRouteCatalog.Items.Select(i => i.PageId).ToArray());
-        Assert.Equal(13, AppRouteCatalog.Items.Length);
+        var expected = new[] { "home", "checkup", "disk", "swstore", "boost", "tools", "settings" };
+        Assert.Equal(expected, AppRouteCatalog.NavBarRoutes.Select(r => AppRouteCatalog.Items.First(i => i.Route == r).PageId).ToArray());
+        Assert.Equal(7, AppRouteCatalog.NavBarRoutes.Length);
     }
 
     [Fact]
-    public void 交付版导航条隐藏设计说明()
+    public void 二级收纳页不入侧栏导航条()
     {
-        Assert.Equal(12, AppRouteCatalog.NavBarRoutes.Length);
-        Assert.DoesNotContain(AppRoute.Design, AppRouteCatalog.NavBarRoutes);
+        // G6：工具箱二级收纳——内存/驱动/弹窗/存储感知/桌面挂件经工具箱等入口进入，设计说明开发期隐藏
+        var secondary = new[] { AppRoute.Mem, AppRoute.Driver, AppRoute.Popup, AppRoute.Storage, AppRoute.Widget, AppRoute.Design };
+        foreach (var r in secondary)
+            Assert.DoesNotContain(r, AppRouteCatalog.NavBarRoutes);
     }
 
     [Fact]
-    public void 页面中文名与原型一致()
+    public void 页面中文名与需求稿一致()
     {
         var expected = new[]
         {
-            "总览", "软件管家", "磁盘清理", "系统体检", "性能加速", "内存管理", "驱动安装升级",
-            "弹窗管理", "存储感知", "工具箱", "桌面挂件", "设置", "设计说明",
+            "总览", "系统体检", "磁盘清理", "软件管家", "性能加速", "工具箱", "设置",
+            "内存管理", "驱动安装升级", "弹窗管理", "存储感知", "桌面挂件", "设计说明",
         };
         Assert.Equal(expected, AppRouteCatalog.Items.Select(i => i.Title).ToArray());
     }

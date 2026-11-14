@@ -5,8 +5,8 @@ using TaoKeeper.AppKernel.Navigation;
 namespace TaoKeeper.App;
 
 /// <summary>
-/// 页面注册表：路由 → 已落地页面类型。未注册路由由主窗显示如实占位
-/// （「本页正在赶工」，不假数据不空转）。页面逐个落地后在此登记（13 页全部注册即收口）。
+/// 页面注册表：路由 → 已落地页面类型。未注册路由由主窗显示如实占位。
+/// 页面逐个落地后在此登记（一级 7 页+二级 5 页全部注册即收口）。
 /// </summary>
 public static class PageRegistry
 {
@@ -16,19 +16,21 @@ public static class PageRegistry
         // SpaceAnalysis/DuplicateFiles 两页不占独立路由，由工具箱卡片点击 Frame.Navigate 进入；
         // Startup 页只读可导航（经 Boost 页入口直达，不入注册表）。
         [AppRoute.Home]     = typeof(Views.HomePage),
-        [AppRoute.SwStore]  = typeof(Views.SoftwarePage),
-        [AppRoute.Disk]     = typeof(Views.DiskCleanupPage),
         [AppRoute.Checkup]  = typeof(Views.CheckupPage),
+        [AppRoute.Disk]     = typeof(Views.DiskCleanupPage),
+        [AppRoute.SwStore]  = typeof(Views.SoftwarePage),
         [AppRoute.Boost]    = typeof(Views.BoostPage),
+        [AppRoute.Tools]    = typeof(Views.ToolsPage),
+        [AppRoute.Settings] = typeof(Views.SettingsPage),
+
+        // 二级收纳页（G6：经工具箱等入口进入，不入侧栏导航条）
         [AppRoute.Mem]      = typeof(Views.MemPage),
         [AppRoute.Driver]   = typeof(Views.DriverPage),
         [AppRoute.Popup]    = typeof(Views.PopupPage),
         [AppRoute.Storage]  = typeof(Views.StoragePage),
-        [AppRoute.Tools]    = typeof(Views.ToolsPage),
         [AppRoute.Widget]   = typeof(Views.WidgetPage),
-        [AppRoute.Settings] = typeof(Views.SettingsPage),
 
-        // P-1 深水四页（场景入口路由；不入导航条，SelectRoute 直达，V-A6 导航条不动）
+        // P-1 深水四页（场景入口路由；不入导航条，SelectRoute 直达，V-A6 侧栏恒 7 项）
         [AppRoute.SandboxPreview] = typeof(Views.SandboxPreviewPage),
         [AppRoute.ResidueDetect]  = typeof(Views.ResidueDetectPage),
         [AppRoute.IncidentReplay] = typeof(Views.IncidentReplayPage),

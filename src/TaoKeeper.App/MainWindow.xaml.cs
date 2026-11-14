@@ -10,7 +10,7 @@ using WinRT.Interop;
 
 namespace TaoKeeper.App;
 
-/// <summary>侧栏导航条目（glyph 单字 + 页名，取自原型 v19 导航栏）。</summary>
+/// <summary>侧栏导航条目（glyph 单字 + 页名）；一级恒 7 项（需求稿 G6），二级页经工具箱等入口进入。</summary>
 public sealed class NavItem
 {
     public string Glyph { get; }
@@ -21,29 +21,23 @@ public sealed class NavItem
     {
         Route = route;
         Title = AppRouteCatalog.TitleOf(route);
-        // 原型导航 glyph：单字方形章（总览=览、软件管家=管…），与 AppRouteCatalog 顺序一一对应
+        // 需求稿 G6 一级导航 glyph：单字方形章（总览=览、体检=诊、清理=盘、软件管家=管、加速=疾、工具箱=匣、设置=设）
         Glyph = route switch
         {
             AppRoute.Home => "览",
-            AppRoute.SwStore => "管",
-            AppRoute.Disk => "盘",
             AppRoute.Checkup => "诊",
+            AppRoute.Disk => "盘",
+            AppRoute.SwStore => "管",
             AppRoute.Boost => "疾",
-            AppRoute.Mem => "存",
-            AppRoute.Driver => "驱",
-            AppRoute.Popup => "静",
-            AppRoute.Storage => "储",
             AppRoute.Tools => "匣",
-            AppRoute.Widget => "悬",
             AppRoute.Settings => "设",
-            AppRoute.Design => "记",
             _ => "页",
         };
     }
 }
 
 /// <summary>
-/// 主窗骨架：左导航 + 内容 Frame。导航条目严格按原型 v19 顺序（交付版不出现「设计说明」）。
+/// 主窗骨架：左导航 + 内容 Frame。导航条目=需求稿 G6 一级恒 7 项。
 /// 页面注册表：已落地页直接导航；未落地页显示如实占位（不假数据、不空转）。
 /// </summary>
 public sealed partial class MainWindow : Window
