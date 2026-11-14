@@ -14,7 +14,8 @@
 
             <!-- 远山 hero（水墨远山 + 一点朱砂落日） -->
             <Grid>
-                <Viewbox Stretch="Fill" Height="120">
+                <!-- R-4/W4：Fill 改 Uniform——山景按窗宽等比缩放，不再超宽拉伸变形 -->
+                <Viewbox Stretch="Uniform" Height="120">
                     <Canvas Width="1200" Height="150">
                         <Rectangle Canvas.Left="0" Canvas.Top="0" Width="1200" Height="150"
                                    Fill="{ThemeResource TaoAzureWashBrush}" />

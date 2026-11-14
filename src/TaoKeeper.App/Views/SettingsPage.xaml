@@ -18,14 +18,39 @@
             <TextBlock Text="常用设置都归好类，常用的就在手边" FontSize="13.5"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
-            <Grid ColumnSpacing="14">
+            <!-- R-4/W5：两列设置卡窄窗折叠单列——窄窗不再横向裁切 -->
+            <Grid x:Name="DuoGrid" ColumnSpacing="14" RowSpacing="14">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition x:Name="DuoColA" Width="*" />
+                    <ColumnDefinition x:Name="DuoColB" Width="*" />
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup>
+                        <VisualState x:Name="Wide">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="1140" />
+                            </VisualState.StateTriggers>
+                        </VisualState>
+                        <VisualState x:Name="Narrow">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="0" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Target="DuoColB.Width" Value="0" />
+                                <Setter Target="DuoGrid.ColumnSpacing" Value="0" />
+                                <Setter Target="SettingsRight.(Grid.Column)" Value="0" />
+                                <Setter Target="SettingsRight.(Grid.Row)" Value="1" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
 
                 <!-- 左栏：通用 / 软件管家 -->
-                <StackPanel Grid.Column="0" Spacing="14">
+                <StackPanel Grid.Column="0" Grid.Row="0" Spacing="14">
 
                     <!-- 通用 -->
                     <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
@@ -218,7 +243,7 @@
                 </StackPanel>
 
                 <!-- 右栏：清理与存储 / 提醒与阈值 / 桌面挂件 / 其他 -->
-                <StackPanel Grid.Column="1" Spacing="14">
+                <StackPanel x:Name="SettingsRight" Grid.Column="1" Grid.Row="0" Spacing="14">
 
                     <!-- 清理与存储 -->
                     <Border CornerRadius="14" BorderThickness="1" Padding="18,14"

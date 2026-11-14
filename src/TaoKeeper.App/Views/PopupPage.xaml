@@ -38,20 +38,50 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="规则清单" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
                     <ItemsControl x:Name="RuleList" />
-                    <StackPanel Orientation="Horizontal" Spacing="10">
+                    <!-- R-4/W3：固定宽改弹性——窄窗不再溢出 -->
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MaxWidth="420" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
                         <TextBox x:Name="RuleProcessInput" PlaceholderText="按进程名新增规则，如 popup-push（不填通配）"
-                                 Width="360" CornerRadius="8" />
-                        <Button x:Name="AddRuleButton" Content="新增拦截规则" Click="OnAddRuleClick" CornerRadius="10" />
-                    </StackPanel>
+                                 HorizontalAlignment="Stretch" CornerRadius="8" />
+                        <Button x:Name="AddRuleButton" Grid.Column="1" Content="新增拦截规则" Click="OnAddRuleClick" CornerRadius="10" />
+                    </Grid>
                 </StackPanel>
             </Border>
 
-            <Grid ColumnSpacing="14">
+            <!-- R-4/W1：两列卡窄窗折叠——窗口逻辑宽 <1140（内容宽 <880）切单列 -->
+            <Grid x:Name="DuoGrid" ColumnSpacing="14" RowSpacing="14">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition x:Name="DuoColA" Width="*" />
+                    <ColumnDefinition x:Name="DuoColB" Width="*" />
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" CornerRadius="14" BorderThickness="1" Padding="18,14"
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup>
+                        <VisualState x:Name="Wide">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="1140" />
+                            </VisualState.StateTriggers>
+                        </VisualState>
+                        <VisualState x:Name="Narrow">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="0" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Target="DuoColB.Width" Value="0" />
+                                <Setter Target="DuoGrid.ColumnSpacing" Value="0" />
+                                <Setter Target="RecordCard.(Grid.Column)" Value="0" />
+                                <Setter Target="RecordCard.(Grid.Row)" Value="1" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+                <Border Grid.Column="0" Grid.Row="0" CornerRadius="14" BorderThickness="1" Padding="18,14"
                         BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                     <StackPanel Spacing="8">
                         <TextBlock Text="白名单" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />
@@ -61,7 +91,7 @@
                         <ItemsControl x:Name="WhitelistList" />
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="1" CornerRadius="14" BorderThickness="1" Padding="18,14"
+                <Border x:Name="RecordCard" Grid.Column="1" Grid.Row="0" CornerRadius="14" BorderThickness="1" Padding="18,14"
                         BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                     <StackPanel Spacing="8">
                         <TextBlock Text="拦截记录 · 可回溯" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}" />

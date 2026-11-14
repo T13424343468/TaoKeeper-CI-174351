@@ -17,13 +17,37 @@
             <TextBlock Text="看得见的内存，托得住的虚拟内存" FontSize="13.5"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
-            <!-- 双仪表 -->
-            <Grid ColumnSpacing="14">
+            <!-- 双仪表 R-4/W1：窄窗折叠单列 -->
+            <Grid x:Name="DuoGrid" ColumnSpacing="14" RowSpacing="14">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition x:Name="DuoColA" Width="*" />
+                    <ColumnDefinition x:Name="DuoColB" Width="*" />
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" CornerRadius="14" BorderThickness="1" Padding="16,12"
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup>
+                        <VisualState x:Name="Wide">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="1140" />
+                            </VisualState.StateTriggers>
+                        </VisualState>
+                        <VisualState x:Name="Narrow">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="0" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Target="DuoColB.Width" Value="0" />
+                                <Setter Target="DuoGrid.ColumnSpacing" Value="0" />
+                                <Setter Target="VirtCard.(Grid.Column)" Value="0" />
+                                <Setter Target="VirtCard.(Grid.Row)" Value="1" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+                <Border Grid.Column="0" Grid.Row="0" CornerRadius="14" BorderThickness="1" Padding="16,12"
                         BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                     <StackPanel Spacing="8">
                         <TextBlock x:Name="PhysTitle" Text="物理内存" FontSize="14" FontWeight="SemiBold"
@@ -33,7 +57,7 @@
                                    Foreground="{ThemeResource TaoInk2Brush}" />
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="1" CornerRadius="14" BorderThickness="1" Padding="16,12"
+                <Border x:Name="VirtCard" Grid.Column="1" Grid.Row="0" CornerRadius="14" BorderThickness="1" Padding="16,12"
                         BorderBrush="{ThemeResource TaoLineSoftBrush}" Background="{ThemeResource TaoCardBrush}">
                     <StackPanel Spacing="8">
                         <TextBlock x:Name="PageFileTitle" Text="虚拟内存（页面文件）" FontSize="14" FontWeight="SemiBold"
