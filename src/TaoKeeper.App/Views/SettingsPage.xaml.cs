@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using TaoKeeper.App.Theming;
 using TaoKeeper.AppKernel.Navigation;
 using TaoKeeper.AppKernel.Settings;
 using TaoKeeper.AppKernel.Theming;
@@ -13,7 +14,7 @@ namespace TaoKeeper.App.Views;
 /// 设置页 code-behind：Bind(vm) 注入（OnNavigatedTo 取导航参数，未传=默认态兜底）。
 /// 道系边界：默认零写动作——开关/主题/阈值全部只把改动记入 VM 待确认副本，
 /// 点底部「保存改动」才经既有 AppSettingsStore 落盘（未接线时如实标明仅本会话生效）；
-/// 红线锁定项零控件零写。主题切换保存后即时换肤（AppTheme 全局字典替换，R-P12-1）。
+/// 红线锁定项零控件零写。主题与挂件入口的生效动作随运行期接线，本页只呈现待确认选择。
 /// </summary>
 public sealed partial class SettingsPage : Page
 {
@@ -204,8 +205,6 @@ public sealed partial class SettingsPage : Page
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
-        var themeBefore = _vm.Current.Theme;
-        var widgetBefore = (_vm.Current.ShowDesktopWidget, _vm.Current.WidgetSize, string.Join(",", _vm.Current.WidgetContents));
         var applied = _vm.ConfirmPendingChanges();
         Refresh();
         EntryHint.Text = applied.Count == 0
@@ -214,24 +213,13 @@ public sealed partial class SettingsPage : Page
                 ? $"已保存 {applied.Count} 项改动：{string.Join("；", applied)}"
                 : $"已在本会话生效 {applied.Count} 项（暂无设置文件渠道，未落盘）：{string.Join("；", applied)}";
 
+        // R-P12-9：托盘常驻确认后即时生效；开机自启走通用卡单一开关与注册表差量对齐（2026-11-14 双口径合并），结果如实追加
         if (applied.Count > 0)
         {
-            // R-P12-1：主题保存后全局即时换肤；重启后由 App 启动从同一设置文件回读（往返保持，AppSettingsStore 往返测试在案）
-            if (_vm.Current.Theme != themeBefore)
-                AppTheme.Apply(Application.Current, _vm.Current.Theme);
-
-            // R-P12-6：挂件配置保存后即时生效——通知订阅方（桌面挂件窗口/挂件页）按新配置重排
-            var widgetNow = (_vm.Current.ShowDesktopWidget, _vm.Current.WidgetSize, string.Join(",", _vm.Current.WidgetContents));
-            if (widgetNow != widgetBefore) WidgetSettingsChanged?.Invoke(_vm.Current);
-
-            // R-P12-9：托盘常驻确认后即时生效；开机自启走通用卡单一开关与注册表差量对齐（2026-11-14 双口径合并），结果如实追加
             var trayNote = TrayIconController.ApplySettings(_vm.Current.LaunchOnStartup, _vm.Current.TrayResident);
             if (trayNote.Length > 0) EntryHint.Text += $"（托盘：{trayNote}）";
         }
     }
-
-    /// <summary>R-P12-6：挂件配置保存后通知（订阅方：桌面挂件窗口等；未订阅时静默）。</summary>
-    public static Action<AppKernel.Settings.AppSettings>? WidgetSettingsChanged { get; set; }
 
     private void OnDiscardClick(object sender, RoutedEventArgs e)
     {
@@ -247,10 +235,10 @@ public sealed partial class SettingsPage : Page
         var shell = (App.Current as App)?.Shell;
         if (shell is null)
         {
-            EntryHint.Text = "界面还没准备好跳转，稍后再试。";
+            EntryHint.Text = "弹窗管理入口随运行期接线，本页未代跳。";
             return;
         }
-        shell.SelectRoute(AppRoute.Popup); // 弹窗管理页已注册，直达二级收纳页
+        shell.SelectRoute(AppRoute.Popup); // 目标页未注册时主窗显示如实占位
     }
 
     private void Refresh()
