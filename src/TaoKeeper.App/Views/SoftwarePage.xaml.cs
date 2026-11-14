@@ -341,7 +341,7 @@ public sealed partial class SoftwarePage : Page
             Text = card.Glyph,
             FontSize = 16,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(Windows.UI.Colors.White),
+            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -464,7 +464,7 @@ public sealed partial class SoftwarePage : Page
             XamlRoot = XamlRoot,
         };
         var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Close && Wishlist.Count > 0)
+        if (result == ContentDialogResult.None && Wishlist.Count > 0)
         {
             Wishlist.Clear();
             StoreCapacityText.Text = $"已收录 {StoreSamples.Length} 款精选示例 · 愿望单 0 条";

@@ -59,12 +59,7 @@ public sealed partial class DesktopWidgetWindow : Window
     private void OnRootRightTapped(object sender, RightTappedRoutedEventArgs e)
     {
         _contextMenu ??= BuildContextMenu();
-        var flyout = new Microsoft.UI.Xaml.Controls.Flyout { Content = _contextMenu, AreOpenCloseAnimationsEnabled = false };
-        flyout.ShowAt(Root, new Microsoft.UI.Xaml.Controls.Primitives.FlyoutShowOptions
-        {
-            Position = e.GetPosition(Root),
-            Placement = Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.Top,
-        });
+        _contextMenu.ShowAt(Root, e.GetPosition(Root)); // MenuFlyout 原生 ShowAt：右键菜单位置即指尖
     }
 
     private MenuFlyout BuildContextMenu()
