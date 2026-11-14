@@ -90,7 +90,7 @@ public sealed partial class IncidentReplayPage : Page
                 TimelineList.Items.Add(new TextBlock
                 {
                     FontSize = 13,
-                    FontWeight = Windows.UI.Text.FontWeights.SemiBold,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
                     Text = group.Label,
                 });
                 foreach (var row in group.Rows)
