@@ -27,6 +27,10 @@
                         CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonGhost}" />
                 <Button x:Name="W168Button" Content="7 天" Click="OnWindow168"
                         CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonGhost}" />
+                <Button x:Name="GranDayButton" Content="按天" Click="OnGranDay"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonPrimary}" />
+                <Button x:Name="GranWeekButton" Content="按周" Click="OnGranWeek"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonGhost}" />
             </StackPanel>
 
             <TextBlock x:Name="EmptyLine" FontSize="12" TextWrapping="Wrap"

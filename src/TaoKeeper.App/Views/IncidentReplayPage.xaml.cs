@@ -28,6 +28,19 @@ public sealed partial class IncidentReplayPage : Page
     private void OnWindow72(object sender, RoutedEventArgs e) => SwitchWindow(72);
     private void OnWindow168(object sender, RoutedEventArgs e) => SwitchWindow(168);
 
+    private void OnGranDay(object sender, RoutedEventArgs e) => SwitchGranularity("day");
+    private void OnGranWeek(object sender, RoutedEventArgs e) => SwitchGranularity("week");
+
+    private void SwitchGranularity(string granularity)
+    {
+        GranDayButton.Style = granularity == "day" ? (Style)Application.Current.Resources["TaoButtonPrimary"] : (Style)Application.Current.Resources["TaoButtonGhost"];
+        GranWeekButton.Style = granularity == "week" ? (Style)Application.Current.Resources["TaoButtonPrimary"] : (Style)Application.Current.Resources["TaoButtonGhost"];
+        if (EventsProvider is null) return;
+        if (_vm.Timeline.Count == 0 && !_vm.IsEmptyWindow) return; // 尚未加载：只记档位不预填（V-A10）
+        _vm.SetGranularity(LoadEvents(), _symptomTimeUtc, granularity);
+        Render();
+    }
+
     private void SwitchWindow(int hours)
     {
         W24Button.Style = hours == 24 ? (Style)Application.Current.Resources["TaoButtonPrimary"] : (Style)Application.Current.Resources["TaoButtonGhost"];
@@ -69,14 +82,39 @@ public sealed partial class IncidentReplayPage : Page
         }
 
         TimelineList.Items.Clear();
-        foreach (var row in _vm.Timeline)
+        if (_vm.Granularity == "week" && _vm.TimelineGroups.Count > 0)
         {
-            TimelineList.Items.Add(new TextBlock
+            // 按周分组渲染（R-P15-4）：组头=周起日期，组内按时间倒序
+            foreach (var group in _vm.TimelineGroups)
             {
-                FontSize = 12,
-                TextWrapping = TextWrapping.Wrap,
-                Text = $"{row.TimeLocal}｜{row.SourceLabel}｜{row.Summary}",
-            });
+                TimelineList.Items.Add(new TextBlock
+                {
+                    FontSize = 13,
+                    FontWeight = Windows.UI.Text.FontWeights.SemiBold,
+                    Text = group.Label,
+                });
+                foreach (var row in group.Rows)
+                {
+                    TimelineList.Items.Add(new TextBlock
+                    {
+                        FontSize = 12,
+                        TextWrapping = TextWrapping.Wrap,
+                        Text = $"    {row.TimeLocal}｜{row.SourceLabel}｜{row.Summary}",
+                    });
+                }
+            }
+        }
+        else
+        {
+            foreach (var row in _vm.Timeline)
+            {
+                TimelineList.Items.Add(new TextBlock
+                {
+                    FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap,
+                    Text = $"{row.TimeLocal}｜{row.SourceLabel}｜{row.Summary}",
+                });
+            }
         }
 
         CauseLine.Text = _vm.MostLikelyCause ?? string.Empty;

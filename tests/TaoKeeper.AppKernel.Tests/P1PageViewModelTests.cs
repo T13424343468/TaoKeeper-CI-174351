@@ -63,6 +63,36 @@ public sealed class P1PageViewModelTests
         Assert.NotEmpty(vm.VerificationSteps);
     }
 
+    [Fact]
+    public void A15_4_粒度切换_按周分组_标签与倒序()
+    {
+        var vm = new IncidentReplayPageViewModel();
+        // 构造同一 7 天分桶内的两个事件（与引擎同口径：TimeUtc.Ticks / span.Ticks），不受当前时刻影响
+        var span = TimeSpan.FromDays(7);
+        var now = DateTimeOffset.UtcNow;
+        var weekStart = new DateTimeOffset(now.Ticks / span.Ticks * span.Ticks, TimeSpan.Zero);
+        var events = new List<IncidentEvent>
+        {
+            new("crash", weekStart.AddDays(0.5), "崩溃 A"), // 桶内较早
+            new("crash", weekStart.AddDays(3), "崩溃 B"),   // 桶内较晚，距 now ≤ 4 天，168h 窗内
+        };
+        vm.Load(events, now, windowHours: 168);
+        Assert.Equal(2, vm.Timeline.Count);
+
+        vm.SetGranularity(events, now, "week");
+        Assert.Equal("week", vm.Granularity);
+        Assert.Equal(168, vm.WindowHours); // 粒度切换不重置时间窗
+        Assert.Single(vm.TimelineGroups);  // 同一周分桶（跨度=快照保留上限）
+        Assert.Contains("起一周", vm.TimelineGroups[0].Label);
+        Assert.Equal(2, vm.TimelineGroups[0].Rows.Count); // 组内最近在前：崩溃 B 在前
+        Assert.Contains("崩溃 B", vm.TimelineGroups[0].Rows[0].Summary);
+
+        vm.SetGranularity(events, now, "day");
+        Assert.Equal("day", vm.Granularity);
+        Assert.Equal(2, vm.TimelineGroups.Count); // 跨天事件分两组（同一天内合并）
+        Assert.All(vm.TimelineGroups, g => Assert.Single(g.Rows));
+    }
+
     // ---------- P16 ----------
 
     [Fact]
