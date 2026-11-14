@@ -1,4 +1,4 @@
-﻿# TaoKeeper live-fire UI walk: launch app, drive ALL 12 nav pages + settings loop,
+# TaoKeeper live-fire UI walk: launch app, drive ALL 12 nav pages + settings loop,
 # trigger real actions per page, screenshot each, assert PASS/FAIL per page.
 # CI-only script (boundary: no app code edits). ASCII-only, UTF-8 BOM.
 #
@@ -137,8 +137,8 @@ $listItemCond = New-Object System.Windows.Automation.PropertyCondition(
   [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctItem)
 
 # Route titles in exact AppRouteCatalog.NavBarRoutes order (Design route hidden).
-$routeTitles = @('总览','软件管家','磁盘清理','系统体检','性能加速','内存管理',
-  '驱动安装升级','弹窗管理','存储感知','工具箱','桌面挂件','设置')
+# G6：一级导航恒 7 项；内存/驱动/弹窗/存储感知/挂件经工具箱二级收纳（不再走侧栏）
+$routeTitles = @('总览','软件管家','磁盘清理','系统体检','性能加速','工具箱','设置')
 
 # Scrollable containers (nav ListView + page ScrollViewers) for deterministic
 # scroll recovery around list virtualization.
@@ -199,7 +199,7 @@ $script:navRight = 0
 if ($script:navItems.Count -gt 0) {
   $script:navRight = ($script:navItems | ForEach-Object { $_.X + $_.W } | Measure-Object -Maximum).Maximum + 12
 }
-Write-Host ("[UIA] nav items: {0} (expect 12), nav right bound: {1}" -f $script:navItems.Count, $script:navRight)
+Write-Host ("[UIA] nav items: {0} (expect 7), nav right bound: {1}" -f $script:navItems.Count, $script:navRight)
 
 # Content-area landing markers (walk v4): nav title -> content title text.
 # Home has no header title; its static stat label is the marker. Checkup and
@@ -302,20 +302,47 @@ function Invoke-NavByTitle([string]$Title) {
 }
 
 # Expected page sequence (top-to-bottom nav order) = AppRouteCatalog.NavBarRoutes.
+# G6：一级 7 页侧栏走查；二级 5 页经工具箱卡片进入（Invoke-ToolCard）。
 $plan = @(
   @{ Key = '02-overview';  Title = '总览' },
   @{ Key = '03-software';  Title = '软件管家' },
   @{ Key = '04-disk';      Title = '磁盘清理' },
   @{ Key = '05-checkup';   Title = '系统体检' },
   @{ Key = '06-speedup';   Title = '性能加速' },
-  @{ Key = '07-memory';    Title = '内存管理' },
-  @{ Key = '08-driver';    Title = '驱动安装升级' },
-  @{ Key = '09-popup';     Title = '弹窗管理' },
-  @{ Key = '10-storage';   Title = '存储感知' },
   @{ Key = '11-tools';     Title = '工具箱' },
-  @{ Key = '12-widget';    Title = '桌面挂件' },
   @{ Key = '13-settings';  Title = '设置' }
 )
+
+# G6 二级收纳入口：先回工具箱，再按卡内文字找内容区按钮点入，最后按页内副题核着陆。
+function Invoke-ToolCard([string]$CardTitle, [string]$Marker) {
+  if (-not (Invoke-NavByTitle '工具箱')) { return $false }
+  Start-Sleep -Seconds 2
+  $btnCond = New-Object System.Windows.Automation.PropertyCondition(
+    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+    [System.Windows.Automation.ControlType]::Button)
+  for ($attempt = 1; $attempt -le 5; $attempt++) {
+    foreach ($b in $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $btnCond)) {
+      try {
+        $r = $b.Current.BoundingRectangle
+        if ($r.X -le $script:navRight) { continue }
+        foreach ($t in $b.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+              [System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ctText)))) {
+          try {
+            if ($t.Current.Name -eq $CardTitle) {
+              try { $b.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() }
+              catch { $b.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern).Expand() }
+              Start-Sleep -Seconds 3
+              return (Find-ContentText $Marker -Like)
+            }
+          } catch { }
+        }
+      } catch { }
+    }
+    Start-Sleep -Seconds 2
+  }
+  return $false
+}
 
 $idx = 0
 foreach ($page in $plan) {
@@ -403,16 +430,22 @@ $probe = @(
   # p5 W9 重排后 UIA 文本匹配两连失（run 43576648678 云端实锤）；改按真实控件 AutomationId 匹配
   # （Invoke-Match 同样匹配 AutomationId，且 AutomationId 只落在真实按钮上，不会被内层 TextBlock 抢配）。
   @{ Page = 'speedup';  NavTitle = '性能加速';   Name = 'StartupListLink';            Wait = 8; Fallback = '查看完整启动项清单' },
-  @{ Page = 'memory';   NavTitle = '内存管理';   Name = '智能推荐|性能优先|空间优先|PlanSmart|PlanPerf|PlanSpace'; Wait = 8 },
-  @{ Page = 'driver';   NavTitle = '驱动安装升级'; Name = '扫描驱动';                 Wait = 20 },
-  @{ Page = 'popup';    NavTitle = '弹窗管理';   ReadOnly = $true },
-  @{ Page = 'storage';  NavTitle = '存储感知';   Name = 'MasterSwitch';               Wait = 6; Placeholder = $true },
+  # G6 二级收纳页：经工具箱卡片进入（ToolCard=卡内文字，Marker=页内副题）
+  @{ Page = 'memory';   ToolCard = '内存管理';     Marker = '看得见的内存'; Name = '智能推荐|性能优先|空间优先|PlanSmart|PlanPerf|PlanSpace'; Wait = 8 },
+  @{ Page = 'driver';   ToolCard = '驱动安装升级'; Marker = '只装官方驱动'; Name = '扫描驱动'; Wait = 20 },
+  @{ Page = 'popup';    ToolCard = '弹窗管理';     Marker = '合规的安静'; ReadOnly = $true },
+  @{ Page = 'storage';  ToolCard = '存储感知';     Marker = '到点只出确认预览'; Name = 'MasterSwitch'; Wait = 6 },
   @{ Page = 'tools';    NavTitle = '工具箱';     Name = 'ToolSysInfo|ToolLarge|ToolSpace|ToolDup'; Wait = 8 },
-  @{ Page = 'widget';   NavTitle = '桌面挂件';   Name = '一键清理';                   Wait = 6; Then = '再想想'; ThenWait = 2 },
+  @{ Page = 'widget';   ToolCard = '桌面挂件';     Marker = '常驻桌面一角'; Name = '一键清理'; Wait = 6; Then = '再想想'; ThenWait = 2 },
   @{ Page = 'settings'; NavTitle = '设置';       Name = '天青';                       Wait = 6; Then = '水墨';   ThenWait = 3 }
 )
 foreach ($pr in $probe) {
-  $navOk = Invoke-NavByTitle $pr.NavTitle
+  if ($pr.ToolCard) {
+    $navOk = Invoke-ToolCard $pr.ToolCard $pr.Marker
+    Write-Host ("[TOOLCARD] {0} -> {1} landed={2}" -f $pr.ToolCard, $pr.Marker, $navOk)
+  } else {
+    $navOk = Invoke-NavByTitle $pr.NavTitle
+  }
   Test-AppAlive ("probe-nav:" + $pr.Page)
   Save-Shot ("nav-{0}.png" -f $pr.Page)
   $ok = $false
@@ -437,7 +470,8 @@ foreach ($pr in $probe) {
   }
   Test-AppAlive ("probe-act:" + $pr.Page)
   Save-Shot ("act-{0}.png" -f $pr.Page)
-  $reason = "nav '$($pr.NavTitle)' ok=$navOk"
+  $navName = if ($pr.ToolCard) { "tools→$($pr.ToolCard)" } else { $pr.NavTitle }
+  $reason = "nav '$navName' ok=$navOk"
   if ($pr.ReadOnly) {
     $reason += "; read-only summary page by design (no action controls in XAML), render asserted"
   } else {

@@ -141,6 +141,28 @@ public sealed partial class ToolsPage : Page
             case "sysinfo":
                 RunSystemInfo();
                 break;
+
+            // G6 二级收纳：内存/驱动/弹窗/存储感知/挂件经工具箱进入（主窗 SelectRoute 直达，注册表已登记）
+            case "mem":
+            case "driver":
+            case "popup":
+            case "storage":
+            case "widget":
+            {
+                var shell = (App.Current as App)?.Shell;
+                if (shell is { } s)
+                {
+                    s.SelectRoute(tag switch
+                    {
+                        "mem" => AppRoute.Mem,
+                        "driver" => AppRoute.Driver,
+                        "popup" => AppRoute.Popup,
+                        "storage" => AppRoute.Storage,
+                        _ => AppRoute.Widget,
+                    });
+                }
+                break;
+            }
         }
         // 全部工具卡均已接真实通道或整页跳转，无剩余占位分支（V-A2：占位文案清零）。
     }

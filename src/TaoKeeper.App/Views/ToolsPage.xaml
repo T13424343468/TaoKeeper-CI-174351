@@ -18,7 +18,7 @@
             <TextBlock Text="常备小工具，用完即走" FontSize="13.5"
                        Foreground="{ThemeResource TaoInk2Brush}" />
 
-            <!-- 8 张快捷卡（4 列 × 2 行，顺序=原型） -->
+            <!-- 8 张快捷卡（4 列 × 2 行，顺序=原型） + 二级收纳页入口行（G6：内存/驱动/弹窗/存储感知/挂件经工具箱进入） -->
             <Grid ColumnSpacing="12" RowSpacing="12" Margin="0,6,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -27,6 +27,8 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -111,6 +113,53 @@
                     <StackPanel Spacing="2">
                         <TextBlock Text="误删恢复" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
                         <TextBlock Text="先镜像后找回，源盘零写入（R-P10-5）" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+
+                <!-- G6 二级收纳入口行：内存管理/驱动安装升级/弹窗管理/存储感知/桌面挂件 经工具箱进入（侧栏恒 7 项） -->
+                <Button x:Name="ToolMem" Grid.Row="3" Grid.Column="0" Click="OnToolClick" Tag="mem"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="内存管理" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="看得见的内存，托得住的虚拟内存" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ToolDriver" Grid.Row="3" Grid.Column="1" Click="OnToolClick" Tag="driver"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="驱动安装升级" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="只装官方驱动" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ToolPopup" Grid.Row="3" Grid.Column="2" Click="OnToolClick" Tag="popup"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="弹窗管理" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="合规的安静" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ToolStorage" Grid.Row="3" Grid.Column="3" Click="OnToolClick" Tag="storage"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="存储感知" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="到点只出确认预览" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ToolWidget" Grid.Row="4" Grid.Column="0" Click="OnToolClick" Tag="widget"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="桌面挂件" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="常驻桌面一角，读数如实" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
                     </StackPanel>
                 </Button>
             </Grid>
