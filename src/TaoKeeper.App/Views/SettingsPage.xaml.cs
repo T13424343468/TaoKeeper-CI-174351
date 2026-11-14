@@ -21,6 +21,9 @@ public sealed partial class SettingsPage : Page
     private SettingsPageViewModel _vm = new();
     private bool _suppressToggles;
 
+    /// <summary>挂件配置变化通知（宿主接线 R-P12-6：保存后即时显隐/重排桌面挂件；未接线=null 静默跳过）。</summary>
+    public static Action<AppSettings>? WidgetSettingsChanged { get; set; }
+
     public SettingsPage()
     {
         InitializeComponent();
@@ -218,6 +221,9 @@ public sealed partial class SettingsPage : Page
         {
             var trayNote = TrayIconController.ApplySettings(_vm.Current.LaunchOnStartup, _vm.Current.TrayResident);
             if (trayNote.Length > 0) EntryHint.Text += $"（托盘：{trayNote}）";
+
+            // R-P12-6 桌面挂件：保存后即时显隐/重排（宿主经 CompositionRoot 接线；未接线时静默跳过）
+            WidgetSettingsChanged?.Invoke(_vm.Current);
         }
     }
 
