@@ -75,6 +75,16 @@ function Get-AppWindow([int]$procId) {
   while ((Get-Date) -lt $deadline) {
     if ($null -ne $script:p -and $script:p.HasExited) { return $null }
     try {
+      # dual-res fix: UIA FindAll(Children+ProcessId) misses the window on cloud runner
+      # (12/12 pages, both DPI tiers, process alive) while Process.MainWindowHandle works
+      # (live-fire walk same payload all PASS). Locate by MainWindowHandle first, wrap via UIA FromHandle.
+      $script:p.Refresh()
+      if ($script:p.MainWindowHandle -ne [IntPtr]::Zero) {
+        try {
+          $w = [System.Windows.Automation.AutomationElement]::FromHandle($script:p.MainWindowHandle)
+          if ($null -ne $w -and $w.Current.NativeWindowHandle -ne 0) { return $w }
+        } catch { }
+      }
       $cond = New-Object System.Windows.Automation.PropertyCondition(
         [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $procId)
       $wins = $root.FindAll([System.Windows.Automation.TreeScope]::Children, $cond)
