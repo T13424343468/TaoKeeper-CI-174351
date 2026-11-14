@@ -251,7 +251,7 @@ public sealed partial class ToolsPage : Page
     // ---------- R-P10-6 右键菜单管理 ----------
 
     /// <summary>右键菜单管理通道（宿主接线；null=未接线，页面如实提示）。</summary>
-    public static Func<ContextMenuManager?>? ContextMenuManagerProvider { get; set; }
+    public static Func<IContextMenuManager?>? ContextMenuManagerProvider { get; set; }
 
     /// <summary>只读扫描右键菜单条目（真实注册表读数），逐条给禁用/启用按钮（可逆，键改名不删数据）。</summary>
     private void RunContextMenuScan()
