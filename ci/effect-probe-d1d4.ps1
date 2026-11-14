@@ -1,4 +1,4 @@
-# TaoKeeper effect probe v8 (walk companion): D-1 true-clean + D-4 ledger match.
+﻿# TaoKeeper effect probe v8 (walk companion): D-1 true-clean + D-4 ledger match.
 #
 # Boss order 2026-11-12 14:33 (effect layer): product acceptance needs REAL results,
 # not just wired pages. This script exercises the REAL product UI flow end-to-end
@@ -296,18 +296,23 @@ $confirmClicked = Invoke-ContentMatch '确认清理' 10
 Write-Effect $confirmClicked "confirm-clicked" "dialog primary '确认清理' invoked (real user-confirmation flow, no bypass)"
 if (-not $confirmClicked) { Save-Shot "99-confirm-fail.png"; $script:effectLines | Out-File (Join-Path $OutDir "effect-evidence.txt") -Encoding utf8; $p.Kill(); exit 1 }
 
-# result dialog appears: '已移入回收站 N 条（合计 X）' - poll up to 120s (22MB+ batch)
-$resultText = Wait-ContentText '已移入回收站' 120
+# result dialog: layered semantics 0.2 (boss 2026-11-14): system-temp = confirmed junk ->
+# true-delete receipt '已真删 N 条（合计 X）'; user files default to recycle bin ->
+# '已移入回收站 N 条（合计 X）'. Both product receipts parsed honestly.
+$resultText = Wait-ContentText '已真删|已移入回收站' 120
+$permMode = $false
 if ($resultText) {
   Save-Shot "e4-clean-result.png"
-  $m2 = [regex]::Match($resultText, '已移入回收站 (\d+) 条（合计 ([^）]+)）')
+  $mPerm = [regex]::Match($resultText, '已真删\s*(\d+)\s*条')
+  $mRecy = [regex]::Match($resultText, '已移入回收站\s*(\d+)\s*条')
   $succeeded = -1
-  if ($m2.Success) { $succeeded = [int]$m2.Groups[1].Value }
-  Write-Effect ($succeeded -ge ($seedCount + 1)) "clean-result" ("dialog='{0}'; succeeded={1}, expected >= {2} (seeds+control); refused/failed items honest-reported inside dialog" -f $resultText, $succeeded, ($seedCount + 1))
+  if ($mPerm.Success) { $succeeded = [int]$mPerm.Groups[1].Value; $permMode = $true }
+  elseif ($mRecy.Success) { $succeeded = [int]$mRecy.Groups[1].Value }
+  Write-Effect ($succeeded -ge ($seedCount + 1)) "clean-result" ("dialog='{0}'; succeeded={1}, expected >= {2} (seeds+control); mode={(3)}" -f $resultText, $succeeded, ($seedCount + 1), $(if ($permMode) {'true-delete'} else {'recycle-bin'}))
   # dismiss result dialog ('好' close button)
   Invoke-ContentMatch '好' 3 | Out-Null
 } else {
-  Write-Effect $false "clean-result" "result dialog '已移入回收站' not seen in 120s"
+  Write-Effect $false "clean-result" "result dialog '已真删'/'已移入回收站' not seen in 120s"
 }
 Start-Sleep -Seconds 2
 Save-Shot "e5-after-clean.png"
@@ -419,8 +424,16 @@ try {
     try { $n = $it.Name } catch { }
     if ($n -match $marker) { $foundInBin.Add($n) }
   }
-  $binOk = ($foundInBin.Count -ge $seedCount)
-  $binDetail = "recycle-bin items matching marker: {0}/{1}" -f $foundInBin.Count, $seedCount
+  # Layered semantics 0.2: system-temp seeds are confirmed junk -> product true-deletes
+  # them (no recycle-bin entry, by design). Bin check PASSes either when entries ARE
+  # present (recycle mode) or when the true-delete receipt was parsed. Restore verb only in recycle mode.
+  if ($permMode) {
+    $binOk = ($succeeded -ge $seedCount)
+    $binDetail = "true-delete mode: receipt succeeded={0}; recycle-bin entries={1}/8 (expected 0 for confirmed junk)" -f $succeeded, $foundInBin.Count
+  } else {
+    $binOk = ($foundInBin.Count -ge $seedCount)
+    $binDetail = "recycle-bin items matching marker: {0}/{1}" -f $foundInBin.Count, $seedCount
+  }
   Write-Effect $binOk "d1-in-recycle-bin" $binDetail
 
   if ($binOk) {
