@@ -85,7 +85,7 @@ public sealed partial class ResidueDetectPage : Page
             {
                 Content = "保留",
                 FontSize = 11,
-                CornerRadius = 8,
+                CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(12, 4, 12, 4),
             };
             var path = row.Path;

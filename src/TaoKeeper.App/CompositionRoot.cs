@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TaoKeeper.Adapters;
+using TaoKeeper.App.Adapters;
 using TaoKeeper.AppKernel.Settings;
 using TaoKeeper.AppKernel.ViewModels;
 using TaoKeeper.App.Views;
@@ -234,7 +235,7 @@ internal static class CompositionRoot
             {
                 if (!OperatingSystem.IsWindows())
                 {
-                    return (new EmptyResidueNodeSource(), []);
+                    return (new EmptyResidueNodeSource(), Array.Empty<string>());
                 }
                 var roots = ReadInstallRoots();
                 return (new WindowsResidueNodeSource(roots), roots);
@@ -304,9 +305,9 @@ internal static class CompositionRoot
             var pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             var pf86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
             var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            return [pf, pf86, Path.Combine(local, "TaoKeeper")].Where(Directory.Exists).ToArray();
+            return new[] { pf, pf86, Path.Combine(local, "TaoKeeper") }.Where(Directory.Exists).ToArray();
         }
-        catch (ArgumentException) { return []; }
+        catch (ArgumentException) { return Array.Empty<string>(); }
     }
 
     private static IEnumerable<IncidentEvent> ReadIncidentEvents()

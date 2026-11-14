@@ -98,7 +98,7 @@ public sealed partial class SnapshotChainPage : Page
             {
                 Content = "还原",
                 FontSize = 11,
-                CornerRadius = 8,
+                CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(12, 4, 12, 4),
             };
             var id = row.TransactionId;
