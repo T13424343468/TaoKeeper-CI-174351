@@ -98,6 +98,16 @@ public sealed class CheckupPageViewModel
     /// <summary>发现清单（按严重度降序，与引擎输出同序）。</summary>
     public IReadOnlyList<CheckupFindingItem> Findings { get; private set; } = Array.Empty<CheckupFindingItem>();
 
+    /// <summary>老机器建议卡（R-P4-9，G8 落点）：只建议不静默改；未探测为空清单。</summary>
+    public IReadOnlyList<OldMachineAdviceCard> AdviceCards { get; private set; } = Array.Empty<OldMachineAdviceCard>();
+
+    /// <summary>注入本机探测结果并重建老机器建议卡（说人话+实测依据；零执行动作）。</summary>
+    public CheckupPageViewModel ApplyMachineProbe(MachineProbe probe)
+    {
+        AdviceCards = OldMachineAdviceBuilder.Build(probe);
+        return this;
+    }
+
     /// <summary>发现项 → 目标页面路由映射（SuggestedActionId 与导航页对应，未知动作不跳转返回 null）。</summary>
     private static readonly Dictionary<string, AppRoute> DefaultJumpRoutes = new()
     {

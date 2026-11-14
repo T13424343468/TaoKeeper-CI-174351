@@ -19,6 +19,15 @@ public sealed class SpeedupPageViewModel
     /// <summary>进程快照提供者（宿主运行期接线；未接线=null → 进程排行如实空置，不假数据）。</summary>
     public Func<StartupProcessSnapshot?>? ProcessSnapshotProvider { get; set; }
 
+    /// <summary>启动项三档适配器（R-P5-6；宿主接线，未接线=null → 三档操作如实提示未接线）。</summary>
+    public IStartupModeAdapter? StartupModeAdapter { get; set; }
+
+    /// <summary>改前快照回调（接线 R-P5-1 快照通道；未接线=null → 走无快照降级说明）。</summary>
+    public Func<string, StartupLaunchMode, Task>? StartupModeSnapshot { get; set; }
+
+    /// <summary>碎片整理执行器（R-P5-5 官方接口；宿主接线，未接线=null → 如实提示未接线）。</summary>
+    public IDefragRunner? DefragRunner { get; set; }
+
     /// <summary>注入加速编排（适配层由外部装配；默认内存台架仅测试用）。</summary>
     public SpeedupPageViewModel(SpeedupCoordinator? coordinator = null)
         => _coordinator = coordinator ?? new SpeedupCoordinator(new InMemoryStartupAdapter());
@@ -119,4 +128,65 @@ public sealed class SpeedupPageViewModel
             return $"处理 {LastResults.Count} 项：成功 {ok}、未成 {LastResults.Count - ok}；逐条结果见明细";
         }
     }
+
+    // ==================== G8 老机型优化（低配档位 / 启动项三档 / 机械盘碎片整理） ====================
+
+    /// <summary>当前老机型档位画像（未探测为 null；默认自动判定，可手切）。</summary>
+    public LegacyProfile? LegacyTier { get; private set; }
+
+    /// <summary>应用本机探测（G8：默认自动判定；mode 传 Standard/Saver 为用户手切，断言 V-A9 装饰层关闭可断言）。</summary>
+    public LegacyProfile ApplyMachineProbe(MachineProbe probe, LegacyTierMode mode = LegacyTierMode.Auto)
+    {
+        ArgumentNullException.ThrowIfNull(probe);
+        _lastProbe = probe;
+        LegacyTier = LegacyTierDetector.Evaluate(probe, mode);
+        return LegacyTier;
+    }
+
+    /// <summary>启动项三档操作回执（最近一次，界面直显）。</summary>
+    public StartupModeResult? LastStartupModeResult { get; private set; }
+
+    /// <summary>
+    /// R-P5-6：对启动项设三档之一（禁用/延迟启动/立即启动）。改前走 R-P5-1 快照通道（未接线时
+    /// 走无快照降级并如实说明，不假成功）；适配器未接线时如实提示，不执行任何动作。
+    /// </summary>
+    public async Task<StartupModeResult> ApplyStartupModeAsync(string itemId, StartupLaunchMode mode, CancellationToken cancellation = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(itemId);
+        if (StartupModeAdapter is null)
+        {
+            var unwired = new StartupModeResult(itemId, mode, false, "启动项三档通道尚未接线，本次未做任何改动。");
+            LastStartupModeResult = unwired;
+            return unwired;
+        }
+        if (StartupModeSnapshot is { } snapshot)
+        {
+            // 显式快照钩子：先快照后动手（快照抛错即中止，零例外）
+            var coordinator = new StartupModeCoordinator(StartupModeAdapter) { SnapshotBeforeChange = snapshot };
+            LastStartupModeResult = await coordinator.ApplyAsync(itemId, mode, cancellation).ConfigureAwait(false);
+            return LastStartupModeResult;
+        }
+
+        // 无显式钩子：适配器自管快照与回滚（真机适配器内部先快照后动系统）
+        LastStartupModeResult = await StartupModeAdapter.SetModeAsync(itemId, mode, cancellation).ConfigureAwait(false);
+        return LastStartupModeResult;
+    }
+
+    /// <summary>R-P5-5 入口判定：true=机械盘显示；false=SSD 隐藏（防误伤）；null=类型未判定（如实降级说明）。</summary>
+    public bool? DefragOffered(DriveAnalysis analysis) => DefragPlanner.ShouldOffer(analysis);
+
+    /// <summary>R-P5-5：执行碎片整理（官方接口；前后碎片率实测一致；执行器未接线如实提示）。</summary>
+    public async Task<DefragOutcome> RunDefragAsync(string volume, IProgress<string>? progress = null, CancellationToken cancellation = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(volume);
+        if (DefragRunner is null)
+            return new DefragOutcome(false, null, null, "碎片整理通道尚未接线，本次未做任何磁盘写入。");
+        return await DefragPlanner.RunAsync(DefragRunner, volume, progress, cancellation).ConfigureAwait(false);
+    }
+
+    /// <summary>R-P4-9：老机器建议卡（只建议不静默改；未探测为空清单）。</summary>
+    public IReadOnlyList<OldMachineAdviceCard> MachineAdvice =>
+        _lastProbe is { } probe ? OldMachineAdviceBuilder.Build(probe) : Array.Empty<OldMachineAdviceCard>();
+
+    private MachineProbe? _lastProbe;
 }

@@ -57,6 +57,23 @@
                 </StackPanel>
             </Border>
 
+            <!-- 老机型建议卡 + 磁盘碎片整理（R-P5-5/G8：只建议与官方接口；SSD 隐藏防误伤，类型未判定如实降级） -->
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="磁盘维护" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <TextBlock x:Name="DefragText" FontSize="12" TextWrapping="Wrap" LineHeight="21"
+                               Foreground="{ThemeResource TaoInk2Brush}"
+                               Text="磁盘类型未判定（等待探测）。" />
+                    <Button x:Name="DefragButton" Content="碎片整理（官方接口，前后读数同屏）"
+                            Click="OnDefragClick" CornerRadius="10" Padding="16,7"
+                            Style="{StaticResource TaoButtonPrimary}"
+                            Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+
             <!-- 进程占用排行（数据未接入，如实空置） -->
             <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
                     BorderBrush="{ThemeResource TaoLineSoftBrush}"

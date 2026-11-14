@@ -39,6 +39,13 @@ public partial class App : Application
 
         _mainWindow.Activate();
 
+        // 冷启动延迟加载分派（G8）：主界面首帧后再跑重后台扫描（启动项/垃圾/开机耗时/软件清单），
+        // 非关键模块不占首帧；各自内部已按未接线/未测态如实兜底，分派失败不影响首帧。
+        foreach (var frameWork in CompositionRoot.DeferredFirstFrameWork)
+        {
+            _ = System.Threading.Tasks.Task.Run(frameWork);
+        }
+
         // 直达路由（实效探针/排障用）：--page <pageId|标题>；未识别保持首页，现行默认行为不变
         if (LaunchRoute.FromCommandLine(Environment.GetCommandLineArgs()) is { } direct)
         {
