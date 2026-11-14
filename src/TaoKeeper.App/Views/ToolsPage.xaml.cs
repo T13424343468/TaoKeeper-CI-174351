@@ -10,6 +10,7 @@ using TaoKeeper.Adapters;
 using TaoKeeper.AppKernel.ViewModels;
 using TaoKeeper.Core.Models;
 using TaoKeeper.Core.Modules;
+using TaoKeeper.Core.Modules.Toolbox;
 
 namespace TaoKeeper.App.Views;
 
