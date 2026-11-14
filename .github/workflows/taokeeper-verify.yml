@@ -53,6 +53,8 @@ jobs:
           $errs = (Select-String -Path winui-build.log -Pattern ': error ' | Measure-Object).Count
           $warns = (Select-String -Path winui-build.log -Pattern ': warning ' | Measure-Object).Count
           Write-Host "[CHECK] winui error count: $errs, warning count: $warns"
+          # 修红三取证：XamlCompiler 真实错误在 output.json，必须打上 stdout，不许再猜
+          pwsh -NoProfile -File ci/xaml-compiler-evidence.ps1 -ProjDir src/TaoKeeper.App -Configuration Release -Platform x64
           ci/restore-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
           if ($errs -ne 0) { exit 1 }
           if ($warns -gt 0) { Write-Host "[WARN-GATE] $warns warnings present - reporting, not suppressing" }
