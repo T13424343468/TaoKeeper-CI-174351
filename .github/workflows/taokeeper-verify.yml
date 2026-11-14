@@ -10,6 +10,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  xaml-bisect-fast:
+    name: XAML fast bisect (V1 widget / V2 softlib / V3 copyedit)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Uncomment SDK ref (pitfall 17)
+        run: ci/uncomment-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
+        shell: pwsh
+      - name: Fast bisect build matrix
+        run: pwsh -NoProfile -File ci/xaml-bisect-fast.ps1
+        shell: pwsh
+      - name: Upload bisect logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bisect-fast-logs
+          path: |
+            bisect-*.log
+            bisect-result.txt
+
   cpp-ctest:
     name: C++ 5 suites (cmake+MSVC)
     runs-on: windows-2022
