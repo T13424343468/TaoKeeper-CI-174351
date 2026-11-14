@@ -64,6 +64,30 @@ jobs:
         run: dotnet run --project ci/EffectProbe -c Release
         shell: pwsh
 
+  admin-capability-probe:
+    name: Admin capability probe (elevated ops on cloud runner)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe elevated token, defrag and schtasks round-trip
+        run: |
+          $integrity = (whoami /groups) -match 'S-1-16-12288' -or (whoami /groups) -match 'High Mandatory'
+          Write-Host "[ADMIN-PROBE] high-integrity token present: $integrity"
+          $isAdmin = ((whoami /groups) -match 'S-1-5-32-544') -ne $null
+          Write-Host "[ADMIN-PROBE] Administrators group member: $isAdmin"
+          defrag /? 2>&1 | Select-Object -First 2 | ForEach-Object { Write-Host "[ADMIN-PROBE] defrag: $_" }
+          try {
+            schtasks /create /tn "TKAdminProbe" /tr "cmd /c exit" /sc once /st 23:59 /f 2>&1 | ForEach-Object { Write-Host "[ADMIN-PROBE] schtasks create: $_" }
+            schtasks /query /tn "TKAdminProbe" 2>&1 | Select-String "TKAdminProbe" | ForEach-Object { Write-Host "[ADMIN-PROBE] schtasks query: $_" }
+            schtasks /delete /tn "TKAdminProbe" /f 2>&1 | ForEach-Object { Write-Host "[ADMIN-PROBE] schtasks delete: $_" }
+            Write-Host "[ADMIN-PROBE] schtasks round-trip OK"
+          } catch { Write-Host "[ADMIN-PROBE] schtasks FAILED: $_" }
+          try {
+            $list = defrag C: /A 2>&1 | Select-Object -First 12
+            $list | ForEach-Object { Write-Host "[ADMIN-PROBE] defrag C: /A: $_" }
+            Write-Host "[ADMIN-PROBE] defrag analyze OK"
+          } catch { Write-Host "[ADMIN-PROBE] defrag analyze FAILED: $_" }
+        shell: pwsh
   msi-fullflow:
     name: MSI bind, install, uninstall, upgrade, hashes
     runs-on: windows-latest
