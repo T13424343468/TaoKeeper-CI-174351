@@ -36,18 +36,13 @@ public static class AppTheme
         merged.Insert(merged.Count, dict);
     }
 
-    /// <summary>从设置文件读主题（损坏/缺失回退默认水墨，设置层已有回退语义）。</summary>
+    /// <summary>从设置文件读主题（与 CompositionRoot 数据目录同一文件，单一口径；缺失/损坏由存储层回退默认水墨）。</summary>
     public static ThemeName LoadThemeFromSettings()
     {
         try
         {
-            var folder = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
-            var store = new AppSettingsStore(System.IO.Path.Combine(folder, "settings.json"));
+            var store = new AppSettingsStore(System.IO.Path.Combine(CompositionRoot.DataDir, "settings.json"));
             return store.Load().Theme;
-        }
-        catch (InvalidOperationException)
-        {
-            return ThemeName.Shuimo; // 应用数据未就绪（如设计期宿主）按默认主题
         }
         catch (UnauthorizedAccessException)
         {

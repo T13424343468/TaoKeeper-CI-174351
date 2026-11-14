@@ -32,8 +32,8 @@ public class TraySettingsTests
     public void 默认值与原型托盘设置初始态一致()
     {
         var vm = new SettingsPageViewModel();
-        Assert.False(vm.Current.TrayAutostart); // 开机自启默认关（原型 TRAY.autostart=false）
-        Assert.True(vm.Current.TrayResident);   // 托盘常驻默认开（原型 TRAY.resident=true）
+        Assert.True(vm.Current.LaunchOnStartup); // 开机自启单一开关默认开（原型通用卡初始态；托盘双口径 2026-11-14 已合并）
+        Assert.True(vm.Current.TrayResident);    // 托盘常驻默认开（原型 TRAY.resident=true）
         Assert.False(vm.HasPendingChanges);
     }
 
@@ -43,23 +43,23 @@ public class TraySettingsTests
         using var temp = new TempSettingsStore();
         var vm = new SettingsPageViewModel(temp.Store);
 
-        vm.SetPendingTrayAutostart(true);
+        vm.SetPendingLaunchOnStartup(false); // 单一开关统管：通用卡「开机自动启动」即托盘菜单「开机自启」
         vm.SetPendingTrayResident(false);
 
         Assert.True(vm.HasPendingChanges);
-        Assert.False(vm.Current.TrayAutostart); // 确认闸门前 Current 不动
+        Assert.True(vm.Current.LaunchOnStartup); // 确认闸门前 Current 不动
         Assert.True(vm.Current.TrayResident);
 
         var applied = vm.ConfirmPendingChanges();
         Assert.Equal(2, applied.Count);
-        Assert.Contains("托盘开机自启：关 → 开", applied);
+        Assert.Contains("开机自动启动：开 → 关", applied);
         Assert.Contains("托盘常驻：开 → 关", applied);
-        Assert.True(vm.Current.TrayAutostart);
+        Assert.False(vm.Current.LaunchOnStartup);
         Assert.False(vm.Current.TrayResident);
 
         // 跨实例回读：落盘契约生效（AppSettingsStore 原子写 + Load 往返）
         var reloaded = new SettingsPageViewModel(temp.Store);
-        Assert.True(reloaded.Current.TrayAutostart);
+        Assert.False(reloaded.Current.LaunchOnStartup);
         Assert.False(reloaded.Current.TrayResident);
     }
 
@@ -69,11 +69,11 @@ public class TraySettingsTests
         using var temp = new TempSettingsStore();
         var vm = new SettingsPageViewModel(temp.Store);
 
-        vm.SetPendingTrayAutostart(true);
+        vm.SetPendingLaunchOnStartup(false);
         vm.DiscardPendingChanges();
 
         Assert.False(vm.HasPendingChanges);
-        Assert.False(vm.Current.TrayAutostart);
+        Assert.True(vm.Current.LaunchOnStartup);
         Assert.False(File.Exists(temp.Path)); // 从未确认过，设置文件不该被创建
     }
 

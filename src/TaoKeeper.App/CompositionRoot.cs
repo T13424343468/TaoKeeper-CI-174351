@@ -61,9 +61,10 @@ internal static class CompositionRoot
     /// <summary>清理执行器（DiskCleanupPage 确认后调用；null=未接线，页面如实提示）。</summary>
     internal static Func<IReadOnlyList<CleanupActionItem>, Task<CleanupBatchResult>>? CleanupExecutor { get; private set; }
 
-    private static string LedgerPath => Path.Combine(DataDir, "cleanup-ledger.json");
+    internal static string LedgerPath => Path.Combine(DataDir, "cleanup-ledger.json");
 
-    private static string DataDir => Path.Combine(
+    /// <summary>数据目录单一真源（设置/账本/快照共用；AppTheme 主题读取同口径，2026-11-14 起废弃 LocalState 旧口径）。</summary>
+    internal static string DataDir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TaoKeeper");
 
     internal static void Wire(MainWindow shell)
@@ -100,8 +101,7 @@ internal static class CompositionRoot
         shell.BoostViewModelProvider = () => _boost;
         shell.MemViewModelProvider = () => _mem;
         shell.SwStoreViewModelProvider = () => _software;
-        // R-P12-9 托盘设置需跨会话生效（自启/常驻），接线既有 AppSettingsStore（路径与 CompositionRoot 数据目录同口径；
-        // AppTheme 主题读取仍走 LocalState 旧口径，双口径待统一，见交接清单）
+        // R-P12-9 托盘设置需跨会话生效（自启/常驻），接线既有 AppSettingsStore（主题读取同走本文件，AppTheme 单口径已统一）
         shell.SettingsViewModelProvider = () => new SettingsPageViewModel(ResolveSettingsStore());
         shell.DiskViewModelProvider = () => _disk;
         shell.DriverViewModelProvider = () => _driver;

@@ -48,7 +48,6 @@ public sealed partial class SettingsPage : Page
         LedgerSwitch.IsOn = vm.Pending.RecordInstallLedger;
         StorageSenseSwitch.IsOn = vm.Pending.StorageSenseEnabled;
         QuickScanSwitch.IsOn = vm.Pending.QuickScanByDefault;
-        TrayAutostartSwitch.IsOn = vm.Pending.TrayAutostart;
         TrayResidentSwitch.IsOn = vm.Pending.TrayResident;
         WidgetSwitch.IsOn = vm.Pending.ShowDesktopWidget;
         _suppressToggles = false;
@@ -123,13 +122,6 @@ public sealed partial class SettingsPage : Page
     {
         if (_suppressToggles) return;
         _vm.SetPendingQuickScanByDefault(QuickScanSwitch.IsOn);
-        Refresh();
-    }
-
-    private void OnTrayAutostartToggled(object sender, RoutedEventArgs e)
-    {
-        if (_suppressToggles) return;
-        _vm.SetPendingTrayAutostart(TrayAutostartSwitch.IsOn);
         Refresh();
     }
 
@@ -220,10 +212,10 @@ public sealed partial class SettingsPage : Page
                 ? $"已保存 {applied.Count} 项改动：{string.Join("；", applied)}"
                 : $"已在本会话生效 {applied.Count} 项（暂无设置文件渠道，未落盘）：{string.Join("；", applied)}";
 
-        // R-P12-9：托盘两项确认后即时生效（常驻态即改；自启与注册表差量对齐），结果如实追加
+        // R-P12-9：托盘常驻确认后即时生效；开机自启走通用卡单一开关与注册表差量对齐（2026-11-14 双口径合并），结果如实追加
         if (applied.Count > 0)
         {
-            var trayNote = TrayIconController.ApplySettings(_vm.Current.TrayAutostart, _vm.Current.TrayResident);
+            var trayNote = TrayIconController.ApplySettings(_vm.Current.LaunchOnStartup, _vm.Current.TrayResident);
             if (trayNote.Length > 0) EntryHint.Text += $"（托盘：{trayNote}）";
         }
     }

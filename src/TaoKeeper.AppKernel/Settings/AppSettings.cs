@@ -26,7 +26,7 @@ public sealed class AppSettings
 {
     // ── 通用 ──
     public ThemeName Theme { get; set; } = ThemeName.Shuimo;   // 界面主题：全局即时生效
-    public bool LaunchOnStartup { get; set; } = true;          // 开机自动启动：随 Windows 启动，常驻极轻
+    public bool LaunchOnStartup { get; set; } = true;          // 开机自动启动：单一开关统管（2026-11-14 全权授权自决：与原托盘开机自启双口径合并），落 HKCU Run 键，设置页与托盘菜单同源
     public bool AutoCheckupOnStartup { get; set; } = true;     // 开机后自动体检：静默跑一遍，只报变化不刷屏
 
     // ── 软件管家 ──
@@ -42,8 +42,7 @@ public sealed class AppSettings
     public bool StorageSenseEnabled { get; set; } = false;     // 存储感知定时清理：默认关，到点只出确认预览
     public bool QuickScanByDefault { get; set; } = true;       // 快扫默认开启：打开磁盘清理即快扫
 
-    // ── 托盘（R-P12-9）──
-    public bool TrayAutostart { get; set; } = false;           // 托盘开机自启：与托盘菜单「开机自启」同源（R-P12-9），落 HKCU Run 键
+    // ── 托盘 ──
     public bool TrayResident { get; set; } = true;             // 托盘常驻：关闭主窗口后仍保留托盘图标，不勾则随窗口退出
 
     // ── 桌面挂件 ──
