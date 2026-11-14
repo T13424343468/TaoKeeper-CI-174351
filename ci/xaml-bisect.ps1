@@ -1,64 +1,65 @@
 #!/usr/bin/env pwsh
-# XamlCompiler 崩溃二分（修红三）：pass1 硬崩无 XLS 输出，靠逐变体构建定位崩溃文件/片段。
-# 每个变体：替换 XAML -> 清 obj/bin -> dotnet build -> 记录结果 -> 还原文件。全跑完打汇总表。
+# XamlCompiler 崩溃二分 v2（修红三）：pass1 硬崩无 XLS 输出、无 output.json。
+# 打法：按组隔离——整组还原到 origin/main，只留一组改动，构建记录结果；红=该组含崩溃源。
+# 每轮构建清 obj/bin；构建日志落盘 bisect-<组>.log，末尾汇总并上传 artifact。
 param(
     [string]$ProjDir = "src/TaoKeeper.App",
     [string]$Configuration = "Release",
     [string]$Platform = "x64"
 )
 $ErrorActionPreference = 'Continue'
+$csproj = Join-Path $ProjDir "TaoKeeper.App.csproj"
 
-$Widget = Join-Path $ProjDir "Views/DesktopWidgetWindow.xaml"
-$SwPage = Join-Path $ProjDir "Views/SoftwarePage.xaml"
-$VDir = "ci/xaml-bisect/variants"
+# 确保能取到 origin/main（actions/checkout 默认浅克隆仅当前分支）
+git fetch origin main --depth=1 2>$null
 
+# 修错批相对 origin/main 的全部改动文件
+$batchFiles = git diff --name-only origin/main...HEAD | Where-Object { $_ -notmatch '^ci/|^.github/' }
+Write-Host "[BISECT] batch files: $($batchFiles -join ', ')"
+
+function Restore-All {
+    git checkout origin/main -- @($batchFiles) 2>$null
+    git clean -f @($batchFiles) 2>$null | Out-Null
+}
 function Clean-Obj {
     Remove-Item -Recurse -Force (Join-Path $ProjDir "obj") -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force (Join-Path $ProjDir "bin") -ErrorAction SilentlyContinue
 }
-
-function Build-Once([string]$label) {
+function Build-Once([string]$label, [string[]]$keep) {
+    Restore-All
+    foreach ($f in $keep) { git checkout HEAD -- $f 2>$null; if (-not (Test-Path $f)) { Write-Host "[BISECT][WARN] 缺文件 $f" } }
     Clean-Obj
-    ci/uncomment-winappsdk.ps1 -CsprojPath (Join-Path $ProjDir "TaoKeeper.App.csproj") | Out-Null
+    ci/uncomment-winappsdk.ps1 -CsprojPath $csproj | Out-Null
     $log = "bisect-$label.log"
-    dotnet build (Join-Path $ProjDir "TaoKeeper.App.csproj") -c $Configuration -p:Platform=$Platform 2>&1 | Tee-Object -FilePath $log | Out-Null
+    dotnet build $csproj -c $Configuration -p:Platform=$Platform 2>&1 | Tee-Object -FilePath $log | Out-Null
     $exit = $LASTEXITCODE
-    ci/restore-winappsdk.ps1 -CsprojPath (Join-Path $ProjDir "TaoKeeper.App.csproj") | Out-Null
-    $xc = (Select-String -Path $log -Pattern 'MSB3073' | Measure-Object).Count
-    $xls = (Select-String -Path $log -Pattern 'XLS\d+' | Measure-Object).Count
-    $result = if ($exit -eq 0) { "GREEN" } else { "RED(xc=$xc xls=$xls)" }
+    ci/restore-winappsdk.ps1 -CsprojPath $csproj | Out-Null
+    $result = if ($exit -eq 0) { "GREEN" } else {
+        $errs = (Select-String -Path $log -Pattern ': error ' | Select-Object -First 6)
+        "RED"
+    }
     Write-Host "[BISECT] $label -> exit=$exit $result"
-    if ($xls -gt 0) { Select-String -Path $log -Pattern 'XLS\d+' | Select-Object -First 10 | ForEach-Object { Write-Host ("  " + $_.Line) } }
+    if ($exit -ne 0) {
+        Select-String -Path $log -Pattern ': error |XLS\d+|XamlCompiler' | Select-Object -First 8 | ForEach-Object { Write-Host ("  >> " + $_.Line.Substring(0, [Math]::Min(400, $_.Line.Length))) }
+    }
     return ,@($label, $exit, $result)
 }
 
+# 分组（互斥覆盖全部批改动）
+$G_widget = @('src/TaoKeeper.App/Views/DesktopWidgetWindow.xaml','src/TaoKeeper.App/Views/DesktopWidgetWindow.xaml.cs')
+$G_swpage = @('src/TaoKeeper.App/Views/SoftwarePage.xaml','src/TaoKeeper.App/Views/SoftwarePage.xaml.cs')
+$G_text   = @('src/TaoKeeper.App/Views/SettingsPage.xaml','src/TaoKeeper.App/Views/SettingsPage.xaml.cs','src/TaoKeeper.App/Views/ToolsPage.xaml','src/TaoKeeper.App/Views/ToolsPage.xaml.cs','src/TaoKeeper.App/Views/WidgetPage.xaml','src/TaoKeeper.App/Views/WidgetPage.xaml.cs','src/TaoKeeper.App/PlaceholderPage.xaml.cs')
+$G_wire   = @('src/TaoKeeper.App/App.xaml.cs','src/TaoKeeper.App/CompositionRoot.cs','src/TaoKeeper.App/MainWindow.xaml.cs','src/TaoKeeper.App/PageRegistry.cs','src/TaoKeeper.AppKernel/Navigation/AppRoute.cs','tests/TaoKeeper.AppKernel.Tests/AppKernelTests.cs')
+
 $results = @()
-git checkout -- $Widget $SwPage 2>$null
-
-# v0 对照：当前全量（预期红）
-$results += Build-Once "v0-full-current"
-
-# v1：挂件窗换最小壳（保留 x:Class 与根 Grid），SoftwarePage 原样
-Copy-Item "$VDir/widget-min.xaml" $Widget -Force
-$results += Build-Once "v1-widget-min"
-
-# v2：挂件窗完整但去 ContextFlyout 菜单
-Copy-Item "$VDir/widget-noflyout.xaml" $Widget -Force
-$results += Build-Once "v2-widget-noflyout"
-
-# v3：挂件窗完整但去确认浮层
-Copy-Item "$VDir/widget-nolayer.xaml" $Widget -Force
-$results += Build-Once "v3-widget-nolayer"
-
-# v4：SoftwarePage 回退 main 版（a6c4e15），挂件窗还原完整
-git checkout -- $Widget
-git show a6c4e15:src/TaoKeeper.App/Views/SoftwarePage.xaml | Set-Content $SwPage -Encoding UTF8
-$results += Build-Once "v4-swpage-main"
-
-# 还原
-git checkout -- $Widget $SwPage
+$results += Build-Once "G0-all-batch"  ($batchFiles)
+$results += Build-Once "G1-widget-only" $G_widget
+$results += Build-Once "G2-swpage-only" $G_swpage
+$results += Build-Once "G3-text-only"   $G_text
+$results += Build-Once "G4-wire-only"   $G_wire
+Restore-All
 Clean-Obj
 
 Write-Host "===== BISECT SUMMARY ====="
-$results | ForEach-Object { Write-Host ("{0,-24} exit={1,-4} {2}" -f $_[0], $_[1], $_[2]) }
-Write-Host "[BISECT] 红=绿组合交叉即定位：v1/v2/v3 谁变绿=挂件窗对应片段；v4 变绿=SoftwarePage。"
+$results | ForEach-Object { Write-Host ("{0,-16} exit={1,-4} {2}" -f $_[0], $_[1], $_[2]) }
+Write-Host "[BISECT] 判读：绿组=清白；红组=崩溃源在该组。G1/G2 互斥定位 XAML；全红但 G0 红=全局性问题再议。"
