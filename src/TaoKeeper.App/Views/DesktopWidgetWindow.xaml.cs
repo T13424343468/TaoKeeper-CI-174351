@@ -5,6 +5,7 @@ using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Windows.Foundation;
@@ -42,12 +43,44 @@ public sealed partial class DesktopWidgetWindow : Window
     {
         InitializeComponent();
         ConfigureFramelessAlwaysOnTop();
+        // 右键菜单代码侧挂接（XamlCompiler 对 Window 派生类根元素 FlyoutBase.ContextFlyout
+        // 附加属性生成类型信息时硬崩吞错，已由二分 v3 定谳）：RightTapped 打开 MenuFlyout。
+        Root.RightTapped += OnRootRightTapped;
         this.Closed += (_, _) =>
         {
             // 退出零残留：停读帧定时器、清静态引用（窗口销毁后定时器不再跑）
             if (_frameTimer is { } t) { t.Stop(); _frameTimer = null; }
             if (ReferenceEquals(_current, this)) _current = null;
         };
+    }
+
+    private MenuFlyout? _contextMenu;
+
+    private void OnRootRightTapped(object sender, RightTappedRoutedEventArgs e)
+    {
+        _contextMenu ??= BuildContextMenu();
+        var flyout = new Microsoft.UI.Xaml.Controls.Primitives.Flyout { Content = _contextMenu, AreOpenCloseAnimationsEnabled = false };
+        flyout.ShowAt(Root, new Microsoft.UI.Xaml.Controls.Primitives.FlyoutShowOptions
+        {
+            Position = e.Position,
+            Placement = Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.Top,
+        });
+    }
+
+    private MenuFlyout BuildContextMenu()
+    {
+        var menu = new MenuFlyout();
+        var open = new MenuFlyoutItem { Text = "打开道管家" };
+        open.Click += OnOpenMainClick;
+        var refresh = new MenuFlyoutItem { Text = "刷新读数" };
+        refresh.Click += OnRefreshClick;
+        var hide = new MenuFlyoutItem { Text = "收起挂件（设置页可重开）" };
+        hide.Click += OnHideClick;
+        menu.Items.Add(open);
+        menu.Items.Add(refresh);
+        menu.Items.Add(new MenuFlyoutSeparator());
+        menu.Items.Add(hide);
+        return menu;
     }
 
     private static DesktopWidgetWindow? _current;

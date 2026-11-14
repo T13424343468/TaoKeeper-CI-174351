@@ -13,14 +13,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid x:Name="Root" Padding="8">
-        <FlyoutBase.ContextFlyout>
-            <MenuFlyout>
-                <MenuFlyoutItem Text="打开道管家" Click="OnOpenMainClick" />
-                <MenuFlyoutItem Text="刷新读数" Click="OnRefreshClick" />
-                <MenuFlyoutSeparator />
-                <MenuFlyoutItem Text="收起挂件（设置页可重开）" Click="OnHideClick" />
-            </MenuFlyout>
-        </FlyoutBase.ContextFlyout>
+        <!-- 右键菜单：由 code-behind 在 Root.RightTapped 打开（XamlCompiler 对
+             Window 派生类根元素的 FlyoutBase.ContextFlyout 附加属性生成类型信息时硬崩吞错，
+             V2 单留挂件文件复现定谳，见 ci/xaml-bisect-fast v3 run 日志）。
+             菜单在代码侧构建：OnRootRightTapped，右键体验与 XAML 挂接完全一致。 -->
 
         <Grid.RenderTransform>
             <ScaleTransform x:Name="PopScale" ScaleX="1" ScaleY="1" />
