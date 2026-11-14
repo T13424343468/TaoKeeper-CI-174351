@@ -88,6 +88,29 @@ jobs:
             Write-Host "[ADMIN-PROBE] defrag analyze OK"
           } catch { Write-Host "[ADMIN-PROBE] defrag analyze FAILED: $_" }
         shell: pwsh
+  display-dual-res-shots:
+    name: Display diff surfaces (1424x714 window + 200% DPI, cloud capture)
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish UI payload
+        run: |
+          ci/uncomment-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
+          dotnet publish src/TaoKeeper.App -c Release -r win-x64 --self-contained false -p:Platform=x64 -p:WindowsAppSDKSelfContained=true -o tools/msi/publish-dualres
+          if (-not (Test-Path tools/msi/publish-dualres/TaoKeeper.App.exe)) { Write-Host "[ERROR] dual-res payload missing"; exit 1 }
+        shell: pwsh
+      - name: Capture all 12 nav pages at 1424x714 and 200% DPI
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File ci/display-dual-res-shots.ps1 -ExePath (Resolve-Path tools/msi/publish-dualres/TaoKeeper.App.exe) -OutDir dual-res-shots
+        shell: pwsh
+      - name: Upload dual-res screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dual-res-shots
+          path: dual-res-shots/
+
   msi-fullflow:
     name: MSI bind, install, uninstall, upgrade, hashes
     runs-on: windows-latest
