@@ -205,6 +205,12 @@ internal static class CompositionRoot
         MemPage.PageFileApplyExecutor = ApplyPageFilePlan;
         RefreshWidgetFrame(); // P11：内存就绪即出真实帧（垃圾/进程未就绪字段如实 null，挂件灰显该项）
 
+        // R-P12-6 桌面挂件独立悬浮窗：同一帧缓存接线（2s 读帧循环；未接线=挂件如实显示未就绪）；
+        // 设置页保存挂件配置即显隐/重排；启动显隐按设置文件（与主题同一 AppSettingsStore，单一口径）
+        DesktopWidgetWindow.FrameProvider = () => _widget is { } w ? (w.LatestFrame, w.DataStale) : null;
+        SettingsPage.WidgetSettingsChanged = settings => DesktopWidgetWindow.ApplySettings(settings);
+        DesktopWidgetWindow.ApplySettings(ResolveSettingsStore()?.Load() ?? new AppSettings());
+
         // 软件管家：后台 winget 已装清单缓存 + 页面钩子（缓存未就绪时返回 null，页面如实显示未扫描）
         KickOffInstalledScan();
         SoftwarePage.InstalledListProvider = () => _installedCache;

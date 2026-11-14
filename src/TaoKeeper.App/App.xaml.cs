@@ -37,6 +37,9 @@ public partial class App : Application
         TrayIconController.ShowWidgetHandler = () => Shell?.SelectRoute(AppRoute.Widget);
         TrayIconController.Initialize();
 
+        // R-P12-6 桌面挂件右键「打开道管家」：与托盘同一唤回入口
+        Views.DesktopWidgetWindow.OpenShellHandler = ShowShell;
+
         _mainWindow.Activate();
 
         // 冷启动延迟加载分派（G8）：主界面首帧后再跑重后台扫描（启动项/垃圾/开机耗时/软件清单），
