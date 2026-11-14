@@ -33,6 +33,7 @@ public static class PageRegistry
         [AppRoute.ResidueDetect]  = typeof(Views.ResidueDetectPage),
         [AppRoute.IncidentReplay] = typeof(Views.IncidentReplayPage),
         [AppRoute.SnapshotChain]  = typeof(Views.SnapshotChainPage),
+        [AppRoute.DiskHardcore]   = typeof(Views.DiskHardcorePage),
     };
 
     /// <summary>路由对应的落地页类型；未落地返回 null（调用方显示占位）。</summary>

@@ -10,6 +10,7 @@ using TaoKeeper.Adapters;
 using TaoKeeper.AppKernel.ViewModels;
 using TaoKeeper.Core.Models;
 using TaoKeeper.Core.Modules;
+using TaoKeeper.Core.Modules.Toolbox;
 
 namespace TaoKeeper.App.Views;
 
@@ -97,9 +98,13 @@ public sealed partial class ToolsPage : Page
         SpaceResult.Visibility = Visibility.Collapsed;
         DupResult.Visibility = Visibility.Collapsed;
         ShredResult.Visibility = Visibility.Collapsed;
+        CtxResult.Visibility = Visibility.Collapsed;
 
         switch (tag)
         {
+            case "ctxmenu":
+                RunContextMenuScan();
+                break;
             case "large":
                 _ = RunLargeFileScanAsync();
                 break;
@@ -117,6 +122,11 @@ public sealed partial class ToolsPage : Page
             case "similar":
                 // R-P10-2b~2c：相似图片整页进入（页内即扫：只读枚举图片目录→感知哈希分组）
                 Frame.Navigate(typeof(SimilarPhotoPage), _similar);
+                break;
+
+            case "recover":
+                // R-P10-5：数据找回整页进入（误删恢复卡；镜像先行、源盘零写入，确认后写入）
+                Frame.Navigate(typeof(DiskHardcorePage));
                 break;
 
             case "shred":
@@ -237,6 +247,96 @@ public sealed partial class ToolsPage : Page
         "sysinfo" => "系统信息",
         _ => "该工具",
     };
+
+    // ---------- R-P10-6 右键菜单管理 ----------
+
+    /// <summary>右键菜单管理通道（宿主接线；null=未接线，页面如实提示）。</summary>
+    public static Func<IContextMenuManager?>? ContextMenuManagerProvider { get; set; }
+
+    /// <summary>只读扫描右键菜单条目（真实注册表读数），逐条给禁用/启用按钮（可逆，键改名不删数据）。</summary>
+    private void RunContextMenuScan()
+    {
+        CtxResult.Visibility = Visibility.Visible;
+        var mgr = ContextMenuManagerProvider?.Invoke();
+        if (mgr is null)
+        {
+            CtxList.Items.Clear();
+            CtxList.Items.Add(new TextBlock { FontSize = 12, Text = "右键菜单通道未就绪（非 Windows 环境不提供），不假数据。" });
+            ToolStatus.Text = "右键菜单管理：通道未就绪，如实显示。";
+            return;
+        }
+
+        try
+        {
+            CtxList.Items.Clear();
+            var entries = mgr.Scan();
+            if (entries.Count == 0)
+            {
+                CtxList.Items.Add(new TextBlock { FontSize = 12, Text = "没有扫到右键菜单条目（如实显示，不编数据）。" });
+                return;
+            }
+            foreach (var e in entries)
+            {
+                var row = new StackPanel { Spacing = 2, Orientation = Orientation.Horizontal };
+                row.Children.Add(new TextBlock
+                {
+                    FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Text = $"{(e.Enabled ? "●" : "○")} {e.Name}｜{e.LocationLabel}{(string.IsNullOrEmpty(e.DllPath) ? "" : $"｜{e.DllPath}")}",
+                });
+                var toggle = new Button
+                {
+                    Content = e.Enabled ? "禁用" : "启用",
+                    Tag = e,
+                    MinWidth = 64,
+                    Margin = new Thickness(8, 0, 0, 0),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(10, 4, 10, 4),
+                };
+                toggle.Click += OnCtxToggle;
+                row.Children.Add(toggle);
+                CtxList.Items.Add(row);
+            }
+            ToolStatus.Text = $"右键菜单管理：共 {entries.Count} 条（真实读数）。";
+        }
+        catch (Exception ex)
+        {
+            ToolStatus.Text = $"右键菜单扫描未完成：{ex.Message}";
+        }
+    }
+
+    /// <summary>禁用/启用（可逆改名；禁用前二次确认，启用同样确认；失败如实提示不假成功）。</summary>
+    private async void OnCtxToggle(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: ContextMenuEntry entry }) return;
+        var mgr = ContextMenuManagerProvider?.Invoke();
+        if (mgr is null) return;
+
+        var dialog = new ContentDialog
+        {
+            Title = entry.Enabled ? $"确认禁用「{entry.Name}」？" : $"确认启用「{entry.Name}」？",
+            Content = "禁用=键改名不删除，随时可在本页「启用」还原。",
+            PrimaryButtonText = entry.Enabled ? "禁用" : "启用",
+            CloseButtonText = "再想想",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = XamlRoot,
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+        try
+        {
+            var ok = entry.Enabled ? mgr.Disable(entry.KeyPath) : mgr.Enable(entry.KeyPath);
+            ToolStatus.Text = ok
+                ? $"{(entry.Enabled ? "禁用" : "启用")}完成：{entry.Name}"
+                : $"{(entry.Enabled ? "禁用" : "启用")}未生效：{entry.Name}（如实报告，未做任何改动）";
+        }
+        catch (Exception ex)
+        {
+            ToolStatus.Text = $"操作未完成：{ex.Message}（未假报成功）";
+        }
+        RunContextMenuScan();
+    }
 
     // ---------- R-P10-4a~4b 文件粉碎 ----------
 

@@ -25,6 +25,7 @@ public enum AppRoute
     ResidueDetect,    // P14 残留侦探（引用图）
     IncidentReplay,   // P15 事发回放（归因报告）
     SnapshotChain,    // P16 时光回溯（快照链）
+    DiskHardcore,     // P-6 硬核四项（数据找回+硬盘诊断，工具箱误删恢复卡入口 R-P10-5）
 }
 
 public static class AppRouteCatalog
