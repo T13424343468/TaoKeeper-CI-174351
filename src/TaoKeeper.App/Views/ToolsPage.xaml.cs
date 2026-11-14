@@ -154,11 +154,11 @@ public sealed partial class ToolsPage : Page
                 {
                     s.SelectRoute(tag switch
                     {
-                        "mem" => AppRoute.Mem,
-                        "driver" => AppRoute.Driver,
-                        "popup" => AppRoute.Popup,
-                        "storage" => AppRoute.Storage,
-                        _ => AppRoute.Widget,
+                        "mem" => TaoKeeper.AppKernel.Navigation.AppRoute.Mem,
+                        "driver" => TaoKeeper.AppKernel.Navigation.AppRoute.Driver,
+                        "popup" => TaoKeeper.AppKernel.Navigation.AppRoute.Popup,
+                        "storage" => TaoKeeper.AppKernel.Navigation.AppRoute.Storage,
+                        _ => TaoKeeper.AppKernel.Navigation.AppRoute.Widget,
                     });
                 }
                 break;
