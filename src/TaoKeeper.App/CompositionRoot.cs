@@ -40,8 +40,11 @@ internal static class CompositionRoot
     /// <summary>启动项适配器（P4/P5 与 R-3 重扫共用同一实例与快照路径）。</summary>
     private static WindowsStartupControlAdapter? _startupAdapter;
 
-    /// <summary>已装清单缓存（后台 winget 扫描回填；完成前 null=界面如实「尚未扫描」）。</summary>
+    /// <summary>已装清单缓存（后台 winget+注册表双源合并回填；完成前 null=界面如实「尚未扫描」）。</summary>
     private static IReadOnlyList<SoftwareEntry>? _installedCache;
+
+    /// <summary>W7：双源合并审计留痕（合并理由与原始来源说明；不外显用户界面，期内回溯用）。</summary>
+    private static IReadOnlyList<SoftwareMergeAudit> _installedMergeAudit = Array.Empty<SoftwareMergeAudit>();
 
     /// <summary>最近一次真实内存快照的物理占用百分比（未取到快照为 null，总览按未知态显示）。</summary>
     private static int? _memPercent;
@@ -552,12 +555,41 @@ internal static class CompositionRoot
         {
             try
             {
-                var adapter = new WingetSoftwareSourceAdapter();
-                _installedCache = await adapter.ListInstalledAsync();
+                // W7 双源后台择优：winget 主源（版本/升级判定权威）+ 注册表对照源（官方卸载入口），
+                // 名称+发布者归并，HashVerified 择优；用户侧来源说明归 null（G7 零外显），原值只进审计
+                var wingetTask = new WingetSoftwareSourceAdapter().ListInstalledAsync();
+                IReadOnlyList<SoftwareEntry> registry = Array.Empty<SoftwareEntry>();
+                try
+                {
+                    registry = RegistryInstalledSoftwareSource.Collect(new WindowsUninstallRegistryReader());
+                }
+                catch (Exception)
+                {
+                    // 注册表读不到按空对照源（不假数据），winget 侧仍可用
+                }
+
+                IReadOnlyList<SoftwareEntry> winget;
+                try
+                {
+                    winget = await wingetTask;
+                }
+                catch (Exception)
+                {
+                    // winget 不可得按空主源：注册表侧仍可出清单（不假数据）
+                    winget = Array.Empty<SoftwareEntry>();
+                }
+
+                if (winget.Count == 0 && registry.Count == 0)
+                    return; // 双源皆空=本次未取到清单：缓存保持 null，页面如实「尚未扫描」
+
+                var (merged, audit) = SoftwareSourceMerger.Merge(winget, registry);
+                _installedCache = merged;
+                _installedMergeAudit = audit;
+                _software?.ApplyMergedInstalled(merged, audit);
             }
             catch (Exception)
             {
-                // winget 不可得/失败保持缓存 null：页面如实「尚未扫描」，不假数据
+                // 不可预期失败保持缓存 null：页面如实「尚未扫描」，不假数据
             }
         });
     }
