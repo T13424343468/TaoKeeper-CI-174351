@@ -271,24 +271,29 @@ if (-not $cleanInvoked) { Save-Shot "99-clean-fail.png"; Save-EvidenceAndExit 1 
 $confirmClicked = Invoke-ContentMatch '确认清理' 10
 Write-Effect $confirmClicked "clean-confirmed" "'确认清理' dialog confirmed (user-confirm gate honored)"
 if (-not $confirmClicked) { Save-Shot "99-confirm-fail.png"; Save-EvidenceAndExit 1 }
-$resultText = Wait-ContentText '已移入回收站' 120
+$resultText = Wait-ContentText '已真删|已移入回收站' 120
 if ($resultText) {
   Save-Shot "e4-clean-result.png"
-  # r41 收口（run 43346514263）：产品回执真实文案是「已移入回收站 N 条（合计 X）…M 条未动：」
-  # （CleanupCoordinator 回执口径），没有「成功 N」字样；旧正则注定解析失败。改为按产品
-  # 实际回执口径解析移动条数，并回读未动清单条数留痕。
-  $m2 = [regex]::Match($resultText, '已移入回收站\s*(\d+)\s*条')
+  # 分层语义 0.2（老板 11-14 拍板）：确定垃圾默认真删（删前快照）→ 回执「已真删 N 条（合计 X）」；
+  # 用户文件默认回收站 →「已移入回收站 N 条（合计 X）」。D-3 种子全是系统临时目录=确定垃圾，
+  # 预期走真删通道；两种回执都按产品实际口径解析条数，并回读未动清单条数留痕。
+  $mPerm = [regex]::Match($resultText, '已真删\s*(\d+)\s*条')
+  $mRecy = [regex]::Match($resultText, '已移入回收站\s*(\d+)\s*条')
   $mSkip = [regex]::Match($resultText, '(\d+)\s*条未动')
   $movedOk = $false
-  if ($m2.Success) {
-    $moved = [int]$m2.Groups[1].Value
+  if ($mPerm.Success) {
+    $moved = [int]$mPerm.Groups[1].Value
+    $movedOk = ($moved -ge $seedCount)
+    Write-Effect $movedOk "d3-clean-executed" ("real clean permanently removed {0} items with snapshot first (>= {1} seeded; '{2}')" -f $moved, $seedCount, $resultText)
+  } elseif ($mRecy.Success) {
+    $moved = [int]$mRecy.Groups[1].Value
     $movedOk = ($moved -ge $seedCount)
     Write-Effect $movedOk "d3-clean-executed" ("real clean moved {0} items to the recycle bin (>= {1} seeded; '{2}')" -f $moved, $seedCount, $resultText)
   } else {
     Write-Effect $false "d3-clean-executed" ("clean result text unparsable: '{0}'" -f $resultText)
   }
 } else {
-  Write-Effect $false "d3-clean-executed" "'已移入回收站' result not seen in 120s"
+  Write-Effect $false "d3-clean-executed" "'已真删'/'已移入回收站' result not seen in 120s"
   Save-Shot "99-clean-timeout.png"; Save-EvidenceAndExit 1
 }
 Invoke-ContentMatch '好' 3 | Out-Null

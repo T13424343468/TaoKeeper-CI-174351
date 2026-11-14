@@ -178,6 +178,13 @@ public sealed partial class BoostPage : Page
         {
             var analysis = await System.Threading.Tasks.Task.Run(provider).ConfigureAwait(true);
             _lastDriveAnalysis = analysis;
+            if (analysis is null)
+            {
+                // 探测返回空（盘型未判定）：如实降级说明，不假数据
+                DefragText.Text = DefragPlanner.UnknownDiskMessage;
+                DefragButton.Visibility = Visibility.Collapsed;
+                return;
+            }
             switch (_vm.DefragOffered(analysis))
             {
                 case true: // 机械盘：显示入口，碎片率实读同屏（读不到不估算）
