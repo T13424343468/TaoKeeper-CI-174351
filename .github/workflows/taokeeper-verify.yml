@@ -49,23 +49,33 @@ jobs:
       - name: Build WinUI shell (uncomment SDK ref first, pitfall 17)
         run: |
           ci/uncomment-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
-          dotnet build src/TaoKeeper.App/TaoKeeper.App.csproj -c Release -p:Platform=x64 2>&1 | Tee-Object -FilePath winui-build.log
-          $errs = (Select-String -Path winui-build.log -Pattern ': error ' | Measure-Object).Count
-          $warns = (Select-String -Path winui-build.log -Pattern ': warning ' | Measure-Object).Count
-          Write-Host "[CHECK] winui error count: $errs, warning count: $warns"
+          # 修红三定谳：XamlCompiler.exe 间歇性硬崩（同码同机红后绿，G0 对照实证），MSB3073 无 XLS 即重试
+          $attempt = 0
+          while ($true) {
+            $attempt++
+            Remove-Item Env:\MSBUILDDISABLENODEREUSE -ErrorAction SilentlyContinue
+            $env:MSBUILDDISABLENODEREUSE = '1'
+            dotnet build src/TaoKeeper.App/TaoKeeper.App.csproj -c Release -p:Platform=x64 -p:NodeReuse=false 2>&1 | Tee-Object -FilePath winui-build.log
+            $exit = $LASTEXITCODE
+            $errs = (Select-String -Path winui-build.log -Pattern ': error ' | Measure-Object).Count
+            $xls = (Select-String -Path winui-build.log -Pattern 'XLS\d+' | Measure-Object).Count
+            $warns = (Select-String -Path winui-build.log -Pattern ': warning ' | Measure-Object).Count
+            if ($exit -eq 0) { break }
+            if ($attempt -ge 3 -or $xls -gt 0) { break }
+            if ($errs -gt 0 -and (Select-String -Path winui-build.log -Pattern 'MSB3073' | Measure-Object).Count -ge $errs) {
+              Write-Host "[XAML-RETRY] attempt $attempt crashed with MSB3073 only (known intermittent XamlCompiler crash) - killing nodes and retrying"
+              taskkill /F /IM MSBuild.exe 2>$null; taskkill /F /IM dotnet.exe 2>$null
+              Remove-Item -Recurse -Force src/TaoKeeper.App/obj/x64 -ErrorAction SilentlyContinue
+              continue
+            }
+            break
+          }
+          Write-Host "[CHECK] winui attempts=$attempt error count: $errs, warning count: $warns"
           # 修红三取证：XamlCompiler 真实错误在 output.json，必须打上 stdout，不许再猜
           pwsh -NoProfile -File ci/xaml-compiler-evidence.ps1 -ProjDir src/TaoKeeper.App -Configuration Release -Platform x64
           ci/restore-winappsdk.ps1 -CsprojPath src/TaoKeeper.App/TaoKeeper.App.csproj
-          # 修红三二分 v2：按组隔离定位崩溃源，日志 artifact 留档
-          pwsh -NoProfile -File ci/xaml-bisect.ps1 -ProjDir src/TaoKeeper.App -Configuration Release -Platform x64
-          if ($errs -ne 0) { exit 1 }
+          if ($exit -ne 0) { exit 1 }
           if ($warns -gt 0) { Write-Host "[WARN-GATE] $warns warnings present - reporting, not suppressing" }
-      - name: Upload bisect logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: bisect-logs
-          path: bisect-*.log
       - name: build.ps1 real run (pwsh 7.4+)
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./build.ps1 -SkipNative
         shell: pwsh
