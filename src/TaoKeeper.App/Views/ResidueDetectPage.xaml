@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    P14 残留侦探（引用图）：候选（零引用）与待确认分离展示（R-P14-1）；
+    待确认列路径+最近修改时间，用户勾选定去留，保留项不再提示。
+    未扫描=未测态零预填（V-A10）；六路场景（符号链接循环/硬链接/权限边界）L2 万链标真机。
+    入口：卸载善后链复查 + 独立场景入口，不入侧栏导航（V-A6）。
+-->
+<Page
+    x:Class="TaoKeeper.App.Views.ResidueDetectPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
+            <TextBlock Text="场景入口" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
+            <TextBlock Text="残留侦探" FontSize="26" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TaoInkBrush}" />
+            <TextBlock Text="卸载后没带走的东西，从这里找出来；拿不准的会单独列出等你判断，不擅自清理"
+                       FontSize="13.5" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="ScanButton" Content="开始检查" Click="OnScan"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonPrimary}" />
+                <Button x:Name="CleanButton" Content="清理候选项" Click="OnClean"
+                        CornerRadius="10" Padding="22,9" Style="{StaticResource TaoButtonRed}" />
+                <ProgressRing x:Name="ScanRing" Width="22" Height="22" Visibility="Collapsed" />
+            </StackPanel>
+
+            <TextBlock x:Name="EmptyLine" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{ThemeResource TaoInk3Brush}"
+                       Text="尚未扫描：点「开始检查」后按引用图分析，拿不准的进「待确认」，不会自作主张。" />
+
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock FontSize="13.5" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}"
+                               Text="清理候选（零引用，确认后清理；清理后 30 天内可在时光回溯还原）" />
+                    <ItemsControl x:Name="CandidateList" />
+                    <TextBlock x:Name="CandidateEmpty" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="暂无候选。" />
+                </StackPanel>
+            </Border>
+
+            <Border CornerRadius="14" BorderThickness="1" Padding="18,14"
+                    BorderBrush="{ThemeResource TaoLineSoftBrush}"
+                    Background="{ThemeResource TaoCardBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock FontSize="13.5" FontWeight="SemiBold" Foreground="{ThemeResource TaoInkBrush}"
+                               Text="待确认（拿不准的请你判断：列路径+最近修改时间，保留后不再提示）" />
+                    <ItemsControl x:Name="PendingList" />
+                    <TextBlock x:Name="PendingEmpty" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}"
+                               Text="暂无待确认项。" />
+                </StackPanel>
+            </Border>
+            <TextBlock x:Name="ResultLine" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{ThemeResource TaoInk2Brush}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

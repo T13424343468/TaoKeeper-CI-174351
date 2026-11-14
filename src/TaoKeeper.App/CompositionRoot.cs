@@ -140,6 +140,9 @@ internal static class CompositionRoot
         // 红线 N1 由引擎收口；到期物理清除走 PurgeExpired，页面二次确认后调用）
         ToolsPage.ShredEngineProvider = () => new FileShredder(Path.Combine(DataDir, "shred-snapshots"));
 
+        // P-1 深水四页：快照链引擎 + 配额管理 + 四场景入口（P13/P14/P15/P16；不入导航条，SelectRoute 直达）
+        WireSnapshotChain();
+
         // P11 挂件：一键清理走与主程序同一执行链（同确认、同回收站语义、同清理账）
         WidgetPage.CleanupExecutorProvider = items => CleanupExecutor!(items);
         WidgetPage.JunkCandidatesProvider = JunkCandidatesForWidget;
@@ -193,6 +196,142 @@ internal static class CompositionRoot
         {
             return null; // 无存储渠道时设置层自行如实降级（改动仅本会话生效），不假落盘
         }
+    }
+
+    // ==================== P-1 深水四页（快照链 + 三场景引擎） ====================
+
+    private static SnapshotChainEngine? _snapshotEngine;
+    private static SnapshotQuotaTracker? _snapshotTracker;
+
+    /// <summary>P-1 四页接线：快照链引擎（WAL 店落 DataDir/snapshots）+ 配额滚动 + 四场景入口（零后端不破）。</summary>
+    private static void WireSnapshotChain()
+    {
+        try
+        {
+            var snapshotRoot = Path.Combine(DataDir, "snapshots");
+            var store = new TaoKeeper.Core.Modules.SnapshotChain.FileSnapshotChainStore(snapshotRoot);
+            _snapshotEngine = new TaoKeeper.Core.Modules.SnapshotChain.SnapshotChainEngine(
+                store, new FileSnapshotStateApplier());
+
+            bool IsCompleted(string id) =>
+                store.HasDoneMarkerAsync(id, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult()
+                || store.HasRollbackMarkerAsync(id, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+            _snapshotTracker = new TaoKeeper.Core.Modules.SnapshotChain.SnapshotQuotaTracker(
+                store,
+                sizeOf: SizeOfSnapshot,
+                isCompleted: IsCompleted);
+
+            // P13 先试后行：沙箱边界=系统目录与程序目录拒写（宁误拦不写穿，真机 W3 复核）
+            SandboxPreviewPage.EngineProvider = () => new TaoKeeper.Core.Modules.SandboxPreview.SandboxPreviewEngine(
+                new RealSandboxFileSystem(),
+                new SystemDirsBoundary(),
+                _snapshotEngine);
+
+            // P14 残留侦探：节点源接线（Windows 枚举适配器仅真机可跑；非 Windows 如实空）
+            ResidueDetectPage.SourceProvider = () =>
+            {
+                if (!OperatingSystem.IsWindows())
+                {
+                    return (new EmptyResidueNodeSource(), []);
+                }
+                var roots = ReadInstallRoots();
+                return (new WindowsResidueNodeSource(roots), roots);
+            };
+            ResidueDetectPage.CleanupExecutor = async paths =>
+            {
+                // 清理=全量识别+清理（R-P14-2）：快照链事务先行（真删留快照，行 328 红线），再走回收站语义
+                var items = paths
+                    .Select(p => new CleanupActionItem(p, SizeOfPath(p), Source: "residue", Confirmed: true))
+                    .ToList();
+                await CleanupExecutor!(items).ConfigureAwait(false);
+            };
+
+            // P15 事发回放：四路事件流接线（全部本机读数，零外发）
+            IncidentReplayPage.EventsProvider = ReadIncidentEvents;
+
+            // P16 时光回溯：还原/淘汰执行器（引擎 WAL 二态收敛；淘汰物理清除前页面二次确认）
+            SnapshotChainPage.TrackerProvider = () => _snapshotTracker!;
+            SnapshotChainPage.RestoreExecutor = async id =>
+            {
+                var intent = await _snapshotEngine.ReadIntentAsync(id, CancellationToken.None).ConfigureAwait(false);
+                if (intent is null) return RestoreResult.Failed($"快照 {id} 不存在");
+                return await _snapshotEngine.RestoreAsync(
+                    new SnapshotHandle(intent.TransactionId,
+                        new ChainTimestamp(intent.FileTimeUtc, intent.SequenceNumber),
+                        intent.PayloadHashesByPath), CancellationToken.None).ConfigureAwait(false);
+            };
+            SnapshotChainPage.EvictSnapshot = id =>
+            {
+                try { Directory.Delete(Path.Combine(DataDir, "snapshots", id), recursive: true); }
+                catch (DirectoryNotFoundException) { }
+            };
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            // 快照链起不来不挡启动：四页如实显示未就绪，不假数据
+        }
+    }
+
+    private static long SizeOfSnapshot(string transactionId)
+    {
+        try
+        {
+            var dir = Path.Combine(DataDir, "snapshots", transactionId);
+            return Directory.Exists(dir)
+                ? Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories).Sum(f => new FileInfo(f).Length)
+                : 0;
+        }
+        catch (IOException) { return 0; }
+    }
+
+    private static long SizeOfPath(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path)) return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Sum(f => new FileInfo(f).Length);
+            return File.Exists(path) ? new FileInfo(path).Length : 0;
+        }
+        catch (IOException) { return 0; }
+        catch (UnauthorizedAccessException) { return 0; }
+    }
+
+    private static string[] ReadInstallRoots()
+    {
+        try
+        {
+            var pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            var pf86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return [pf, pf86, Path.Combine(local, "TaoKeeper")].Where(Directory.Exists).ToArray();
+        }
+        catch (ArgumentException) { return []; }
+    }
+
+    private static IEnumerable<IncidentEvent> ReadIncidentEvents()
+    {
+        var events = new List<IncidentEvent>();
+        // 安装记录：快照链账本（本机，零外发）
+        if (_snapshotTracker is not null)
+        {
+            foreach (var e in _snapshotTracker.Ledger())
+            {
+                events.Add(new IncidentEvent(
+                    "install",
+                    DateTimeOffset.FromFileTime(e.Timestamp.FileTimeUtc),
+                    $"快照事务：{e.ActionType}（{e.ObjectCount} 项）"));
+            }
+        }
+        // 设置变更：设置文件最近写入（只读）
+        try
+        {
+            var settingsPath = Path.Combine(DataDir, "settings.json");
+            if (File.Exists(settingsPath))
+            {
+                events.Add(new IncidentEvent("settings", File.GetLastWriteTimeUtc(settingsPath), "设置文件最近一次变更"));
+            }
+        }
+        catch (IOException) { }
+        return events;
     }
 
     /// <summary>

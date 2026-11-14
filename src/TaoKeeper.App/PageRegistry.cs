@@ -27,6 +27,12 @@ public static class PageRegistry
         [AppRoute.Tools]    = typeof(Views.ToolsPage),
         [AppRoute.Widget]   = typeof(Views.WidgetPage),
         [AppRoute.Settings] = typeof(Views.SettingsPage),
+
+        // P-1 深水四页（场景入口路由；不入导航条，SelectRoute 直达，V-A6 导航条不动）
+        [AppRoute.SandboxPreview] = typeof(Views.SandboxPreviewPage),
+        [AppRoute.ResidueDetect]  = typeof(Views.ResidueDetectPage),
+        [AppRoute.IncidentReplay] = typeof(Views.IncidentReplayPage),
+        [AppRoute.SnapshotChain]  = typeof(Views.SnapshotChainPage),
     };
 
     /// <summary>路由对应的落地页类型；未落地返回 null（调用方显示占位）。</summary>
