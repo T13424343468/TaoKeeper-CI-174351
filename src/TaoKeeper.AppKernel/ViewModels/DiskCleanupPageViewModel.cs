@@ -14,7 +14,13 @@ public sealed record DiskJunkRow(
     string SizeText,
     int FileCount,
     /// <summary>默认勾选（道系口径：高风险规则默认不勾，须用户手动勾选）。</summary>
-    bool IsChecked);
+    bool IsChecked,
+    /// <summary>分层语义（0.2）：确定垃圾默认真删（先快照），用户文件默认回收站。</summary>
+    CleanupTier Tier = CleanupTier.Garbage)
+{
+    /// <summary>白盒证据链一行（R-P3-2：规则 Id + 分层口径同屏可见，与 Core 唯一事实源同文案）。</summary>
+    public string TierText => CleanupTierPolicy.EvidenceText(RuleId, Tier);
+}
 
 /// <summary>
 /// 磁盘清理页视图模型（UI 框架零依赖）：把一次垃圾扫描（JunkScanResult）按规则聚合成
@@ -53,6 +59,12 @@ public sealed class DiskCleanupPageViewModel
     public bool HasScan => LastScan is not null;
     public bool HasCandidates => LastScan is { } s && s.Candidates.Count > 0;
 
+    /// <summary>用户文件层确认弹窗勾选「直接删除（跳过回收站）」；勾选后删前同样自动留快照（0.2）。</summary>
+    public bool DirectDeleteUserFiles { get; set; }
+
+    /// <summary>R5 资源预算一句话（清理页白盒展示：缓存可见 / 常驻 ≤50MB / 空闲零周期写入）。</summary>
+    public string BudgetText => CleanupTierPolicy.BudgetStatement;
+
     /// <summary>从一次垃圾扫描构建页面数据。volume 可选：本机磁盘总量/已用量（字节，真机接线后传入）。</summary>
     public DiskCleanupPageViewModel Build(JunkScanResult scan, (long TotalBytes, long UsedBytes)? volume = null)
     {
@@ -67,7 +79,8 @@ public sealed class DiskCleanupPageViewModel
                 return new DiskJunkRow(
                     rule.Id, rule.Title, rule.Description,
                     g.Sum(c => c.SizeBytes), Fmt(g.Sum(c => c.SizeBytes)), g.Count(),
-                    rule.Risk != JunkRisk.High);
+                    rule.Risk != JunkRisk.High,
+                    CleanupTierPolicy.TierOf(rule.Risk));
             })
             .OrderByDescending(r => r.SizeBytes)
             .ThenBy(r => r.RuleId, StringComparer.OrdinalIgnoreCase)
@@ -91,9 +104,16 @@ public sealed class DiskCleanupPageViewModel
         RebuildQueueAndSummary();
     }
 
-    /// <summary>当前勾选规则对应的待执行清单（仅已确认条目；无队列时空清单）。</summary>
-    public IReadOnlyList<CleanupActionItem> BuildConfirmedActions() =>
-        Queue?.BuildActions() ?? Array.Empty<CleanupActionItem>();
+    /// <summary>当前勾选规则对应的待执行清单（仅已确认条目；用户文件按 DirectDeleteUserFiles 带直接删除标记）。</summary>
+    public IReadOnlyList<CleanupActionItem> BuildConfirmedActions()
+    {
+        if (Queue is null) return Array.Empty<CleanupActionItem>();
+        return Queue.Items.Where(i => i.Confirmed)
+            .Select(i => new CleanupActionItem(i.FullPath, i.SizeBytes, i.Source,
+                Confirmed: true, i.RuleId, i.Tier,
+                DirectDelete: i.Tier == CleanupTier.UsersFile && DirectDeleteUserFiles))
+            .ToList();
+    }
 
     private void RebuildQueueAndSummary()
     {
@@ -111,7 +131,9 @@ public sealed class DiskCleanupPageViewModel
             .Where(c => checkedIds.Contains(c.Rule.Id))
             .Select(c => (c.FullPath, c.SizeBytes, Source: "junk", (string?)c.Rule.Id))
             .ToList();
-        Queue = new CleanupQueueViewModel(items);
+        Queue = new CleanupQueueViewModel(items, tierResolver: p =>
+            LastScan.Candidates.FirstOrDefault(c => string.Equals(c.FullPath, p, StringComparison.OrdinalIgnoreCase)) is { } c
+                ? CleanupTierPolicy.TierOf(c.Rule.Risk) : CleanupTier.Garbage);
         Queue.SelectAll(); // 规则级勾选即确认粒度：勾选规则的候选逐条入确认态（受保护路径仍被闸门标死）
 
         SelectedRuleCount = Rows.Count(r => checkedIds.Contains(r.RuleId));

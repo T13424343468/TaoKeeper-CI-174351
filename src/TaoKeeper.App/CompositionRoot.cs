@@ -175,9 +175,11 @@ internal static class CompositionRoot
         // 驱动：WUA COM + pnputil 真实适配器
         DriverPage.DriverAdapterProvider = () => new WindowsDriverUpdateAdapter();
 
-        // 清理执行：真实回收站移动 + 清理账落盘（原子写在 CleanupLedger 内）
+        // 清理执行：真实回收站移动 + 真删快照先行（0.2 分层：确定垃圾真删、用户文件回收站）+ 清理账落盘（原子写在 CleanupLedger 内）
         var ledger = new CleanupLedger(LedgerPath);
-        var coordinator = new CleanupCoordinator(new Win32RecycleBinAdapter(), ledger);
+        var coordinator = new CleanupCoordinator(
+            new Win32RecycleBinAdapter(), ledger,
+            new BackupThenDeleteAdapter(Path.Combine(DataDir, "delete-snapshots")));
         CleanupExecutor = items => coordinator.ExecuteAsync(items);
 
         // 后台真实扫描：启动项清单（体检+加速）、垃圾候选（体检+存储感知+挂件）、开机耗时读数

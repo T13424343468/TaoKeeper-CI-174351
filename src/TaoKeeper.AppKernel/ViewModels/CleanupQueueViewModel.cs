@@ -29,7 +29,8 @@ public sealed class CleanupQueueViewModel
 
     public CleanupQueueViewModel(
         IEnumerable<(string FullPath, long SizeBytes, string Source, string? RuleId)> items,
-        IEnumerable<string>? protectedNames = null)
+        IEnumerable<string>? protectedNames = null,
+        Func<string, CleanupTier>? tierResolver = null)
     {
         _protectedNames = protectedNames as ISet<string>
             ?? new HashSet<string>(protectedNames ?? CleanupSafetyGate.DefaultProtectedNames,
@@ -37,7 +38,8 @@ public sealed class CleanupQueueViewModel
 
         Items = items.Select(a => new CleanupQueueItem(a.FullPath, a.SizeBytes, a.Source, a.RuleId,
             // 入队即预检：路径级拒绝在源头标死，不可勾选
-            CleanupSafetyGate.Evaluate(a.FullPath, confirmed: true, _protectedNames)))
+            CleanupSafetyGate.Evaluate(a.FullPath, confirmed: true, _protectedNames),
+            tierResolver?.Invoke(a.FullPath) ?? CleanupTier.Garbage))
             .ToList();
         foreach (var item in Items)
             item.ConfirmedChanged += () => QueueChanged?.Invoke();
@@ -68,7 +70,7 @@ public sealed class CleanupQueueViewModel
     public IReadOnlyList<CleanupActionItem> BuildActions() =>
         Items.Where(i => i.Confirmed)
              .Select(i => new CleanupActionItem(i.FullPath, i.SizeBytes, i.Source,
-                 Confirmed: true, i.RuleId))
+                 Confirmed: true, i.RuleId, i.Tier))
              .ToList();
 }
 
@@ -86,6 +88,9 @@ public sealed class CleanupQueueItem
     public string Source { get; }
     public string? RuleId { get; }
 
+    /// <summary>分层语义（0.2）：确定垃圾默认真删，用户文件默认回收站。</summary>
+    public CleanupTier Tier { get; }
+
     private bool _confirmed;
     /// <summary>用户逐条确认；不可确认条目赋 true 会被拒（零静默删除）。</summary>
     public bool Confirmed
@@ -102,12 +107,14 @@ public sealed class CleanupQueueItem
 
     internal event Action? ConfirmedChanged;
 
-    public CleanupQueueItem(string fullPath, long sizeBytes, string source, string? ruleId, string? pathRefusal)
+    public CleanupQueueItem(string fullPath, long sizeBytes, string source, string? ruleId,
+        string? pathRefusal, CleanupTier tier = CleanupTier.Garbage)
     {
         FullPath = fullPath;
         SizeBytes = sizeBytes;
         Source = source;
         RuleId = ruleId;
         PathRefusal = pathRefusal;
+        Tier = tier;
     }
 }
