@@ -261,7 +261,12 @@ public sealed partial class MainWindow : Window
             index = i;
             break;
         }
-        if (index < 0) return; // 不在导航条内的路由只切内容，不动选中态
+        if (index < 0)
+        {
+            // G6 二级收纳路由：不在导航条内，只切内容不动选中态（工具箱卡片/托盘挂件入口同走此路径）
+            Navigate(route);
+            return;
+        }
         _suppressNavEvent = true;
         NavList.SelectedIndex = index;
         _suppressNavEvent = false;
