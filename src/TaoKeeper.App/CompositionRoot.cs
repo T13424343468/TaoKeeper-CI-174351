@@ -40,8 +40,11 @@ internal static class CompositionRoot
     /// <summary>启动项适配器（P4/P5 与 R-3 重扫共用同一实例与快照路径）。</summary>
     private static WindowsStartupControlAdapter? _startupAdapter;
 
-    /// <summary>已装清单缓存（后台 winget 扫描回填；完成前 null=界面如实「尚未扫描」）。</summary>
+    /// <summary>已装清单缓存（后台 winget+注册表双源合并回填；完成前 null=界面如实「尚未扫描」）。</summary>
     private static IReadOnlyList<SoftwareEntry>? _installedCache;
+
+    /// <summary>W7：双源合并审计留痕（合并理由与原始来源说明；不外显用户界面，期内回溯用）。</summary>
+    private static IReadOnlyList<SoftwareMergeAudit> _installedMergeAudit = Array.Empty<SoftwareMergeAudit>();
 
     /// <summary>最近一次真实内存快照的物理占用百分比（未取到快照为 null，总览按未知态显示）。</summary>
     private static int? _memPercent;
@@ -69,6 +72,9 @@ internal static class CompositionRoot
     /// <summary>数据目录单一真源（设置/账本/快照共用；AppTheme 主题读取同口径，2026-11-14 起废弃 LocalState 旧口径）。</summary>
     internal static string DataDir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TaoKeeper");
+
+    /// <summary>冷启动延迟加载队列（G8）：主界面首帧后由 App 逐个分派；Wire 前为空清单（V-A10 初始态自洽）。</summary>
+    internal static IReadOnlyList<Action> DeferredFirstFrameWork { get; private set; } = Array.Empty<Action>();
 
     internal static void Wire(MainWindow shell)
     {
@@ -108,7 +114,9 @@ internal static class CompositionRoot
         shell.SettingsViewModelProvider = () => new SettingsPageViewModel(ResolveSettingsStore());
         shell.DiskViewModelProvider = () => _disk;
         shell.DriverViewModelProvider = () => _driver;
-        shell.CheckupViewModelProvider = () => new CheckupPageViewModel().RunCheckup(_checkupContext); // P4：真实上下文
+        shell.CheckupViewModelProvider = () => new CheckupPageViewModel()
+            .ApplyMachineProbe(ProbeMachine()) // G8：老机器建议卡随体检同屏（R-P4-9，只建议不静默改）
+            .RunCheckup(_checkupContext); // P4：真实上下文
         shell.PopupViewModelProvider = () => _popup;
         shell.StorageViewModelProvider = () => _storage;
         shell.WidgetViewModelProvider = () => _widget;
@@ -162,6 +170,35 @@ internal static class CompositionRoot
         BoostPage.CurrentMemoryProvider = () => _latestMemory;
         BoostPage.BootTimesProvider = () => _bootTimesMs; // P5-2：事件日志开机耗时口径
 
+        // G8 老机型：本机探测（核数/内存/磁盘介质）→ 低配档位自动降级 + 老机器建议卡（R-P4-9，V-A9）
+        _boost.ApplyMachineProbe(ProbeMachine());
+        // R-P5-6 启动项三档：真机适配器（禁用/立即=快照通道；延迟=官方计划任务延时），非 Windows 如实未接线
+        if (OperatingSystem.IsWindows())
+        {
+            _boost.StartupModeAdapter = new WindowsStartupModeAdapter(startupAdapter);
+        }
+        // R-P5-5 机械盘碎片整理：官方 defrag.exe 执行器；磁盘类型经 PowerShell 介质探测（失败如实未判定）
+        BoostPage.DriveAnalysisProvider = () =>
+        {
+            var root = Path.GetPathRoot(Environment.SystemDirectory) ?? "C:";
+            bool? mechanical = OperatingSystem.IsWindows()
+                ? WindowsDiskTypeProbe.ProbeMechanical(root)
+                : null;
+            double? frag = null;
+            try
+            {
+                frag = OperatingSystem.IsWindows()
+                    ? new DefragExeRunner().GetFragmentationPercentAsync(root).ConfigureAwait(false).GetAwaiter().GetResult()
+                    : null;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException) { /* 分析不可读=未测态 */ }
+            return new DriveAnalysis(root, mechanical, frag);
+        };
+        if (OperatingSystem.IsWindows())
+        {
+            _boost.DefragRunner = new DefragExeRunner();
+        }
+
         // 内存管理：真实内存快照（GlobalMemoryStatusEx；读不到时调用方按未测态兜底）
         TryWireMemory(_mem);
         // P-D2 页面文件方案真执行：三步确认后的执行器接线（改前自动备份、快照可回滚；未确认绝不碰系统）
@@ -175,18 +212,55 @@ internal static class CompositionRoot
         // 驱动：WUA COM + pnputil 真实适配器
         DriverPage.DriverAdapterProvider = () => new WindowsDriverUpdateAdapter();
 
-        // 清理执行：真实回收站移动 + 清理账落盘（原子写在 CleanupLedger 内）
+        // 冷启动延迟加载（G8）：重后台扫描/重初始化不占首帧——先登记，主界面亮后由 App 分派执行
+        DeferredFirstFrameWork = new List<Action>
+        {
+            () => KickOffStartupScan(startupAdapter),
+            KickOffJunkScan,
+            KickOffBootTimeRead,
+            KickOffInstalledScan,
+        };
+
+        // 清理执行：真实回收站移动 + 真删快照先行（0.2 分层：确定垃圾真删、用户文件回收站）+ 清理账落盘（原子写在 CleanupLedger 内）
         var ledger = new CleanupLedger(LedgerPath);
-        var coordinator = new CleanupCoordinator(new Win32RecycleBinAdapter(), ledger);
+        var coordinator = new CleanupCoordinator(
+            new Win32RecycleBinAdapter(), ledger,
+            new BackupThenDeleteAdapter(Path.Combine(DataDir, "delete-snapshots")));
         CleanupExecutor = items => coordinator.ExecuteAsync(items);
 
-        // 后台真实扫描：启动项清单（体检+加速）、垃圾候选（体检+存储感知+挂件）、开机耗时读数
-        KickOffStartupScan(startupAdapter);
-        KickOffJunkScan();
-        KickOffBootTimeRead();
+        // 后台真实扫描（冷启动延迟加载分派）：启动项清单（体检+加速）、垃圾候选（体检+存储感知+挂件）、开机耗时读数
+        // → 已登记进 DeferredFirstFrameWork，由 App 在主界面首帧后逐个分派（G8：非关键模块不占首帧）
     }
 
     private static int? MemUsedPercent() => _memPercent;
+
+    /// <summary>G8 本机探测：CPU 核数 + 物理内存 + 磁盘介质类型（探测失败为 null，调用方如实降级）。</summary>
+    private static MachineProbe ProbeMachine()
+    {
+        long memoryBytes = 0;
+        try
+        {
+            memoryBytes = _latestMemory?.TotalPhysicalBytes
+                ?? new Win32MemorySnapshotAdapter().Capture().TotalPhysicalBytes;
+        }
+        catch (Exception ex) when (ex is PlatformNotSupportedException or InvalidOperationException)
+        {
+            memoryBytes = 0; // 读不到=0（低配判据按标准档处理，不误降级；不假数）
+        }
+
+        bool? mechanical = null;
+        try
+        {
+            mechanical = OperatingSystem.IsWindows()
+                ? WindowsDiskTypeProbe.ProbeMechanical(Path.GetPathRoot(Environment.SystemDirectory) ?? "C:")
+                : null;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or ArgumentException)
+        {
+            mechanical = null;
+        }
+        return new MachineProbe(Environment.ProcessorCount, memoryBytes, mechanical);
+    }
 
     /// <summary>R-P12-9：设置存储渠道（托盘自启/常驻需跨会话生效）。目录不可写时返回 null，页面如实标「仅本会话生效」。</summary>
     private static AppSettingsStore? ResolveSettingsStore()
@@ -494,12 +568,41 @@ internal static class CompositionRoot
         {
             try
             {
-                var adapter = new WingetSoftwareSourceAdapter();
-                _installedCache = await adapter.ListInstalledAsync();
+                // W7 双源后台择优：winget 主源（版本/升级判定权威）+ 注册表对照源（官方卸载入口），
+                // 名称+发布者归并，HashVerified 择优；用户侧来源说明归 null（G7 零外显），原值只进审计
+                var wingetTask = new WingetSoftwareSourceAdapter().ListInstalledAsync();
+                IReadOnlyList<SoftwareEntry> registry = Array.Empty<SoftwareEntry>();
+                try
+                {
+                    registry = RegistryInstalledSoftwareSource.Collect(new WindowsUninstallRegistryReader());
+                }
+                catch (Exception)
+                {
+                    // 注册表读不到按空对照源（不假数据），winget 侧仍可用
+                }
+
+                IReadOnlyList<SoftwareEntry> winget;
+                try
+                {
+                    winget = await wingetTask;
+                }
+                catch (Exception)
+                {
+                    // winget 不可得按空主源：注册表侧仍可出清单（不假数据）
+                    winget = Array.Empty<SoftwareEntry>();
+                }
+
+                if (winget.Count == 0 && registry.Count == 0)
+                    return; // 双源皆空=本次未取到清单：缓存保持 null，页面如实「尚未扫描」
+
+                var (merged, audit) = SoftwareSourceMerger.Merge(winget, registry);
+                _installedCache = merged;
+                _installedMergeAudit = audit;
+                _software?.ApplyMergedInstalled(merged, audit);
             }
             catch (Exception)
             {
-                // winget 不可得/失败保持缓存 null：页面如实「尚未扫描」，不假数据
+                // 不可预期失败保持缓存 null：页面如实「尚未扫描」，不假数据
             }
         });
     }

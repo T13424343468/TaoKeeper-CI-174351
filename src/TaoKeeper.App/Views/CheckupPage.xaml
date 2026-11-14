@@ -91,6 +91,11 @@
                                    Foreground="{ThemeResource TaoInk3Brush}"
                                    Text="尚未体检。各模块扫描接线后，这里给出六维发现清单（按严重度降序，未测维度不误扣分）。" />
                         <ItemsControl x:Name="FindingRows" />
+                        <!-- G8/R-P4-9 老机器建议卡：只建议不静默改，实测依据同屏（未探测为空清单） -->
+                        <TextBlock x:Name="AdviceHeader" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TaoInkBrush}"
+                                   Text="老机器建议" Visibility="Collapsed" />
+                        <ItemsControl x:Name="AdviceRows" />
                     </StackPanel>
                 </Border>
             </Grid>

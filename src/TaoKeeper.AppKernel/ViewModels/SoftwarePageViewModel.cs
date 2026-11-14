@@ -79,6 +79,26 @@ public sealed class SoftwarePageViewModel
     /// <summary>可升级总数（三分桶合计）。</summary>
     public int TotalUpgradable => SilentAllowed.Count + NeedConfirm.Count + BlockedByPolicy.Count;
 
+    /// <summary>W7：双源合并后的已装清单（用户侧；未注入为 null → 页面如实「尚未扫描」）。</summary>
+    public IReadOnlyList<SoftwareEntry>? MergedInstalled { get; private set; }
+
+    /// <summary>W7：合并审计留痕（合并理由与原始来源说明；不外显用户界面，期内回溯用）。</summary>
+    public IReadOnlyList<SoftwareMergeAudit> MergeAudit { get; private set; } = Array.Empty<SoftwareMergeAudit>();
+
+    /// <summary>
+    /// W7：注入组合根后台双源合并完成的已装清单（winget+注册表）。用户侧防线：SourceDisplay
+    /// 一律归 null（G7 来源零外显；合并器已归 null，本层兜底再收一次）；原值只进审计。
+    /// 已安装总数同步刷新，不触碰升级三分桶。
+    /// </summary>
+    public SoftwarePageViewModel ApplyMergedInstalled(IReadOnlyList<SoftwareEntry> entries, IReadOnlyList<SoftwareMergeAudit>? audit = null)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        MergedInstalled = entries.Select(static e => e.SourceDisplay is null ? e : e with { SourceDisplay = null }).ToList();
+        MergeAudit = audit ?? Array.Empty<SoftwareMergeAudit>();
+        InstalledCount = MergedInstalled.Count;
+        return this;
+    }
+
     /// <summary>单条升级是否可免确认执行（按当前策略与条目哈希状态判定）。</summary>
     public bool IsSilentAllowed(SoftwareEntry entry) => Policy.CanRunSilently(entry.HashVerified);
 

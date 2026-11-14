@@ -92,6 +92,14 @@ public sealed partial class DiskCleanupPage : Page
             TextWrapping = TextWrapping.Wrap,
             Foreground = (Brush)Application.Current.Resources["TaoInk2Brush"],
         });
+        // 清理白盒化（R-P3-2 一步到位）：规则 Id + 分层口径同屏可见，分类口径零隐藏
+        info.Children.Add(new TextBlock
+        {
+            Text = row.TierText,
+            FontSize = 11.5,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = (Brush)Application.Current.Resources["TaoInk2Brush"],
+        });
         Grid.SetColumn(info, 1);
         grid.Children.Add(info);
 
@@ -141,14 +149,13 @@ public sealed partial class DiskCleanupPage : Page
     {
         if (_vm is null) return;
 
-        // 真删除语义：已确认条目经清理协调器逐条移入系统回收站（可还原），失败逐条如实报告
+        // 分层语义（0.2）：确定垃圾类默认真删（删前自动留快照）；用户文件默认回收站，
+        // 确认弹窗可勾选「直接删除」，勾选后删前同样自动留快照。逐条清单与拒绝说明如实展示。
         var actions = _vm.BuildConfirmedActions();
         var refused = _vm.Queue is { } q ? q.Items.Count(i => !i.CanConfirm) : 0;
         var refusalNote = refused > 0 ? $"\n另有 {refused} 条受保护路径条目已由安全闸门标死，不会执行。" : string.Empty;
-        var detail = actions.Count == 0
-            ? "没有已勾选的可清项目。"
-            : string.Join('\n', actions.Take(12).Select(a => $"· {a.FullPath}（{Fmt(a.SizeBytes)}）"))
-              + (actions.Count > 12 ? $"\n… 共 {actions.Count} 条" : string.Empty);
+        var permanentPreview = actions.Count(a => a.Tier == CleanupTier.Garbage || a.DirectDelete);
+        var recyclePreview = actions.Count - permanentPreview;
 
         if (actions.Count == 0)
         {
@@ -162,10 +169,32 @@ public sealed partial class DiskCleanupPage : Page
             return;
         }
 
+        var detail = string.Join('\n', actions.Take(12).Select(a => $"· {a.FullPath}（{Fmt(a.SizeBytes)}）"))
+            + (actions.Count > 12 ? $"\n… 共 {actions.Count} 条" : string.Empty);
+        var modeNote = (permanentPreview, recyclePreview) switch
+        {
+            (0, _) => $"将把以下 {recyclePreview} 条移入系统回收站（可还原）：",
+            (_, 0) => $"将直接删除以下 {permanentPreview} 条确定垃圾（删前自动留快照，期内可还原）：",
+            _ => $"将处理 {actions.Count} 条：{permanentPreview} 条确定垃圾直接删除（删前留快照）、{recyclePreview} 条用户文件移入回收站（可还原）：",
+        };
+
+        var panel = new StackPanel { Spacing = 10 };
+        panel.Children.Add(new TextBlock
+        {
+            Text = $"{_vm.SelectedSummaryText}\n{modeNote}\n{detail}{refusalNote}",
+            TextWrapping = TextWrapping.Wrap,
+        });
+        var directDeleteBox = new CheckBox
+        {
+            Content = new TextBlock { Text = "直接删除（跳过回收站；删前同样自动留快照）", TextWrapping = TextWrapping.Wrap },
+            IsChecked = _vm.DirectDeleteUserFiles,
+        };
+        panel.Children.Add(directDeleteBox);
+
         var dialog = new ContentDialog
         {
-            Title = "清理确认（先进回收站）",
-            Content = $"{_vm.SelectedSummaryText}\n\n将把以下 {actions.Count} 条移入系统回收站（可还原，不直接删除）：\n{detail}{refusalNote}",
+            Title = "清理确认（分层语义）",
+            Content = panel,
             PrimaryButtonText = "确认清理",
             CloseButtonText = "先不",
             DefaultButton = ContentDialogButton.Close,
@@ -173,7 +202,11 @@ public sealed partial class DiskCleanupPage : Page
         };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
 
-        // 执行：组合根接线了真实回收站编排；未接线时如实提示，不假装清理成功
+        // 勾选状态回写 VM 再构建执行清单：用户文件按勾选带直接删除标记（真删同样先快照）
+        _vm.DirectDeleteUserFiles = directDeleteBox.IsChecked == true;
+        actions = _vm.BuildConfirmedActions();
+
+        // 执行：组合根接线了真实回收站/快照真删编排；未接线时如实提示，不假装清理成功
         var resultText = CompositionRoot.CleanupExecutor is { } exec
             ? await ExecuteCleanupAsync(exec, actions)
             : "清理通道尚未接线，本次未执行任何动作。";
@@ -192,10 +225,13 @@ public sealed partial class DiskCleanupPage : Page
     {
         var result = await exec(actions);
         var failed = result.Outcomes.Where(o => !o.Success).ToList();
-        var lines = new List<string>
-        {
-            $"已移入回收站 {result.SucceededCount} 条（合计 {Fmt(result.SucceededBytes)}），可从桌面回收站还原。",
-        };
+        var lines = new List<string>();
+        if (result.PermanentCount > 0)
+            lines.Add($"已真删 {result.PermanentCount} 条（合计 {Fmt(result.PermanentBytes)}），删前快照已留存、空间实际增加，期内可还原。");
+        if (result.SucceededCount > result.PermanentCount)
+            lines.Add($"已移入回收站 {result.SucceededCount - result.PermanentCount} 条（合计 {Fmt(result.SucceededBytes - result.PermanentBytes)}），可从桌面回收站还原。");
+        if (lines.Count == 0)
+            lines.Add("本次没有条目被执行。");
         if (failed.Count > 0)
             lines.Add($"{failed.Count} 条未动：{string.Join("；", failed.Take(5).Select(f => $"{f.FullPath}（{f.Error}）"))}");
         return string.Join('\n', lines);

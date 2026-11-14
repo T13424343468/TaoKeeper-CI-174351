@@ -345,6 +345,16 @@ function Invoke-Match([string]$Pattern, [int]$WaitSec) {
     # LargeIncrement when the provider rejects absolute scroll), re-scanning at
     # each stop. Offscreen elements still can never fake a PASS.
     for ($scrollTry = 0; $scrollTry -lt 6; $scrollTry++) {
+      if ($scrollTry -eq 0) {
+        # 归位到 0%：上一探针可能把页滚到底，round 0 从当前位置扫会漏掉页首控件
+        foreach ($sc in Get-Scrollables) {
+          try {
+            $sp = $sc.GetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern)
+            if ($sp.Current.VerticallyScrollable) { try { $sp.SetScrollPercent(0.0) } catch { } }
+          } catch { }
+        }
+        Start-Sleep -Milliseconds 500
+      }
       if ($scrollTry -gt 0) {
         foreach ($sc in Get-Scrollables) {
           try {
@@ -390,7 +400,9 @@ $probe = @(
   @{ Page = 'software'; NavTitle = '软件管家';   Name = '升级中心|卸载中心';           Wait = 8 },
   @{ Page = 'disk';     NavTitle = '磁盘清理';   Name = '扫描|分析|Scan|Analyze';     Wait = 20 },
   @{ Page = 'checkup';  NavTitle = '系统体检';   ReadOnly = $true },
-  @{ Page = 'speedup';  NavTitle = '性能加速';   Name = '执行勾选项';                 Wait = 8; Fallback = '查看完整启动项清单' },
+  # p5 W9 重排后 UIA 文本匹配两连失（run 43576648678 云端实锤）；改按真实控件 AutomationId 匹配
+  # （Invoke-Match 同样匹配 AutomationId，且 AutomationId 只落在真实按钮上，不会被内层 TextBlock 抢配）。
+  @{ Page = 'speedup';  NavTitle = '性能加速';   Name = 'StartupListLink';            Wait = 8; Fallback = '查看完整启动项清单' },
   @{ Page = 'memory';   NavTitle = '内存管理';   Name = '智能推荐|性能优先|空间优先|PlanSmart|PlanPerf|PlanSpace'; Wait = 8 },
   @{ Page = 'driver';   NavTitle = '驱动安装升级'; Name = '扫描驱动';                 Wait = 20 },
   @{ Page = 'popup';    NavTitle = '弹窗管理';   ReadOnly = $true },

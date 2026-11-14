@@ -111,6 +111,40 @@ public sealed partial class CheckupPage : Page
             ? "尚未体检。各模块扫描接线后，这里给出六维发现清单（按严重度降序，未测维度不误扣分）。"
             : "本轮没有发现项。";
         FindingRows.ItemsSource = findings.Select(MakeRow).ToList();
+
+        // G8/R-P4-9 老机器建议卡（只建议不静默改；实测依据同屏，未探测为空清单）
+        var advice = _vm.AdviceCards;
+        AdviceHeader.Visibility = advice.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        AdviceRows.ItemsSource = advice.Select(static card => new StackPanel
+        {
+            Spacing = 2,
+            Padding = new Thickness(0, 7, 0, 7),
+            Children =
+            {
+                new TextBlock
+                {
+                    Text = "建议 · " + card.Title,
+                    FontSize = 13,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = (Brush)Application.Current.Resources["TaoInkBrush"],
+                },
+                new TextBlock
+                {
+                    Text = card.Detail,
+                    FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = (Brush)Application.Current.Resources["TaoInk2Brush"],
+                },
+                new TextBlock
+                {
+                    Text = card.Evidence,
+                    FontSize = 11,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = (Brush)Application.Current.Resources["TaoInk3Brush"],
+                },
+            },
+        }).ToList();
     }
 
     private UIElement MakeRow(CheckupFindingItem finding)

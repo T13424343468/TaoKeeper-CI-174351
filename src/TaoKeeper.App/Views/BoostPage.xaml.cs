@@ -28,6 +28,9 @@ public sealed partial class BoostPage : Page
     /// <summary>开机耗时读数（宿主接线；事件日志口径近 3 次毫秒值，新→旧；不可读为空清单）。</summary>
     public static Func<IReadOnlyList<long>>? BootTimesProvider { get; set; }
 
+    /// <summary>本机磁盘分析提供者（宿主接线：R-P5-5 机械盘判定与碎片率实测读数；未接线=未判定态如实说明）。</summary>
+    public static Func<TaoKeeper.Core.Modules.DriveAnalysis?>? DriveAnalysisProvider { get; set; }
+
     public BoostPage()
     {
         InitializeComponent();
@@ -96,6 +99,8 @@ public sealed partial class BoostPage : Page
             ApplyButton.Visibility = Visibility.Collapsed;
             ReceiptText.Text = string.Empty;
             MemTrimLine.Text = "尚未体检加速，暂无建议（等待运行期接线；不假数据）。";
+            RefreshAdviceCards(vm);
+            RefreshDefragSection();
             return;
         }
 
@@ -113,6 +118,124 @@ public sealed partial class BoostPage : Page
         MemTrimLine.Text = plan.MemoryTrimSuggested
             ? $"建议释放内存：{plan.MemoryNote ?? SpeedupPolicy.MemoryTrimReason}"
             : "本轮无内存瘦身建议。";
+        RefreshAdviceCards(vm);
+        RefreshDefragSection();
+    }
+
+    /// <summary>G8/R-P4-9：老机器建议卡（只建议不静默改；实测依据同屏，未探测为空清单）。</summary>
+    private void RefreshAdviceCards(SpeedupPageViewModel vm)
+    {
+        foreach (var card in vm.MachineAdvice)
+            SuggestList.Items.Add(BuildAdviceRow(card));
+    }
+
+    private StackPanel BuildAdviceRow(OldMachineAdviceCard card)
+    {
+        return new StackPanel
+        {
+            Spacing = 2,
+            Children =
+            {
+                new TextBlock
+                {
+                    Text = "建议 · " + card.Title,
+                    FontSize = 12.5,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = ThemeBrush("TaoInkBrush"),
+                },
+                new TextBlock
+                {
+                    Text = card.Detail,
+                    FontSize = 11.5,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = ThemeBrush("TaoInk2Brush"),
+                },
+                new TextBlock
+                {
+                    Text = card.Evidence,
+                    FontSize = 11,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = ThemeBrush("TaoInk3Brush"),
+                },
+            },
+        };
+    }
+
+    private DriveAnalysis? _lastDriveAnalysis;
+
+    /// <summary>R-P5-5：磁盘类型实测后决定显示/隐藏/降级说明（探测秒级放后台，不占 UI 线程）。</summary>
+    private async void RefreshDefragSection()
+    {
+        var provider = DriveAnalysisProvider;
+        if (provider is null)
+        {
+            DefragText.Text = "磁盘类型未接线探测，碎片整理暂不提供（不假数据）。";
+            DefragButton.Visibility = Visibility.Collapsed;
+            return;
+        }
+        try
+        {
+            var analysis = await System.Threading.Tasks.Task.Run(provider).ConfigureAwait(true);
+            _lastDriveAnalysis = analysis;
+            if (analysis is null)
+            {
+                // 探测返回空（盘型未判定）：如实降级说明，不假数据
+                DefragText.Text = DefragPlanner.UnknownDiskMessage;
+                DefragButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+            switch (_vm.DefragOffered(analysis))
+            {
+                case true: // 机械盘：显示入口，碎片率实读同屏（读不到不估算）
+                    DefragText.Text = $"检测到机械盘（{analysis.Volume}）："
+                        + (analysis.FragmentationPercent is { } frag
+                            ? $"当前碎片率 {frag:0.#}%"
+                            : "碎片率未测（官方分析不可读，不估算）")
+                        + "。整理走 Windows 官方接口，前后读数同屏可断言。";
+                    DefragButton.Visibility = Visibility.Visible;
+                    break;
+                case false: // SSD：隐藏防误伤（TRIM 由系统管）
+                    DefragText.Text = DefragPlanner.SsdHiddenMessage;
+                    DefragButton.Visibility = Visibility.Collapsed;
+                    break;
+                default: // 类型未判定：明确降级说明（真实待真机验证口径）
+                    DefragText.Text = DefragPlanner.UnknownDiskMessage;
+                    DefragButton.Visibility = Visibility.Collapsed;
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            // 探测失败如实降级，不让异常逃逸，不假数据
+            DefragText.Text = $"磁盘探测未完成：{ex.Message}（碎片整理暂不提供，不假数据）。";
+            DefragButton.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private async void OnDefragClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_lastDriveAnalysis is not { } analysis)
+            {
+                DefragText.Text = "磁盘分析尚未完成，本次未执行任何动作（可稍后再试）。";
+                return;
+            }
+            DefragButton.IsEnabled = false;
+            var progress = new Progress<string>(line => DefragText.Text = line);
+            var outcome = await _vm.RunDefragAsync(analysis.Volume, progress).ConfigureAwait(true);
+            DefragText.Text = outcome.DisplayText;
+        }
+        catch (Exception ex)
+        {
+            // async void 处理器不得让异常逃逸；失败如实转述，不做任何非常规磁盘写入
+            DefragText.Text = $"碎片整理未完成：{ex.Message}（未做任何非常规磁盘写入）。";
+        }
+        finally
+        {
+            DefragButton.IsEnabled = true;
+        }
     }
 
     private StackPanel BuildSuggestionRow(SpeedupSuggestion suggestion, string bandText)
@@ -124,36 +247,60 @@ public sealed partial class BoostPage : Page
         var meta = $"{bandText} · {suggestion.Reason}"
             + (suggestion.Item.OwningProductId is { } owner ? $" · 本产品组件（{owner}）" : string.Empty);
 
+        // R-P5-6 启动项三档：每行随行给禁用/延迟启动/立即启动（未接线时 VM 如实提示，不动系统）
+        var modes = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        modes.Children.Add(MakeModeButton(suggestion.Item.Id, "禁用", StartupLaunchMode.Disabled));
+        modes.Children.Add(MakeModeButton(suggestion.Item.Id, "延迟启动", StartupLaunchMode.Delayed));
+        modes.Children.Add(MakeModeButton(suggestion.Item.Id, "立即启动", StartupLaunchMode.Immediate));
+
+        var info = new StackPanel { Spacing = 2 };
+        info.Children.Add(new TextBlock
+        {
+            Text = suggestion.Item.Name,
+            FontSize = 13.5,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            Foreground = ThemeBrush("TaoInkBrush"),
+        });
+        info.Children.Add(new TextBlock
+        {
+            Text = meta,
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = ThemeBrush("TaoInk2Brush"),
+        });
+        info.Children.Add(modes);
+
         return new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 10,
-            Children =
-            {
-                check,
-                new StackPanel
-                {
-                    Spacing = 2,
-                    Children =
-                    {
-                        new TextBlock
-                        {
-                            Text = suggestion.Item.Name,
-                            FontSize = 13.5,
-                            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                            Foreground = ThemeBrush("TaoInkBrush"),
-                        },
-                        new TextBlock
-                        {
-                            Text = meta,
-                            FontSize = 12,
-                            TextWrapping = TextWrapping.Wrap,
-                            Foreground = ThemeBrush("TaoInk2Brush"),
-                        },
-                    },
-                },
-            },
+            Children = { check, info },
         };
+    }
+
+    private Button MakeModeButton(string itemId, string label, StartupLaunchMode mode)
+    {
+        var button = new Button
+        {
+            Content = label,
+            FontSize = 11.5,
+            Padding = new Thickness(10, 2, 10, 2),
+            CornerRadius = new CornerRadius(8),
+        };
+        button.Click += async (_, _) =>
+        {
+            try
+            {
+                var result = await _vm.ApplyStartupModeAsync(itemId, mode).ConfigureAwait(true);
+                ReceiptText.Text = $"{label} · {result.ItemId}：{result.DisplayText}";
+            }
+            catch (Exception ex)
+            {
+                // async 回调不得让异常逃逸；失败如实转述
+                ReceiptText.Text = $"三档操作未完成：{ex.Message}";
+            }
+        };
+        return button;
     }
 
     private async void OnApplyClick(object sender, RoutedEventArgs e)
