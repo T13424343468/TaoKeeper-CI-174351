@@ -74,6 +74,25 @@ public static class IncidentReplayEngine
         return new IncidentReplayReport(start, symptomTimeUtc, IsEmptyWindow: false, inWindow, best);
     }
 
+    /// <summary>按天/周粒度分组时间线（R-P15-4）；粒度非法回退按天，输出按时间倒序（最近在前）。</summary>
+    public static IReadOnlyList<IncidentTimelineGroup> GroupByGranularity(
+        IEnumerable<IncidentEvent> events, string granularity)
+    {
+        ArgumentNullException.ThrowIfNull(events);
+        var span = granularity.Equals("week", StringComparison.OrdinalIgnoreCase) ? TimeSpan.FromDays(7) : TimeSpan.FromDays(1);
+        var groups = events
+            .GroupBy(e => e.TimeUtc.Ticks / span.Ticks)
+            .Select(g => new IncidentTimelineGroup(
+                Label: span.TotalDays == 7
+                    ? $"{new DateTimeOffset(g.Key * span.Ticks, TimeSpan.Zero):yyyy-MM-dd} 起一周"
+                    : $"{new DateTimeOffset(g.Key * span.Ticks, TimeSpan.Zero):yyyy-MM-dd}",
+                PeriodStartUtc: new DateTimeOffset(g.Key * span.Ticks, TimeSpan.Zero),
+                Events: g.OrderByDescending(e => e.TimeUtc).ToList()))
+            .OrderByDescending(g => g.PeriodStartUtc)
+            .ToList();
+        return groups;
+    }
+
     private static (string Cause, string[] Steps, double Weight) DescribeSource(string source, int count) => source switch
     {
         "install" => ($"时间窗内有 {count} 条安装记录，最可能原因：新装软件引入的变更",
