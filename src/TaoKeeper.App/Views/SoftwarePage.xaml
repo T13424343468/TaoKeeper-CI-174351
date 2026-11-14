@@ -63,17 +63,40 @@
                     </StackPanel>
                 </Border>
 
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <Button Content="精选" IsEnabled="False" CornerRadius="14" Padding="12,4" Background="{ThemeResource TaoAzureWashBrush}" />
-                    <Button Content="社交通讯" CornerRadius="14" Padding="12,4" />
-                    <Button Content="办公学习" CornerRadius="14" Padding="12,4" />
-                    <Button Content="影音娱乐" CornerRadius="14" Padding="12,4" />
-                    <Button Content="开发工具" CornerRadius="14" Padding="12,4" />
-                    <Button Content="系统工具" CornerRadius="14" Padding="12,4" />
+                <!-- R-P2-9：12 类齐全，ItemsWrapGrid 横向换行（页签在 code-behind 生成，选中态高亮） -->
+                <ItemsControl x:Name="CategoryTabs">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal" ItemWidth="100" ItemHeight="40"
+                                           HorizontalAlignment="Left" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <!-- R-P2-8：库容量行——如实标注精选示例收录量 + 愿望单入口（真按钮，点开愿望单弹层） -->
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock x:Name="StoreCapacityText" FontSize="13" VerticalAlignment="Center"
+                               Foreground="{ThemeResource TaoInk2Brush}" />
+                    <Button x:Name="WishlistButton" Content="愿望单" Click="OnWishlistClick"
+                            CornerRadius="10" Padding="14,6" />
                 </StackPanel>
 
                 <TextBlock x:Name="StoreHint" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}"
-                           Text="软件库检索随官方源适配层接入后可用；已装清单见下方。" />
+                           Text="下方为精选示例卡；也可以直接搜软件名安装，已装清单见列表。" />
+                <!-- R-P2-8：16 张精选示例卡 2-3 列自适（code-behind 生成，统一「精选示例」标注） -->
+                <ItemsControl x:Name="StoreCardGrid">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal" ItemWidth="286" ItemHeight="118"
+                                           HorizontalAlignment="Left" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <TextBlock x:Name="StoreFooter" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}"
+                           Text="以上为精选示例 · 接入后以实际收录量在此如实标注" />
+
+                <TextBlock Text="已装软件" FontSize="13.5" FontWeight="SemiBold"
+                           Foreground="{ThemeResource TaoInkBrush}" />
                 <ItemsControl x:Name="StoreList" />
             </StackPanel>
 
@@ -82,9 +105,40 @@
                 <TextBlock x:Name="UpgradeSummary" FontSize="13.5" Foreground="{ThemeResource TaoInk2Brush}" />
                 <TextBlock x:Name="BlockedHint" FontSize="12" TextWrapping="Wrap"
                            Foreground="{ThemeResource TaoCinnabarBrush}" Visibility="Collapsed" />
-                <TextBlock Text="需你确认的升级（逐项过目，默认不静默）" FontSize="13.5" FontWeight="SemiBold"
-                           Foreground="{ThemeResource TaoInkBrush}" />
+                <!-- R-P2-2：三分桶——可静默 / 需你确认 / 已拦截，各组带计数 pill（随实数刷新，空组显空态） -->
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="可静默升级" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <Border x:Name="SilentPill" CornerRadius="9" Background="{ThemeResource TaoAzureWashBrush}"
+                            Padding="10,3" VerticalAlignment="Center">
+                        <TextBlock x:Name="SilentPillText" Text="0" FontSize="12" Foreground="{ThemeResource TaoAzureDeepBrush}" />
+                    </Border>
+                </StackPanel>
+                <TextBlock x:Name="SilentEmpty" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
+                           Foreground="{ThemeResource TaoInk3Brush}"
+                           Text="没有可静默升级的软件——有更新时会出现在这里。" />
+                <ItemsControl x:Name="SilentList" />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="需你确认的升级（逐项过目，默认不静默）" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{ThemeResource TaoInkBrush}" />
+                    <Border x:Name="ConfirmPill" CornerRadius="9" Background="{ThemeResource TaoAzureWashBrush}"
+                            Padding="10,3" VerticalAlignment="Center">
+                        <TextBlock x:Name="ConfirmPillText" Text="0" FontSize="12" Foreground="{ThemeResource TaoAzureDeepBrush}" />
+                    </Border>
+                </StackPanel>
+                <TextBlock x:Name="ConfirmEmpty" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
+                           Foreground="{ThemeResource TaoInk3Brush}"
+                           Text="没有待确认的升级——软件都是最新的。" />
                 <ItemsControl x:Name="UpgradeList" />
+                <StackPanel x:Name="BlockedPane" Orientation="Horizontal" Spacing="10" Visibility="Collapsed">
+                    <TextBlock Text="已拦截" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{ThemeResource TaoCinnabarBrush}" />
+                    <Border CornerRadius="9" Background="{ThemeResource TaoCinnabarWashBrush}"
+                            Padding="10,3" VerticalAlignment="Center">
+                        <TextBlock x:Name="BlockedPillText" Text="0" FontSize="12" Foreground="{ThemeResource TaoCinnabarBrush}" />
+                    </Border>
+                </StackPanel>
+                <ItemsControl x:Name="BlockedList" />
                 <TextBlock Text="每条升级装前都会自动过安全校验；校验没过的根本进不了清单，不用你操心。"
                            FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk3Brush}" />
             </StackPanel>
