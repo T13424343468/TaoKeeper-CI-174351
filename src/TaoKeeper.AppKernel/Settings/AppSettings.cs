@@ -41,6 +41,8 @@ public sealed class AppSettings
     // ── 清理与存储 ──
     public bool StorageSenseEnabled { get; set; } = false;     // 存储感知定时清理：默认关，到点只出确认预览
     public bool QuickScanByDefault { get; set; } = true;       // 快扫默认开启：打开磁盘清理即快扫
+    public long SnapshotQuotaBytes { get; set; } = TaoKeeper.Core.Modules.SnapshotPolicy.DefaultQuotaBytes; // 快照总量滚动上限：默认 5GB 可配（R-P16-1，P16 时光回溯）
+    public int ShredSnapshotRetentionDays { get; set; } = TaoKeeper.Core.Modules.SnapshotPolicy.DefaultShredRetentionDays; // 粉碎类快照保留期：默认 7 天可配（R-P16-1）
 
     // ── 托盘 ──
     public bool TrayResident { get; set; } = true;             // 托盘常驻：关闭主窗口后仍保留托盘图标，不勾则随窗口退出
