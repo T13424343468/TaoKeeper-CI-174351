@@ -104,6 +104,15 @@
                         <TextBlock Text="硬件配置一屏尽览" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
                     </StackPanel>
                 </Button>
+                <Button x:Name="ToolRecover" Grid.Row="2" Grid.Column="0" Click="OnToolClick" Tag="recover"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
+                        CornerRadius="12" Background="{ThemeResource TaoCardBrush}"
+                        BorderBrush="{ThemeResource TaoLineSoftBrush}" BorderThickness="1">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="误删恢复" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource TaoInkBrush}" />
+                        <TextBlock Text="先镜像后找回，源盘零写入（R-P10-5）" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TaoInk2Brush}" />
+                    </StackPanel>
+                </Button>
             </Grid>
 
             <!-- 状态与结果区（点击卡片后展开；未扫描如实显示） -->

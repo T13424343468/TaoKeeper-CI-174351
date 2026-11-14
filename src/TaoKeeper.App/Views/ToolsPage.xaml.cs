@@ -119,6 +119,11 @@ public sealed partial class ToolsPage : Page
                 Frame.Navigate(typeof(SimilarPhotoPage), _similar);
                 break;
 
+            case "recover":
+                // R-P10-5：数据找回整页进入（误删恢复卡；镜像先行、源盘零写入，确认后写入）
+                Frame.Navigate(typeof(DiskHardcorePage));
+                break;
+
             case "shred":
                 // R-P10-4a~4b：文件粉碎面板（选择→确认→粉碎→回执→快照还原/到期清除）
                 EnterShredPanel();

@@ -268,6 +268,13 @@ internal static class CompositionRoot
                 try { Directory.Delete(Path.Combine(DataDir, "snapshots", id), recursive: true); }
                 catch (DirectoryNotFoundException) { }
             };
+
+            // P-6 硬核四项：磁盘适配器接线（只读扫描安全 API；扇区级读写/坏道标记需管理员+真机，标待真机验证清单）
+            DiskHardcorePage.AdapterProvider = () =>
+                OperatingSystem.IsWindows()
+                    ? new TaoKeeper.Adapters.WindowsHardcoreDiskAdapter(Path.Combine(DataDir, "mirror"))
+                    : null;
+            // 内存坏页测试器：真机内存页测试需内核口径，本版不接线（页面如实不预填该栏，不假数据）
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
