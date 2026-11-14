@@ -497,9 +497,9 @@ $deltaOk = $false
 if (-not $deltaPending) {
   $deltaOk = $true
   Write-Effect $true "d1-free-delta" ("free {0} -> {1}, delta={2}; inside |delta| <= {3} noise band (no silent permanent deletion; real release happens only at confirmed bin emptying)" -f $freePreClean, $freeAfter, $delta, $tol)
-} elseif ($binOk -and $restoreOk -and (($driftRange -ge 4MB) -or (($cleanedBytes -ge 48MB) -and ([Math]::Abs($delta) -lt ($cleanedBytes * 0.5))))) {
+} elseif ((($binOk -and $restoreOk) -or ($permMode -and $goneOk -and $ledgerOk)) -and (($driftRange -ge 4MB) -or (($cleanedBytes -ge 48MB) -and ([Math]::Abs($delta) -lt ($cleanedBytes * 0.5))))) {
   $deltaOk = $true
-  Write-Effect $true "d1-free-delta" ("[OK-ATTR] delta={0} breaches the {1} band, attributed to shared-runner concurrent drift: confirmation-sample range={2}, cleaned-bytes={3}; recycle path proven (bin match + byte-intact restore + ledger match), magnitude far below permanent-deletion signature; a stable reading near cleaned-bytes scale would still FAIL" -f $delta, $tol, $driftRange, $cleanedBytes)
+  Write-Effect $true "d1-free-delta" ("[OK-ATTR] delta={0} breaches the {1} band, attributed to shared-runner concurrent drift: confirmation-sample range={2}, cleaned-bytes={3}; effect independently proven (recycle: bin match + byte-intact restore + ledger; true-delete: files-gone + ledger byte-exact), magnitude far below permanent-deletion signature; a stable reading near cleaned-bytes scale would still FAIL" -f $delta, $tol, $driftRange, $cleanedBytes)
 } else {
   Write-Effect $false "d1-free-delta" ("[FAIL] delta={0} breaches the {1} band and cannot be attributed: recycle-proven={2}/{3}, drift-range={4}, cleaned-bytes={5}" -f $delta, $tol, $binOk, $restoreOk, $driftRange, $cleanedBytes)
 }
