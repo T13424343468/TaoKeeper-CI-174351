@@ -18,10 +18,10 @@ public class InstallOptInDefaultsTests
         var after = InstallOptInDefaults.Apply(new AppSettings(), null);
         var afterNoStamps = InstallOptInDefaults.Apply(new AppSettings(), Stamps());
 
-        Assert.Equal(before.TrayAutostart, after.TrayAutostart);
+        Assert.Equal(before.LaunchOnStartup, after.LaunchOnStartup);
         Assert.Equal(before.ShowDesktopWidget, after.ShowDesktopWidget);
         Assert.Equal(before.StorageSenseEnabled, after.StorageSenseEnabled);
-        Assert.Equal(before.TrayAutostart, afterNoStamps.TrayAutostart);
+        Assert.Equal(before.LaunchOnStartup, afterNoStamps.LaunchOnStartup);
         Assert.Equal(before.ShowDesktopWidget, afterNoStamps.ShowDesktopWidget);
         Assert.Equal(before.StorageSenseEnabled, afterNoStamps.StorageSenseEnabled);
     }
@@ -31,7 +31,7 @@ public class InstallOptInDefaultsTests
     {
         var settings = InstallOptInDefaults.Apply(new AppSettings(), Stamps(autostart: true, contextMenu: true, widget: true, weekly: true));
 
-        Assert.True(settings.TrayAutostart);        // R-P12-9 同源口径
+        Assert.True(settings.LaunchOnStartup);      // R-P12-9 同源口径（单开关统一，2026-11-14）
         Assert.True(settings.ShowDesktopWidget);    // R-P11-4 口径
         Assert.True(settings.StorageSenseEnabled);  // R-P9-3 每周定时口径
     }
@@ -41,7 +41,7 @@ public class InstallOptInDefaultsTests
     {
         var settings = InstallOptInDefaults.Apply(new AppSettings(), Stamps(autostart: false, contextMenu: false, widget: false, weekly: false));
 
-        Assert.False(settings.TrayAutostart);
+        Assert.False(settings.LaunchOnStartup);
         Assert.False(settings.ShowDesktopWidget);
         Assert.False(settings.StorageSenseEnabled);
     }
@@ -51,8 +51,8 @@ public class InstallOptInDefaultsTests
     {
         var settings = InstallOptInDefaults.Apply(new AppSettings(), Stamps(weekly: true));
 
-        // 代码默认 TrayAutostart=false / ShowDesktopWidget=true：无戳维度原样保留
-        Assert.False(settings.TrayAutostart);
+        // 代码默认 LaunchOnStartup=true / ShowDesktopWidget=true：无戳维度原样保留
+        Assert.True(settings.LaunchOnStartup);
         Assert.True(settings.ShowDesktopWidget);
         Assert.True(settings.StorageSenseEnabled);
     }

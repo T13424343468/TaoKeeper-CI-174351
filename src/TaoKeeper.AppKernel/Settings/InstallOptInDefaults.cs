@@ -16,7 +16,7 @@ public static class InstallOptInDefaults
     {
         ArgumentNullException.ThrowIfNull(settings);
         if (stamps is null) return settings;
-        if (stamps.Autostart is { } autostart) settings.TrayAutostart = autostart;       // R-P2-16 与 R-P12-9 同源
+        if (stamps.Autostart is { } autostart) settings.LaunchOnStartup = autostart;     // R-P2-16 与 R-P12-9 同源（单开关统一口径，2026-11-14）
         if (stamps.Widget is { } widget) settings.ShowDesktopWidget = widget;             // R-P11-4 不常驻口径
         if (stamps.WeeklyCleanup is { } weekly) settings.StorageSenseEnabled = weekly;    // R-P9-3 每周定时口径
         return settings;

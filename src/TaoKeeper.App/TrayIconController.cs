@@ -74,13 +74,13 @@ internal static class TrayIconController
     }
 
     /// <summary>
-    /// 设置页确认后应用托盘两项（R-P12-9）：常驻态即时生效；
-    /// 开机自启与注册表实际对齐（差量注册/注销，幂等）。返回空=无事发生，非空=如实错误文案。
+    /// 设置页确认后应用托盘设置（R-P12-9；2026-11-14 起开机自启由通用卡「开机自动启动」单一开关统管）：
+    /// 常驻态即时生效；开机自启与注册表实际对齐（差量注册/注销，幂等）。返回空=无事发生，非空=如实错误文案。
     /// </summary>
-    internal static string ApplySettings(bool trayAutostart, bool trayResident)
+    internal static string ApplySettings(bool launchOnStartup, bool trayResident)
     {
         Resident = trayResident;
-        return SyncAutostart(trayAutostart);
+        return SyncAutostart(launchOnStartup);
     }
 
     /// <summary>把自启项对齐到目标态（菜单与设置页共用同源逻辑；未接线返回空串=本会话不适用）。</summary>
