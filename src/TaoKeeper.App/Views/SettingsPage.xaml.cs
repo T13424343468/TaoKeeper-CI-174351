@@ -204,6 +204,8 @@ public sealed partial class SettingsPage : Page
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
+        var themeBefore = _vm.Current.Theme;
+        var widgetBefore = (_vm.Current.ShowDesktopWidget, _vm.Current.WidgetSize, string.Join(",", _vm.Current.WidgetContents));
         var applied = _vm.ConfirmPendingChanges();
         Refresh();
         EntryHint.Text = applied.Count == 0
@@ -212,13 +214,24 @@ public sealed partial class SettingsPage : Page
                 ? $"已保存 {applied.Count} 项改动：{string.Join("；", applied)}"
                 : $"已在本会话生效 {applied.Count} 项（暂无设置文件渠道，未落盘）：{string.Join("；", applied)}";
 
-        // R-P12-9：托盘常驻确认后即时生效；开机自启走通用卡单一开关与注册表差量对齐（2026-11-14 双口径合并），结果如实追加
         if (applied.Count > 0)
         {
+            // R-P12-1：主题保存后全局即时换肤；重启后由 App 启动从同一设置文件回读（往返保持，AppSettingsStore 往返测试在案）
+            if (_vm.Current.Theme != themeBefore)
+                AppTheme.Apply(Application.Current, _vm.Current.Theme);
+
+            // R-P12-6：挂件配置保存后即时生效——通知订阅方（桌面挂件窗口/挂件页）按新配置重排
+            var widgetNow = (_vm.Current.ShowDesktopWidget, _vm.Current.WidgetSize, string.Join(",", _vm.Current.WidgetContents));
+            if (widgetNow != widgetBefore) WidgetSettingsChanged?.Invoke(_vm.Current);
+
+            // R-P12-9：托盘常驻确认后即时生效；开机自启走通用卡单一开关与注册表差量对齐（2026-11-14 双口径合并），结果如实追加
             var trayNote = TrayIconController.ApplySettings(_vm.Current.LaunchOnStartup, _vm.Current.TrayResident);
             if (trayNote.Length > 0) EntryHint.Text += $"（托盘：{trayNote}）";
         }
     }
+
+    /// <summary>R-P12-6：挂件配置保存后通知（订阅方：桌面挂件窗口等；未订阅时静默）。</summary>
+    public static Action<AppKernel.Settings.AppSettings>? WidgetSettingsChanged { get; set; }
 
     private void OnDiscardClick(object sender, RoutedEventArgs e)
     {
