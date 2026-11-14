@@ -12,6 +12,20 @@
     -->
     <Application.Resources>
         <ResourceDictionary>
+            <!-- R-4/C4：按钮四态统一（主按钮/次按钮/危险按钮/幽灵按钮）——圆角/挂色收口，散写归档 -->
+            <Style x:Key="TaoButtonPrimary" TargetType="Button">
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Background" Value="{ThemeResource TaoAzureBrush}" />
+                <Setter Property="Foreground" Value="White" />
+            </Style>
+            <Style x:Key="TaoButtonGhost" TargetType="Button">
+                <Setter Property="CornerRadius" Value="10" />
+            </Style>
+            <Style x:Key="TaoButtonRed" TargetType="Button">
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Background" Value="{ThemeResource TaoCinnabarBrush}" />
+                <Setter Property="Foreground" Value="White" />
+            </Style>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <ResourceDictionary Source="ms-appx:///Themes/TaoTheme.Shuimo.xaml" />

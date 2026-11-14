@@ -28,7 +28,7 @@
                         <TextBlock x:Name="SummaryText" FontSize="13.5" TextWrapping="Wrap"
                                    Foreground="{ThemeResource TaoInkBrush}" />
                     </StackPanel>
-                    <TextBlock x:Name="EmptyHint" FontSize="12.5" TextWrapping="Wrap"
+                    <TextBlock x:Name="EmptyHint" FontSize="12" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk3Brush}"
                                Text="尚未扫描。重复文件扫描接线后，各组在这里按可释放体积降序排列（全文件哈希相同才算重复，零误报）。" />
                 </StackPanel>
@@ -54,7 +54,7 @@
                     </StackPanel>
                     <Button x:Name="QueueButton" Grid.Column="1" Content="转入确认队列（先进回收站）"
                             Click="OnQueueClick" CornerRadius="10" Padding="16,7" VerticalAlignment="Center"
-                            Background="{ThemeResource TaoAzureBrush}" Foreground="White" />
+                            Style="{StaticResource TaoButtonPrimary}" />
                 </Grid>
             </Border>
 

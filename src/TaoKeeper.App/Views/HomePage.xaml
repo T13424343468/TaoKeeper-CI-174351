@@ -10,7 +10,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ScrollViewer>
-        <StackPanel MaxWidth="980" Padding="28,22,28,30" Spacing="18">
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="18">
 
             <!-- 远山 hero（水墨远山 + 一点朱砂落日） -->
             <Grid>
@@ -51,7 +51,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="3">
                             <TextBlock x:Name="StatScore" FontSize="26" FontWeight="SemiBold"
                                        Foreground="{ThemeResource TaoInkBrush}" />
-                            <TextBlock Text="分" FontSize="13" VerticalAlignment="Bottom" Margin="0,0,0,4"
+                            <TextBlock Text="分" FontSize="13.5" VerticalAlignment="Bottom" Margin="0,0,0,4"
                                        Foreground="{ThemeResource TaoInk3Brush}" />
                         </StackPanel>
                         <TextBlock x:Name="StatScoreLabel" FontSize="12"
@@ -65,7 +65,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="3">
                             <TextBlock x:Name="StatJunk" FontSize="26" FontWeight="SemiBold"
                                        Foreground="{ThemeResource TaoInkBrush}" />
-                            <TextBlock x:Name="StatJunkUnit" Text="待清" FontSize="13" VerticalAlignment="Bottom"
+                            <TextBlock x:Name="StatJunkUnit" Text="待清" FontSize="13.5" VerticalAlignment="Bottom"
                                        Margin="0,0,0,4" Foreground="{ThemeResource TaoInk3Brush}" />
                         </StackPanel>
                         <TextBlock Text="可清理垃圾（进回收站）" FontSize="12"
@@ -79,7 +79,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="3">
                             <TextBlock x:Name="StatUpgrades" FontSize="26" FontWeight="SemiBold"
                                        Foreground="{ThemeResource TaoInkBrush}" />
-                            <TextBlock Text="款" FontSize="13" VerticalAlignment="Bottom" Margin="0,0,0,4"
+                            <TextBlock Text="款" FontSize="13.5" VerticalAlignment="Bottom" Margin="0,0,0,4"
                                        Foreground="{ThemeResource TaoInk3Brush}" />
                         </StackPanel>
                         <TextBlock x:Name="StatUpgradesLabel" FontSize="12"
@@ -153,14 +153,14 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="清理账 · 最近三笔" FontSize="14" FontWeight="SemiBold"
                                Foreground="{ThemeResource TaoInkBrush}" />
-                    <TextBlock x:Name="LedgerEmpty" FontSize="12.5"
+                    <TextBlock x:Name="LedgerEmpty" FontSize="12"
                                Foreground="{ThemeResource TaoInk3Brush}" Text="还没有清理记录，清一次就会记账（可还原）。"
                                Visibility="Collapsed" />
-                    <TextBlock x:Name="LedgerLine0" FontSize="12.5" LineHeight="21" TextWrapping="Wrap"
+                    <TextBlock x:Name="LedgerLine0" FontSize="12" LineHeight="21" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk2Brush}" />
-                    <TextBlock x:Name="LedgerLine1" FontSize="12.5" LineHeight="21" TextWrapping="Wrap"
+                    <TextBlock x:Name="LedgerLine1" FontSize="12" LineHeight="21" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk2Brush}" />
-                    <TextBlock x:Name="LedgerLine2" FontSize="12.5" LineHeight="21" TextWrapping="Wrap"
+                    <TextBlock x:Name="LedgerLine2" FontSize="12" LineHeight="21" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk2Brush}" />
                 </StackPanel>
             </Border>

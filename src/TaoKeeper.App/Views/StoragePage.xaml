@@ -12,7 +12,7 @@
     xmlns:local="using:TaoKeeper.App.Views">
 
     <ScrollViewer>
-        <StackPanel MaxWidth="760" Padding="28,22,28,30" Spacing="14" HorizontalAlignment="Left">
+        <StackPanel MaxWidth="760" Padding="28,20,28,30" Spacing="14" HorizontalAlignment="Left">
             <TextBlock Text="存储感知" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
             <TextBlock Text="存储感知" FontSize="26" FontWeight="SemiBold"
                        Foreground="{ThemeResource TaoInkBrush}" />
@@ -68,9 +68,9 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock x:Name="ScopeError" FontSize="12.5" TextWrapping="Wrap" Visibility="Collapsed"
+                    <TextBlock x:Name="ScopeError" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
                                Foreground="{ThemeResource TaoCinnabarBrush}" />
-                    <TextBlock FontSize="12.5" TextWrapping="Wrap" Margin="0,4,0,0"
+                    <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
                                Foreground="{ThemeResource TaoInk3Brush}"
                                Text="所有清理动作走回收站语义：先确认、先进回收站、可还原。" />
                 </StackPanel>
@@ -85,7 +85,7 @@
                                Foreground="{ThemeResource TaoInkBrush}" />
                     <Button x:Name="CheckNowButton" Content="立即检查一次（到点才提示，未到点不动任何文件）"
                             Click="OnCheckNowClick" CornerRadius="10" Padding="14,7" HorizontalAlignment="Left" />
-                    <TextBlock x:Name="CheckResult" FontSize="12.5" TextWrapping="Wrap"
+                    <TextBlock x:Name="CheckResult" FontSize="12" TextWrapping="Wrap"
                                Foreground="{ThemeResource TaoInk2Brush}"
                                Text="开启后到点会在这里给出确认预览；未到点不做任何事。" />
                     <StackPanel x:Name="PendingActions" Orientation="Horizontal" Spacing="10" Visibility="Collapsed">

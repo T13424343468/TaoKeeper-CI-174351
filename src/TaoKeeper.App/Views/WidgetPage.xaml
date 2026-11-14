@@ -11,7 +11,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ScrollViewer>
-        <StackPanel MaxWidth="980" Padding="28,22,28,30" Spacing="14">
+        <StackPanel MaxWidth="980" Padding="28,20,28,30" Spacing="14">
             <TextBlock Text="桌面挂件" FontSize="12" Foreground="{ThemeResource TaoInk3Brush}" />
             <TextBlock Text="桌面挂件" FontSize="26" FontWeight="SemiBold"
                        Foreground="{ThemeResource TaoInkBrush}" />
@@ -45,7 +45,7 @@
                                 </StackPanel>
                             </Grid>
 
-                            <TextBlock x:Name="JunkLine" FontSize="12.5" HorizontalAlignment="Center"
+                            <TextBlock x:Name="JunkLine" FontSize="12" HorizontalAlignment="Center"
                                        Foreground="{ThemeResource TaoInk2Brush}" />
                             <Button x:Name="CleanEntry" Content="一键清理" Style="{StaticResource AccentButtonStyle}"
                                     Click="OnCleanEntryClick" HorizontalAlignment="Center" MinWidth="128"
@@ -61,7 +61,7 @@
                         <StackPanel Spacing="10">
                             <TextBlock Text="确认清理明细" FontSize="14" FontWeight="SemiBold"
                                        Foreground="{ThemeResource TaoInkBrush}" />
-                            <TextBlock x:Name="DetailList" FontSize="12.5" TextWrapping="Wrap"
+                            <TextBlock x:Name="DetailList" FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource TaoInk2Brush}" />
                             <TextBlock x:Name="DetailNote" FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource TaoInk3Brush}"
